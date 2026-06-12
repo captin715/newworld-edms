@@ -193,7 +193,7 @@
 
   // 3) 문서 로드 (RLS가 권한 범위만 반환)
   const { data: docs, error } = await edmsClient.from('edms_documents')
-    .select('doc_number, title, doc_type, series, current_version, status, confidentiality, registered_at, storage_path')
+    .select('doc_number, title, doc_type, series, current_version, status, confidentiality, security_level, registered_at, storage_path')
     .order('doc_number')
     .limit(1000);
   if (error) {
@@ -301,7 +301,7 @@
         <td>${d.series}</td>
         <td>${d.current_version}</td>
         <td>${d.status}</td>
-        <td><span class="conf-tag conf-${d.confidentiality}">${d.confidentiality}</span></td>
+        <td><span class="conf-tag conf-${d.confidentiality}">P${d.security_level}</span></td>
         <td>${d.registered_at || ''}</td>
         <td>${fileCell(d)}</td>
       </tr>`).join('');
