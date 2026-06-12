@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뉴월드 EDMS — 표준문서 관리시스템</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Malgun Gothic','Segoe UI',sans-serif; }
+  body { background:#f0f2f7; color:#222; }
+
+  header {
+    background:#1F3864; color:#fff; padding:14px 20px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  header h1 { font-size:18px; }
+  header h1 small { font-weight:normal; font-size:12px; opacity:.8; margin-left:8px; }
+  .userbox { display:flex; align-items:center; gap:10px; font-size:13px; }
+  .role-badge { background:#e8b931; color:#1F3864; font-weight:bold; padding:2px 10px; border-radius:12px; font-size:12px; }
+  .role-badge.general { background:#aebcd6; }
+  #logoutBtn {
+    background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff;
+    padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px;
+  }
+  #logoutBtn:hover { background:rgba(255,255,255,.15); }
+
+  main { max-width:1100px; margin:0 auto; padding:20px 16px 60px; }
+
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+  .card {
+    background:#fff; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(31,56,100,.08);
+    border-top:4px solid #1F3864;
+  }
+  .card .label { font-size:12px; color:#777; margin-bottom:8px; }
+  .card .value { font-size:26px; font-weight:bold; color:#1F3864; }
+  .card .sub { font-size:11px; color:#999; margin-top:6px; }
+
+  .panel {
+    background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(31,56,100,.08);
+    margin-bottom:20px;
+  }
+  .panel h2 { font-size:15px; color:#1F3864; margin-bottom:14px; }
+  .chart-wrap { position:relative; height:260px; }
+
+  .filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .filters input, .filters select {
+    padding:9px 12px; border:1.5px solid #d5dbe7; border-radius:8px; font-size:14px; outline:none;
+  }
+  .filters input { flex:1; min-width:180px; }
+  .filters input:focus, .filters select:focus { border-color:#1F3864; }
+  .count-info { font-size:12px; color:#888; margin-bottom:8px; }
+
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th {
+    background:#1F3864; color:#fff; padding:9px 10px; text-align:left;
+    position:sticky; top:0; white-space:nowrap;
+  }
+  td { padding:8px 10px; border-bottom:1px solid #eef1f6; white-space:nowrap; }
+  td.title-cell { white-space:normal; min-width:180px; }
+  tr:hover td { background:#f5f8fd; }
+  .conf-tag { font-size:11px; padding:1px 7px; border-radius:10px; }
+  .conf-일반 { background:#e3efe3; color:#2e7d32; }
+  .conf-대외비 { background:#fdf0d5; color:#b07d00; }
+  .conf-기밀 { background:#fbe2e0; color:#c0392b; }
+
+  .notice { font-size:12px; color:#888; margin-top:10px; line-height:1.6; }
+
+  footer { text-align:center; padding:20px; }
+  footer a {
+    display:inline-block; background:#fff; color:#1F3864; border:1.5px solid #1F3864;
+    padding:10px 22px; border-radius:8px; text-decoration:none; font-size:14px; font-weight:bold;
+  }
+  footer a:hover { background:#1F3864; color:#fff; }
+  footer p { font-size:11px; color:#aaa; margin-top:10px; }
+
+  #loading { text-align:center; padding:60px 0; color:#1F3864; font-size:15px; }
+
+  @media (max-width:768px) {
+    .cards { grid-template-columns:repeat(2,1fr); }
+    header h1 { font-size:15px; }
+    .card .value { font-size:21px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>뉴월드 EDMS <small>표준문서 관리시스템</small></h1>
+  <div class="userbox">
+    <span id="userName">—</span>
+    <span class="role-badge" id="roleBadge" style="display:none"></span>
+    <button id="logoutBtn">로그아웃</button>
+  </div>
+</header>
+
+<main>
+  <div id="loading">문서 현황을 불러오는 중...</div>
+
+  <div id="content" style="display:none">
+    <div class="cards">
+      <div class="card">
+        <div class="label">총 문서</div>
+        <div class="value" id="cardTotal">0</div>
+        <div class="sub">권한 범위 내 표시</div>
+      </div>
+      <div class="card">
+        <div class="label">시리즈</div>
+        <div class="value" id="cardSeries">0<span style="font-size:14px">종</span></div>
+        <div class="sub" id="cardSeriesSub"></div>
+      </div>
+      <div class="card">
+        <div class="label">등록완료</div>
+        <div class="value" id="cardDone">0</div>
+        <div class="sub" id="cardStatusSub"></div>
+      </div>
+      <div class="card">
+        <div class="label">이달 등재·개정</div>
+        <div class="value" id="cardMonth">0</div>
+        <div class="sub" id="cardMonthSub"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>시리즈별 문서 분포</h2>
+      <div class="chart-wrap"><canvas id="seriesChart"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <h2>표준문서 목록</h2>
+      <div class="filters">
+        <input type="text" id="searchInput" placeholder="문서번호·제목 검색">
+        <select id="seriesFilter"><option value="">시리즈 전체</option></select>
+        <select id="typeFilter"><option value="">유형 전체</option></select>
+      </div>
+      <div class="count-info" id="countInfo"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>문서번호</th><th>제목</th><th>유형</th><th>시리즈</th>
+            <th>버전</th><th>상태</th><th>등급</th><th>제정일</th>
+          </tr></thead>
+          <tbody id="docTbody"></tbody>
+        </table>
+      </div>
+      <div class="notice">
+        ※ 대외비·기밀 문서는 서버의 행 수준 보안(RLS)이 차단합니다. 화면에서 숨기는 방식이 아니므로,
+        권한이 없는 계정은 어떤 방법으로도 해당 데이터를 받아볼 수 없습니다.
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <a href="https://captin715.github.io/ces-app/" target="_blank">현장관리시스템 CES로 이동 →</a>
+  <p>EDMS와 CES는 독립 운영되는 별도 시스템입니다 · © 주식회사 뉴월드</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="edms-config.js"></script>
+<script>
+(async function () {
+  // 1) 세션 확인 — 미로그인 시 로그인 페이지로
+  const { data: { session } } = await edmsClient.auth.getSession();
+  if (!session) { location.replace('login.html'); return; }
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await edmsClient.auth.signOut();
+    location.replace('login.html');
+  });
+
+  // 2) 프로필(이름·권한) 로드
+  let profile = null;
+  try {
+    const { data } = await edmsClient.from('edms_profiles')
+      .select('name, role').eq('id', session.user.id).maybeSingle();
+    profile = data;
+  } catch (e) { /* 프로필 없어도 동작 */ }
+  document.getElementById('userName').textContent =
+    (profile && profile.name) || session.user.email;
+  const badge = document.getElementById('roleBadge');
+  const isAdmin = profile && profile.role === 'admin';
+  badge.textContent = isAdmin ? '관리자' : '일반';
+  badge.className = 'role-badge' + (isAdmin ? '' : ' general');
+  badge.style.display = '';
+
+  // 3) 문서 로드 (RLS가 권한 범위만 반환)
+  const { data: docs, error } = await edmsClient.from('edms_documents')
+    .select('doc_number, title, doc_type, series, current_version, status, confidentiality, registered_at')
+    .order('doc_number')
+    .limit(1000);
+  if (error) {
+    document.getElementById('loading').textContent = '데이터 조회 오류: ' + error.message;
+    return;
+  }
+
+  // 4) 요약카드
+  document.getElementById('cardTotal').textContent = docs.length;
+  const bySeries = {};
+  docs.forEach(d => { bySeries[d.series] = (bySeries[d.series] || 0) + 1; });
+  const seriesNames = Object.keys(bySeries).sort((a, b) => bySeries[b] - bySeries[a]);
+  document.getElementById('cardSeries').innerHTML =
+    seriesNames.length + '<span style="font-size:14px">종</span>';
+  document.getElementById('cardSeriesSub').textContent =
+    seriesNames.slice(0, 3).map(s => `${s} ${bySeries[s]}`).join(' · ');
+
+  const byStatus = {};
+  docs.forEach(d => { byStatus[d.status] = (byStatus[d.status] || 0) + 1; });
+  document.getElementById('cardDone').textContent = byStatus['등록완료'] || 0;
+  document.getElementById('cardStatusSub').textContent =
+    Object.entries(byStatus).map(([k, v]) => `${k} ${v}`).join(' · ');
+
+  const ym = new Date().toISOString().slice(0, 7);
+  let monthCnt = 0;
+  try {
+    const { data: revs } = await edmsClient.from('edms_revisions')
+      .select('revision_date').gte('revision_date', ym + '-01').limit(1000);
+    monthCnt = (revs || []).length;
+  } catch (e) { /* 권한 범위 밖이면 0 */ }
+  document.getElementById('cardMonth').textContent = monthCnt;
+  document.getElementById('cardMonthSub').textContent = ym.replace('-', '년 ') + '월 기준';
+
+  // 5) 시리즈 차트
+  new Chart(document.getElementById('seriesChart'), {
+    type: 'bar',
+    data: {
+      labels: seriesNames,
+      datasets: [{
+        label: '문서 수',
+        data: seriesNames.map(s => bySeries[s]),
+        backgroundColor: '#1F3864',
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+
+  // 6) 목록 테이블 + 검색·필터
+  const seriesSel = document.getElementById('seriesFilter');
+  seriesNames.slice().sort().forEach(s => seriesSel.add(new Option(`${s} (${bySeries[s]})`, s)));
+  const typeSel = document.getElementById('typeFilter');
+  [...new Set(docs.map(d => d.doc_type).filter(Boolean))].sort()
+    .forEach(t => typeSel.add(new Option(t, t)));
+
+  const tbody = document.getElementById('docTbody');
+  function render() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const fs = seriesSel.value, ft = typeSel.value;
+    const list = docs.filter(d =>
+      (!q || d.doc_number.toLowerCase().includes(q) || (d.title || '').toLowerCase().includes(q)) &&
+      (!fs || d.series === fs) &&
+      (!ft || d.doc_type === ft)
+    );
+    document.getElementById('countInfo').textContent =
+      `전체 ${docs.length}건 중 ${list.length}건 표시`;
+    tbody.innerHTML = list.map(d => `
+      <tr>
+        <td>${d.doc_number}</td>
+        <td class="title-cell">${d.title || ''}</td>
+        <td>${d.doc_type || ''}</td>
+        <td>${d.series}</td>
+        <td>${d.current_version}</td>
+        <td>${d.status}</td>
+        <td><span class="conf-tag conf-${d.confidentiality}">${d.confidentiality}</span></td>
+        <td>${d.registered_at || ''}</td>
+      </tr>`).join('');
+  }
+  document.getElementById('searchInput').addEventListener('input', render);
+  seriesSel.addEventListener('change', render);
+  typeSel.addEventListener('change', render);
+  render();
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = '';
+})();
+</script>
+</body>
+</html>

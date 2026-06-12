@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뉴월드 EDMS — 로그인</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Malgun Gothic','Segoe UI',sans-serif; }
+  body {
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#1F3864 0%,#2d4f8a 100%); padding:16px;
+  }
+  .card {
+    background:#fff; border-radius:14px; padding:40px 32px; width:100%; max-width:400px;
+    box-shadow:0 12px 40px rgba(0,0,0,.25);
+  }
+  .logo { text-align:center; margin-bottom:28px; }
+  .logo .badge {
+    display:inline-block; background:#1F3864; color:#fff; font-size:13px;
+    padding:4px 12px; border-radius:20px; letter-spacing:2px; margin-bottom:10px;
+  }
+  .logo h1 { font-size:22px; color:#1F3864; }
+  .logo p { font-size:13px; color:#888; margin-top:6px; }
+  label { display:block; font-size:13px; color:#444; margin:14px 0 6px; font-weight:bold; }
+  input {
+    width:100%; padding:12px 14px; border:1.5px solid #d5dbe7; border-radius:8px;
+    font-size:15px; outline:none;
+  }
+  input:focus { border-color:#1F3864; }
+  button {
+    width:100%; margin-top:22px; padding:13px; background:#1F3864; color:#fff;
+    border:none; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer;
+  }
+  button:hover { background:#16294a; }
+  button:disabled { background:#9aa7bd; cursor:wait; }
+  .msg { margin-top:14px; font-size:13px; text-align:center; min-height:18px; }
+  .msg.error { color:#c0392b; }
+  .foot { margin-top:24px; text-align:center; font-size:12px; color:#aaa; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <span class="badge">NEW WORLD</span>
+      <h1>뉴월드 EDMS</h1>
+      <p>표준문서 관리시스템</p>
+    </div>
+    <form id="loginForm">
+      <label for="email">이메일</label>
+      <input type="email" id="email" autocomplete="username" required placeholder="이메일 주소">
+      <label for="password">비밀번호</label>
+      <input type="password" id="password" autocomplete="current-password" required placeholder="비밀번호">
+      <button type="submit" id="btn">로그인</button>
+      <div class="msg" id="msg"></div>
+    </form>
+    <div class="foot">© 주식회사 뉴월드 · 계정 문의는 관리자에게</div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="edms-config.js"></script>
+<script>
+  // 이미 로그인되어 있으면 대시보드로
+  edmsClient.auth.getSession().then(({ data }) => {
+    if (data.session) location.replace('index.html');
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn');
+    const msg = document.getElementById('msg');
+    btn.disabled = true; msg.textContent = '확인 중...'; msg.className = 'msg';
+    const { error } = await edmsClient.auth.signInWithPassword({
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+    });
+    if (error) {
+      msg.textContent = '로그인 실패: 이메일 또는 비밀번호를 확인하세요.';
+      msg.className = 'msg error';
+      btn.disabled = false;
+    } else {
+      location.replace('index.html');
+    }
+  });
+</script>
+</body>
+</html>
