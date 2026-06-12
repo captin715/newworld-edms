@@ -62,6 +62,13 @@
   .conf-일반 { background:#e3efe3; color:#2e7d32; }
   .conf-대외비 { background:#fdf0d5; color:#b07d00; }
   .conf-기밀 { background:#fbe2e0; color:#c0392b; }
+  .dl-btn {
+    background:#1F3864; color:#fff; border:none; padding:4px 12px;
+    border-radius:6px; font-size:12px; cursor:pointer;
+  }
+  .dl-btn:hover { background:#16294a; }
+  .dl-btn:disabled { background:#9aa7bd; cursor:wait; }
+  .dl-lock { font-size:11px; color:#999; white-space:nowrap; }
 
   .notice { font-size:12px; color:#888; margin-top:10px; line-height:1.6; }
 
@@ -136,14 +143,15 @@
         <table>
           <thead><tr>
             <th>문서번호</th><th>제목</th><th>유형</th><th>시리즈</th>
-            <th>버전</th><th>상태</th><th>등급</th><th>제정일</th>
+            <th>버전</th><th>상태</th><th>등급</th><th>제정일</th><th>파일</th>
           </tr></thead>
           <tbody id="docTbody"></tbody>
         </table>
       </div>
       <div class="notice">
-        ※ 대외비·기밀 문서는 서버의 행 수준 보안(RLS)이 차단합니다. 화면에서 숨기는 방식이 아니므로,
-        권한이 없는 계정은 어떤 방법으로도 해당 데이터를 받아볼 수 없습니다.
+        ※ 목록 열람은 로그인한 임원 전체에게 열려 있으며, 파일 다운로드는 대표(관리자)만 가능합니다.
+        다운로드 차단은 화면 숨김이 아니라 서버 보안 정책(RLS)이 수행하므로,
+        권한이 없는 계정은 어떤 방법으로도 파일을 받을 수 없습니다.
       </div>
     </div>
   </div>
@@ -185,7 +193,7 @@
 
   // 3) 문서 로드 (RLS가 권한 범위만 반환)
   const { data: docs, error } = await edmsClient.from('edms_documents')
-    .select('doc_number, title, doc_type, series, current_version, status, confidentiality, registered_at')
+    .select('doc_number, title, doc_type, series, current_version, status, confidentiality, registered_at, storage_path')
     .order('doc_number')
     .limit(1000);
   if (error) {
@@ -246,6 +254,35 @@
     .forEach(t => typeSel.add(new Option(t, t)));
 
   const tbody = document.getElementById('docTbody');
+
+  // 파일 열: 관리자=다운로드 버튼 / 그 외=승인 필요 표시 (실제 차단은 Storage RLS가 수행)
+  function fileCell(d) {
+    if (!d.storage_path) return '—';
+    if (isAdmin) {
+      return `<button class="dl-btn" data-path="${d.storage_path}" data-num="${d.doc_number}">다운로드</button>`;
+    }
+    return '<span class="dl-lock">🔒 대표 승인 필요</span>';
+  }
+
+  tbody.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.dl-btn');
+    if (!btn) return;
+    const path = btn.dataset.path, num = btn.dataset.num;
+    btn.disabled = true; btn.textContent = '받는 중...';
+    try {
+      const { data, error } = await edmsClient.storage.from('documents').download(path);
+      if (error) { alert('파일을 가져올 수 없습니다: ' + error.message); return; }
+      const ext = path.slice(path.lastIndexOf('.'));
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url; a.download = num + ext;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      btn.disabled = false; btn.textContent = '다운로드';
+    }
+  });
+
   function render() {
     const q = document.getElementById('searchInput').value.trim().toLowerCase();
     const fs = seriesSel.value, ft = typeSel.value;
@@ -266,6 +303,7 @@
         <td>${d.status}</td>
         <td><span class="conf-tag conf-${d.confidentiality}">${d.confidentiality}</span></td>
         <td>${d.registered_at || ''}</td>
+        <td>${fileCell(d)}</td>
       </tr>`).join('');
   }
   document.getElementById('searchInput').addEventListener('input', render);
