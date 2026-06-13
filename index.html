@@ -204,6 +204,19 @@
   .form-submit:disabled { background:#9aa7bd; cursor:wait; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
 
+  /* 발번 도우미 */
+  .num-note { font-size:12px; color:#666; background:#f0f3f9; border-radius:7px; padding:9px 11px; line-height:1.5; margin-top:4px; }
+  .num-warn { font-size:12px; margin-top:5px; min-height:15px; }
+  .num-warn.err { color:#c0392b; font-weight:bold; }
+  .num-warn.ok { color:#2e7d32; }
+  .prefix-hint { font-size:12px; color:#1F3864; margin-top:6px; }
+  .prefix-hint b { font-family:monospace; font-size:13px; }
+  .used-list { margin-top:10px; max-height:160px; overflow:auto; border:1px solid #e3e8f0; border-radius:7px; padding:8px 10px; background:#fafbfd; }
+  .used-h { font-size:12px; color:#1F3864; font-weight:bold; margin-bottom:5px; }
+  .used-row { font-size:12px; padding:2px 0; border-bottom:1px solid #f0f2f7; }
+  .used-row b { font-family:monospace; color:#1F3864; }
+  .used-empty { font-size:12px; color:#888; }
+
   /* 버전·개정이력 */
   .ver-link { background:none; border:none; color:#1F3864; font-size:13px; cursor:pointer; text-decoration:underline; padding:0; font-family:inherit; }
   .ver-link:hover { color:#16294a; }
@@ -373,25 +386,51 @@
         <select id="fReviseDoc"><option value="">— 선택 —</option></select>
       </div>
 
-      <label>문서번호</label>
-      <div class="num-row">
-        <input type="text" id="fDocNo" placeholder="예: W-FR-I-Q071110-99">
-        <button type="button" id="fSuggestNo">다음번호 제안</button>
+      <!-- 발번 도우미 (제정 전용) -->
+      <div id="numHelper">
+        <div class="num-note">번호는 발번대장(EDMS)을 기준으로 부여되며 중복은 자동 차단됩니다.
+          6자리는 문서 영역·계층 의미를 담으니 구조에 맞게 확인 후 확정하세요.</div>
+        <div class="grid2">
+          <div>
+            <label>유형</label>
+            <select id="fType"></select>
+          </div>
+          <div id="discWrap">
+            <label>구분자</label>
+            <select id="fDisc"></select>
+          </div>
+        </div>
+        <div id="frWrap" style="display:none">
+          <div class="grid2">
+            <div>
+              <label>계층코드(양식)</label>
+              <select id="fLayer"></select>
+            </div>
+            <div>
+              <label>순번(2자리)</label>
+              <input type="text" id="fSeq" placeholder="01" maxlength="2">
+            </div>
+          </div>
+          <label>상위문서 (구분자+6자리, 예: Q071110)</label>
+          <input type="text" id="fParent" placeholder="예: Q071110">
+        </div>
+        <div class="prefix-hint">조립 접두사: <b id="prefixHint">—</b></div>
+        <div class="num-row" style="margin-top:8px">
+          <button type="button" id="fShowUsed">사용 중인 번호 보기</button>
+          <button type="button" id="fSuggestNo">다음 후보 제안</button>
+        </div>
+        <div id="usedList" class="used-list" style="display:none"></div>
       </div>
+
+      <label>최종 문서번호</label>
+      <input type="text" id="fDocNo" placeholder="유형·구분자를 고르고 ‘다음 후보 제안’을 누르세요">
+      <div id="numWarn" class="num-warn"></div>
 
       <label>제목</label>
       <input type="text" id="fTitle" placeholder="문서 제목">
 
-      <div class="grid2">
-        <div>
-          <label>시리즈</label>
-          <input type="text" id="fSeries" placeholder="예: Q, CFSPS">
-        </div>
-        <div>
-          <label>유형(doc_type)</label>
-          <input type="text" id="fDocType" placeholder="예: W-FR, W-P">
-        </div>
-      </div>
+      <input type="hidden" id="fSeries">
+      <input type="hidden" id="fDocType">
 
       <div class="grid2">
         <div>
@@ -818,9 +857,14 @@
       docs.map(d => `<option value="${d.id}">${d.doc_number} — ${(d.title || '').slice(0, 28)}</option>`).join('');
     document.querySelector('input[name="apvType"][value="제정"]').checked = true;
     $('revisePick').style.display = 'none';
+    $('numHelper').style.display = '';
+    $('fType').value = 'W-M'; $('fDisc').value = 'G'; $('fLayer').value = 'P';
+    $('fParent').value = ''; $('fSeq').value = '';
+    $('usedList').style.display = 'none'; $('usedList').innerHTML = '';
     fDocNo.value = ''; fDocNo.readOnly = false; fTitle.value = '';
     fSeries.value = ''; fDocType.value = ''; fSecurity.value = '2';
     fVersion.value = 'Rev1.00'; fChange.value = ''; fFile.value = ''; fMsg.textContent = '';
+    applyFrMode(); syncDerived();
     formModal.classList.add('open');
   }
 
@@ -837,7 +881,9 @@
     r.addEventListener('change', () => {
       const isRev = document.querySelector('input[name="apvType"]:checked').value === '개정';
       $('revisePick').style.display = isRev ? '' : 'none';
-      if (!isRev) { fDocNo.readOnly = false; }
+      $('numHelper').style.display = isRev ? 'none' : '';   // 발번 도우미는 제정 전용
+      fDocNo.readOnly = isRev;                              // 개정은 기존 번호 고정
+      if (!isRev) syncDerived();
     }));
 
   // 개정 대상 선택 → 기존 값 채우기
@@ -850,13 +896,101 @@
     fVersion.value = nextVersion(d.current_version);
   });
 
-  // 다음번호 제안
-  $('fSuggestNo').addEventListener('click', async () => {
-    const prefix = fDocNo.value.trim();
-    if (!prefix) { alert('먼저 문서번호 앞부분(접두)을 입력한 뒤 눌러주세요. 예: W-FR-I-Q0711'); return; }
-    const { data, error } = await edmsClient.rpc('edms_next_docno', { p_prefix: prefix });
-    if (error) { alert('제안 실패: ' + error.message); return; }
-    fDocNo.value = data;
+  // ── 발번 도우미 (제정 전용) ─────────────────────────────
+  const NUM_TYPES = [
+    { code: 'W-M', suffix: 'M', label: '매뉴얼' }, { code: 'W-P', suffix: 'P', label: '절차서' },
+    { code: 'W-GL', suffix: 'GL', label: '지침서' }, { code: 'W-SOP', suffix: 'SOP', label: '작업표준서' },
+    { code: 'W-WI', suffix: 'WI', label: '작업지침서' }, { code: 'W-QS', suffix: 'QS', label: '검사기준서' },
+    { code: 'W-EM', suffix: 'EM', label: '장비매뉴얼' }, { code: 'W-SM', suffix: 'SM', label: '서비스매뉴얼' },
+    { code: 'W-FR', suffix: 'FR', label: '양식·기록' },
+  ];
+  const NUM_DISCS = [
+    { c: 'G', label: '공통' }, { c: 'C', label: '공사' }, { c: 'Q', label: '품질·검사' }, { c: 'E', label: '환경' },
+    { c: 'M', label: '매뉴얼' }, { c: 'D', label: '개발' }, { c: 'S', label: '전략' }, { c: 'R', label: '규제' },
+  ];
+  const NUM_LAYERS = [
+    { c: 'P', label: '절차서 예하' }, { c: 'L', label: '지침서 예하' }, { c: 'S', label: '작업표준서 예하' },
+    { c: 'Q', label: '검사기준서 예하' }, { c: 'I', label: '작업지침서 예하' },
+  ];
+  $('fType').innerHTML = NUM_TYPES.map(t => `<option value="${t.code}">W-${t.suffix} (${t.label})</option>`).join('');
+  $('fDisc').innerHTML = NUM_DISCS.map(d => `<option value="${d.c}">${d.c} (${d.label})</option>`).join('');
+  $('fLayer').innerHTML = NUM_LAYERS.map(l => `<option value="${l.c}">${l.c} (${l.label})</option>`).join('');
+
+  const isFRType = () => $('fType').value === 'W-FR';
+  function numPrefix() {
+    const t = NUM_TYPES.find(x => x.code === $('fType').value);
+    if (!t) return '';
+    if (t.code === 'W-FR') return `W-FR-${$('fLayer').value}-${$('fParent').value.trim()}`;
+    return `W-${t.suffix}-${$('fDisc').value}`;
+  }
+  function applyFrMode() {
+    const fr = isFRType();
+    $('discWrap').style.display = fr ? 'none' : '';
+    $('frWrap').style.display = fr ? '' : 'none';
+  }
+  function checkDup() {
+    const v = fDocNo.value.trim(), warn = $('numWarn');
+    if (!v) { warn.textContent = ''; warn.className = 'num-warn'; return false; }
+    const dup = docs.some(d => d.doc_number === v);
+    warn.textContent = dup ? '⚠ 이미 사용 중인 번호입니다.' : '사용 가능한 번호입니다.';
+    warn.className = 'num-warn ' + (dup ? 'err' : 'ok');
+    return dup;
+  }
+  // 컨트롤 변경 → 파생값(시리즈·유형)·접두사 갱신, 양식은 자동 조립
+  function syncDerived() {
+    const t = NUM_TYPES.find(x => x.code === $('fType').value);
+    fDocType.value = t ? t.code : '';
+    if (isFRType()) {
+      const parent = $('fParent').value.trim();
+      fSeries.value = /^[A-Za-z]/.test(parent) ? parent[0].toUpperCase() : '';
+      const seq = $('fSeq').value.trim();
+      if (parent && seq) fDocNo.value = `W-FR-${$('fLayer').value}-${parent}-${seq.padStart(2, '0')}`;
+    } else {
+      fSeries.value = $('fDisc').value;
+    }
+    $('prefixHint').textContent = numPrefix() || '—';
+    checkDup();
+  }
+  $('fType').addEventListener('change', () => { applyFrMode(); syncDerived(); });
+  ['fDisc', 'fLayer', 'fParent', 'fSeq'].forEach(id => $(id).addEventListener('input', syncDerived));
+  fDocNo.addEventListener('input', checkDup);
+
+  // 사용 중인 번호 보기
+  $('fShowUsed').addEventListener('click', async () => {
+    if (isFRType() && !$('fParent').value.trim()) { alert('상위문서(구분자+6자리)를 먼저 입력하세요.'); return; }
+    const prefix = numPrefix();
+    const box = $('usedList'); box.style.display = ''; box.innerHTML = '불러오는 중...';
+    const { data, error } = await edmsClient.from('edms_documents')
+      .select('doc_number, title').like('doc_number', prefix + '%').order('doc_number').limit(300);
+    if (error) { box.innerHTML = '조회 오류: ' + escHtml(error.message); return; }
+    if (!data.length) {
+      box.innerHTML = `<div class="used-empty">'${prefix}' 로 시작하는 기존 번호가 없습니다. (이 영역의 첫 문서입니다)</div>`;
+      return;
+    }
+    box.innerHTML = `<div class="used-h">'${prefix}' 사용 중 ${data.length}건</div>` +
+      data.map(d => `<div class="used-row"><b>${d.doc_number}</b> ${escHtml(d.title || '')}</div>`).join('');
+  });
+
+  // 다음 후보 제안 (참고용 — 편집 가능)
+  $('fSuggestNo').addEventListener('click', () => {
+    if (isFRType()) {
+      const parent = $('fParent').value.trim();
+      if (!parent) { alert('상위문서(구분자+6자리)를 먼저 입력하세요.'); return; }
+      const base = `W-FR-${$('fLayer').value}-${parent}-`;
+      const seqs = docs.filter(d => d.doc_number.startsWith(base))
+        .map(d => parseInt(d.doc_number.slice(base.length), 10)).filter(n => !isNaN(n));
+      const next = (seqs.length ? Math.max(...seqs) : 0) + 1;
+      $('fSeq').value = String(next).padStart(2, '0');
+    } else {
+      const prefix = numPrefix();  // 예: W-P-G
+      const cores = docs.filter(d => d.doc_number.startsWith(prefix))
+        .map(d => { const m = d.doc_number.slice(prefix.length).match(/^(\d{6})/); return m ? parseInt(m[1], 10) : null; })
+        .filter(n => n !== null);
+      const maxArea = cores.length ? Math.max(...cores) : 0;
+      const nextArea = (Math.floor(maxArea / 10000) + 1) * 10000;  // 다음 대영역
+      fDocNo.value = prefix + String(nextArea).padStart(6, '0');
+    }
+    syncDerived();
   });
 
   // 상신
