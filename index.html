@@ -22,11 +22,11 @@
     padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px;
   }
   #logoutBtn:hover { background:rgba(255,255,255,.15); }
-  #pwBtn {
+  #pwBtn, #logBtn {
     background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff;
     padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px;
   }
-  #pwBtn:hover { background:rgba(255,255,255,.15); }
+  #pwBtn:hover, #logBtn:hover { background:rgba(255,255,255,.15); }
   .role-badge.approver { background:#9ad0a0; color:#1F3864; }
   .role-badge.reviewer { background:#a9c4ee; color:#1F3864; }
 
@@ -247,6 +247,24 @@
   .st-승인대기 { background:#fdf0d5; color:#b07d00; }
   .st-승인완료 { background:#e3efe3; color:#2e7d32; }
   .st-반려 { background:#fbe2e0; color:#c0392b; }
+  .st-취소 { background:#e3e6ea; color:#777; }
+  .st-보류 { background:#fdecc8; color:#9a6700; }
+  .apv-hold { background:#fff; color:#9a6700; border:1.5px solid #e8b931; padding:5px 13px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .apv-arch { background:#eceff4; color:#555; border:1px solid #d5dbe7; padding:5px 13px; border-radius:6px; font-size:12px; cursor:pointer; }
+  #apvClear, #apvArchiveBtn, #logBtn { font-size:12px; padding:3px 10px; cursor:pointer; margin-left:6px; }
+  /* 보관함·이력 공용 큰 모달 */
+  #archiveModal, #logModal { display:none; position:fixed; inset:0; z-index:1100; background:rgba(15,25,45,.6); padding:4vh 3vw; overflow:auto; }
+  #archiveModal.open, #logModal.open { display:flex; align-items:flex-start; justify-content:center; }
+  .big-box { background:#fff; border-radius:12px; width:100%; max-width:920px; box-shadow:0 18px 60px rgba(0,0,0,.4); }
+  .big-head { background:#1F3864; color:#fff; padding:13px 18px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center; }
+  .big-head h3 { font-size:15px; }
+  .big-head button { background:transparent; border:1px solid rgba(255,255,255,.6); color:#fff; border-radius:6px; padding:3px 12px; cursor:pointer; }
+  .big-body { padding:16px 18px; }
+  .log-filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .log-filters input, .log-filters select { padding:7px 9px; border:1.5px solid #d5dbe7; border-radius:7px; font-size:13px; }
+  .log-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .log-table th { background:#2d4f8a; color:#fff; padding:7px 8px; text-align:left; white-space:nowrap; position:sticky; top:0; }
+  .log-table td { padding:6px 8px; border-bottom:1px solid #eef1f6; white-space:nowrap; }
   .apv-status-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:4px; }
   .apv-status-table th { background:#2d4f8a; color:#fff; padding:7px 8px; text-align:left; white-space:nowrap; }
   .apv-status-table td { padding:6px 8px; border-bottom:1px solid #eef1f6; }
@@ -332,6 +350,7 @@
     </div>
     <span id="userName">—</span>
     <span class="role-badge" id="roleBadge" style="display:none"></span>
+    <button id="logBtn">이력/로그</button>
     <button id="pwBtn">비밀번호 변경</button>
     <button id="logoutBtn">로그아웃</button>
   </div>
@@ -389,8 +408,10 @@
 
     <div class="panel" id="apvPanel">
       <h2>📝 결재함
-        <button id="apvRefresh">새로고침</button>
         <button id="newDocBtn" style="display:none">📝 문서 작성</button>
+        <button id="apvArchiveBtn">보관함</button>
+        <button id="apvClear">결재함 비우기</button>
+        <button id="apvRefresh">새로고침</button>
       </h2>
       <div id="apvTodo"></div>
       <div id="apvMine"></div>
@@ -444,6 +465,7 @@
       <button id="modalClose">닫기 ✕</button>
     </div>
     <iframe id="modalFrame" title="문서 미리보기"></iframe>
+    <div id="pdfCanvasWrap" style="display:none;flex:1;overflow:auto;width:100%;background:#525659"></div>
   </div>
 </div>
 
@@ -463,6 +485,42 @@
         </table>
       </div>
       <div id="histEmpty" class="hist-empty" style="display:none">개정이력이 없습니다.</div>
+    </div>
+  </div>
+</div>
+
+<div id="archiveModal">
+  <div class="big-box">
+    <div class="big-head"><h3>📦 보관함 (완료·반려·취소된 결재)</h3><button id="archiveClose">닫기 ✕</button></div>
+    <div class="big-body">
+      <div class="table-wrap" style="max-height:60vh;overflow:auto">
+        <table class="log-table">
+          <thead><tr><th>구분</th><th>문서번호</th><th>제목</th><th>상태</th><th>작성</th><th>검토</th><th>승인</th><th>보관일</th></tr></thead>
+          <tbody id="archiveBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="logModal">
+  <div class="big-box">
+    <div class="big-head"><h3>📜 이력 / 로그 (감사 추적)</h3><button id="logClose">닫기 ✕</button></div>
+    <div class="big-body">
+      <div class="log-filters">
+        <input type="text" id="logSearch" placeholder="문서번호·제목 검색">
+        <select id="logStatus"><option value="">상태 전체</option><option>승인완료</option><option>반려</option><option>취소</option><option value="진행중">진행중</option></select>
+        <select id="logDept"><option value="">담당팀 전체</option><option>공사</option><option>품질</option><option>관리</option><option>경영</option></select>
+        <input type="date" id="logFrom" title="시작일">
+        <input type="date" id="logTo" title="종료일">
+      </div>
+      <div class="table-wrap" style="max-height:58vh;overflow:auto">
+        <table class="log-table">
+          <thead><tr><th>문서번호</th><th>제목</th><th>구분</th><th>상태</th><th>담당팀</th><th>작성자/작성일</th><th>검토자/검토일</th><th>승인자/결재일</th><th>반려사유</th></tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+      <div class="count-info" id="logCount" style="margin-top:8px"></div>
     </div>
   </div>
 </div>
@@ -625,6 +683,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="edms-config.js"></script>
 <script>
 (async function () {
@@ -854,6 +913,38 @@
   function closeModal() {
     modal.classList.remove('open');
     frame.src = 'about:blank';
+    const w = document.getElementById('pdfCanvasWrap');
+    if (w) w.innerHTML = '';
+  }
+  // PDF.js 워커
+  if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  // 문서(열람전용) PDF.js 렌더 + 워터마크 (저장/인쇄 UI 없음)
+  async function renderPdfJs(signedUrl) {
+    const wrap = document.getElementById('pdfCanvasWrap');
+    wrap.innerHTML = '<div style="color:#fff;padding:24px;text-align:center">불러오는 중...</div>';
+    const wm = `${myName} · ${session.user.email} · ${new Date().toLocaleString('ko-KR')}`;
+    try {
+      const pdf = await pdfjsLib.getDocument(signedUrl).promise;
+      wrap.innerHTML = '';
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const vp = page.getViewport({ scale: 1.3 });
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        canvas.style.cssText = 'display:block;margin:10px auto;max-width:100%;box-shadow:0 2px 10px rgba(0,0,0,.4)';
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        ctx.save();
+        ctx.globalAlpha = 0.16; ctx.fillStyle = '#1F3864'; ctx.font = 'bold 18px sans-serif';
+        ctx.translate(canvas.width / 2, canvas.height / 2); ctx.rotate(-Math.PI / 6);
+        for (let y = -canvas.height; y < canvas.height; y += 110)
+          for (let x = -canvas.width; x < canvas.width; x += 360) ctx.fillText(wm, x, y);
+        ctx.restore();
+        wrap.appendChild(canvas);
+      }
+    } catch (e) {
+      wrap.innerHTML = '<div style="color:#fff;padding:24px;text-align:center">미리보기를 불러오지 못했습니다.<br>' + escHtml(String(e && e.message || e)) + '</div>';
+    }
   }
   document.getElementById('modalClose').addEventListener('click', closeModal);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
@@ -901,11 +992,21 @@
         .createSignedUrl('view/' + num + '.pdf', 300);
       if (error) { alert('열람본을 불러올 수 없습니다: ' + error.message); return; }
       document.getElementById('modalTitle').innerHTML =
-        `<small>${num}</small> ${title || ''}`;
-      // 양식·기록(W-FR*)은 도구막대 허용(다운로드·인쇄), 그 외(유형 없음 포함)는 열람만
-      const isForm = (docType || '').startsWith('W-FR');
-      frame.src = data.signedUrl + (isForm ? '' : '#toolbar=0&navpanes=0');
-      modal.classList.add('open');
+        `<small>${num}</small> ${escHtml(title || '')}`;
+      const wrap = document.getElementById('pdfCanvasWrap');
+      const isFormDoc = (docType || '').startsWith('W-FR');
+      if (isFormDoc) {
+        // 양식·기록: 기본 PDF 뷰어(다운로드·인쇄 허용)
+        wrap.style.display = 'none'; wrap.innerHTML = '';
+        frame.style.display = ''; frame.src = data.signedUrl;
+        modal.classList.add('open');
+      } else {
+        // 문서(열람전용): PDF.js 캔버스 렌더 — 저장/인쇄 버튼 없음 + 워터마크
+        frame.style.display = 'none'; frame.src = 'about:blank';
+        wrap.style.display = '';
+        modal.classList.add('open');
+        await renderPdfJs(data.signedUrl);
+      }
     } finally {
       btn.disabled = false;
     }
@@ -1152,8 +1253,8 @@
     if (myGrant[d.id] === 'deny') return false;
     return d.owner_dept === myDept || myGrant[d.id] === 'allow';
   }
-  // 담당 구분자(시리즈) → 팀 매핑 (서버 edms_series_dept와 동일 규칙)
-  const DISC_DEPT = { C: '공사', Q: '품질', G: '관리', E: '관리', R: '관리', S: '관리', M: '관리', D: '관리' };
+  // 담당 구분자 → 팀 매핑 (W1: D는 품질, 관리는 M·G·E·R·S, 공사는 C) — 서버 edms_series_dept와 동일
+  const DISC_DEPT = { C: '공사', Q: '품질', D: '품질', M: '관리', G: '관리', E: '관리', R: '관리', S: '관리' };
   const canUseDisc = (c) => isAdmin || DISC_DEPT[c] === myDept;
 
   // 폼 요소
@@ -1521,95 +1622,163 @@
       .order('created_at', { ascending: false }).limit(500);
     if (error) { console.warn('결재함 조회 실패:', error.message); return; }
     lastApvData = data || [];
+    const active = (data || []).filter(a => !a.archived_at);  // 보관 안 된 활성건만 (W3)
     refreshBell();
 
-    // 내가 처리할 대기 건 (R3: 역할 기반)
-    //  검토 대기 = 검토중 & (내가 검토자 또는 내 역할이 검토자/관리자)
-    //  승인 대기 = 승인대기 & (내가 승인자 또는 내 역할이 승인자)
-    //  처리는 결재 RPC가 '지정된 본인 또는 관리자'만 허용하므로 화면도 동일 기준으로 표시(불가 항목 숨김)
+    // 내 결재 대기 (검토/승인) + 검토 보류 (W2)
     const canReview = (a) => a.status === '검토중' && (a.reviewer_id === myId || isAdmin);
     const canApprove = (a) => a.status === '승인대기' && (a.approver_id === myId || isAdmin);
-    const todo = data.filter(a => canReview(a) || canApprove(a));
-    const todoBox = $('apvTodo');
-    if (!todo.length) {
-      todoBox.innerHTML = '<div class="apv-empty">내가 처리할 결재 대기 건이 없습니다.</div>';
-    } else {
-      todoBox.innerHTML = '<div class="apv-sub">내 결재 대기 ' + `(${todo.length}건)</div>` +
+    const todo = active.filter(a => canReview(a) || canApprove(a));
+    $('apvTodo').innerHTML = todo.length
+      ? '<div class="apv-sub">내 결재 대기 ' + `(${todo.length}건)</div>` +
         todo.map(a => {
-          const isReview = a.status === '검토중';
-          const okAct = isReview ? 'review-ok' : 'approve-ok';
-          const noAct = isReview ? 'review-no' : 'approve-no';
-          const okLabel = isReview ? '검토 승인' : '승인';
+          const isRev = a.status === '검토중';
           return `<div class="apv-row">
-            <div class="apv-info">
-              <span class="st-tag st-${a.status}">${a.status}</span>
-              <b>${a.doc_number}</b> ${a.title || ''} <small>(${a.approval_type})</small><br>
-              <small>작성: ${nameOf(a.drafter, a.drafter_id)}${a.change_summary ? ' · ' + a.change_summary : ''}</small>
-            </div>
+            <div class="apv-info"><span class="st-tag st-${a.status}">${a.status}</span>
+              <b>${a.doc_number}</b> ${escHtml(a.title || '')} <small>(${a.approval_type})</small><br>
+              <small>작성: ${nameOf(a.drafter, a.drafter_id)}${a.change_summary ? ' · ' + escHtml(a.change_summary) : ''}</small></div>
             <div class="apv-actions">
-              <button class="apv-ok" data-act="${okAct}" data-id="${a.id}">${okLabel}</button>
-              <button class="apv-no" data-act="${noAct}" data-id="${a.id}">반려</button>
+              <button class="apv-ok" data-act="${isRev ? 'review-ok' : 'approve-ok'}" data-id="${a.id}">${isRev ? '검토 승인' : '승인'}</button>
+              <button class="apv-no" data-act="${isRev ? 'review-no' : 'approve-no'}" data-id="${a.id}">반려</button>
+              ${isRev ? `<button class="apv-hold" data-act="hold" data-id="${a.id}">검토 보류</button>` : ''}
             </div></div>`;
-        }).join('');
-    }
+        }).join('')
+      : '<div class="apv-empty">내가 처리할 결재 대기 건이 없습니다.</div>';
 
-    // 내 작성함 (R3) — 내가 작성한 결재 건의 상태·반려사유
-    const mine = data.filter(a => a.drafter_id === myId);
-    const mineBox = $('apvMine');
-    mineBox.innerHTML = mine.length
+    // 내 작성함 (W2: 취소/보류/재개 · W3: 보관)
+    const mine = active.filter(a => a.drafter_id === myId);
+    $('apvMine').innerHTML = mine.length
       ? '<div class="apv-sub">내 작성함 ' + `(${mine.length}건)</div>` +
-        mine.map(a => `<div class="apv-row">
-          <div class="apv-info">
-            <span class="st-tag st-${a.status}">${a.status}</span>
-            <b>${a.doc_number}</b> ${escHtml(a.title || '')} <small>(${a.approval_type})</small>
-            ${a.status === '반려' && a.reject_reason ? `<br><small style="color:#c0392b">반려 사유: ${escHtml(a.reject_reason)} · 다시 올리려면 ‘+ 새 문서’로 재상신</small>` : ''}
-          </div>
-        </div>`).join('')
+        mine.map(a => {
+          const cancelable = ['작성중', '검토중', '승인대기', '보류'].includes(a.status);
+          const holdable = ['작성중', '검토중', '승인대기'].includes(a.status);
+          const archivable = ['승인완료', '반려', '취소'].includes(a.status);
+          let btns = '';
+          if (a.status === '보류') btns += `<button class="apv-ok" data-act="resume" data-id="${a.id}">재개</button>`;
+          else if (holdable) btns += `<button class="apv-hold" data-act="hold" data-id="${a.id}">보류</button>`;
+          if (cancelable) btns += `<button class="apv-no" data-act="cancel" data-id="${a.id}">상신 취소</button>`;
+          if (archivable) btns += `<button class="apv-arch" data-act="archive" data-id="${a.id}">보관</button>`;
+          return `<div class="apv-row">
+            <div class="apv-info"><span class="st-tag st-${a.status}">${a.status}</span>
+              <b>${a.doc_number}</b> ${escHtml(a.title || '')} <small>(${a.approval_type})</small>
+              ${a.status === '반려' && a.reject_reason ? `<br><small style="color:#c0392b">반려 사유: ${escHtml(a.reject_reason)}</small>` : ''}</div>
+            <div class="apv-actions">${btns}</div></div>`;
+        }).join('')
       : '';
 
-    // 결재 현황(전체)
+    // 결재 현황(활성)
     const fmt = (t) => t ? new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '';
-    const latest = (a) => a.approved_at || a.reviewed_at || a.submitted_at || a.drafted_at;
-    $('apvStatusBody').innerHTML = data.length
-      ? data.map(a => `<tr>
-          <td>${a.approval_type}</td>
-          <td>${a.doc_number}</td>
-          <td>${a.title || ''}</td>
-          <td><span class="st-tag st-${a.status}">${a.status}</span>${a.reject_reason ? ' <small style="color:#c0392b">(' + a.reject_reason + ')</small>' : ''}</td>
-          <td>${nameOf(a.drafter, a.drafter_id)}</td>
-          <td>${nameOf(a.reviewer, a.reviewer_id)}</td>
-          <td>${nameOf(a.approver, a.approver_id)}</td>
-          <td>${fmt(latest(a))}</td>
-        </tr>`).join('')
-      : '<tr><td colspan="8" class="apv-empty">결재 건이 없습니다.</td></tr>';
+    const latest = (a) => a.approved_at || a.reviewed_at || a.submitted_at || a.drafted_at || a.created_at;
+    $('apvStatusBody').innerHTML = active.length
+      ? active.map(a => `<tr>
+          <td>${a.approval_type}</td><td>${a.doc_number}</td><td>${escHtml(a.title || '')}</td>
+          <td><span class="st-tag st-${a.status}">${a.status}</span></td>
+          <td>${nameOf(a.drafter, a.drafter_id)}</td><td>${nameOf(a.reviewer, a.reviewer_id)}</td>
+          <td>${nameOf(a.approver, a.approver_id)}</td><td>${fmt(latest(a))}</td></tr>`).join('')
+      : '<tr><td colspan="8" class="apv-empty">진행 중인 결재가 없습니다.</td></tr>';
     refreshBell();
   }
 
-  // 검토/승인/반려 처리
-  $('apvTodo').addEventListener('click', async (e) => {
+  // 결재 처리(승인/반려/보류/재개/취소/보관) — 대기함·작성함 공통
+  async function apvAction(e) {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     const act = btn.dataset.act, id = btn.dataset.id;
-    const isReject = act.endsWith('-no');
-    let comment = null;
-    if (isReject) {
-      comment = prompt('반려 사유를 입력하세요:');
-      if (comment === null) return;  // 취소
-    }
+    let res;
+    const ask = (m, d) => { const v = prompt(m, d === undefined ? '' : d); return v; };
     btn.disabled = true;
-    const rpc = act.startsWith('review') ? 'edms_apv_review' : 'edms_apv_approve';
-    const { error } = await edmsClient.rpc(rpc, { p_id: id, p_approve: !isReject, p_comment: comment });
-    if (error) { alert('처리 실패: ' + error.message); btn.disabled = false; return; }
+    if (act === 'review-ok' || act === 'approve-ok') {
+      res = await edmsClient.rpc(act.startsWith('review') ? 'edms_apv_review' : 'edms_apv_approve', { p_id: id, p_approve: true, p_comment: null });
+    } else if (act === 'review-no' || act === 'approve-no') {
+      const c = ask('반려 사유를 입력하세요:'); if (c === null) { btn.disabled = false; return; }
+      res = await edmsClient.rpc(act.startsWith('review') ? 'edms_apv_review' : 'edms_apv_approve', { p_id: id, p_approve: false, p_comment: c });
+    } else if (act === 'hold') {
+      const c = ask('보류 사유를 입력하세요(선택):'); if (c === null) { btn.disabled = false; return; }
+      res = await edmsClient.rpc('edms_apv_hold', { p_id: id, p_resume: false, p_reason: c || null });
+    } else if (act === 'resume') {
+      res = await edmsClient.rpc('edms_apv_hold', { p_id: id, p_resume: true });
+    } else if (act === 'cancel') {
+      const c = ask('상신을 취소(철회)합니다. 사유를 입력하세요(선택):'); if (c === null) { btn.disabled = false; return; }
+      res = await edmsClient.rpc('edms_apv_cancel', { p_id: id, p_reason: c || null });
+    } else if (act === 'archive') {
+      res = await edmsClient.rpc('edms_apv_archive', { p_id: id });
+    } else { btn.disabled = false; return; }
+    if (res && res.error) { alert('처리 실패: ' + res.error.message); btn.disabled = false; return; }
     await loadWorkflow();
-    if (act === 'approve-ok') {
-      alert('승인 완료되어 문서가 발행되었습니다. 문서목록은 페이지를 새로고침하면 반영됩니다.');
-    } else if (act === 'review-ok') {
-      alert('검토 승인했습니다. 이제 승인자의 최종 승인 단계로 넘어갑니다.');
-    } else {
-      alert('반려 처리했습니다.');
-    }
-  });
+    if (act === 'approve-ok') alert('승인 완료되어 문서가 발행되었습니다. 문서목록은 새로고침 시 반영됩니다.');
+  }
+  $('apvTodo').addEventListener('click', apvAction);
+  $('apvMine').addEventListener('click', apvAction);
   $('apvRefresh').addEventListener('click', loadWorkflow);
+  // 결재함 비우기(완료·반려·취소 일괄 보관) + 보관함 (W3)
+  $('apvClear').addEventListener('click', async () => {
+    if (!confirm('완료·반려·취소된 내 결재 건을 보관함으로 옮길까요? (진행 중 건은 유지됩니다)')) return;
+    const { data, error } = await edmsClient.rpc('edms_apv_archive_mine');
+    if (error) { alert('실패: ' + error.message); return; }
+    await loadWorkflow();
+    alert(`${data || 0}건을 보관함으로 옮겼습니다.`);
+  });
+  $('apvArchiveBtn').addEventListener('click', openArchive);
+
+  // ── 보관함 (W3) ─────────────────────────────────────────
+  const archiveModal = document.getElementById('archiveModal');
+  $('archiveClose').addEventListener('click', () => archiveModal.classList.remove('open'));
+  archiveModal.addEventListener('click', (e) => { if (e.target === archiveModal) archiveModal.classList.remove('open'); });
+  async function openArchive() {
+    archiveModal.classList.add('open');
+    const body = $('archiveBody'); body.innerHTML = '<tr><td colspan="8" style="color:#888">불러오는 중...</td></tr>';
+    const { data, error } = await edmsClient.from('edms_approvals')
+      .select('doc_number,title,approval_type,status,archived_at,drafter_id,reviewer_id,approver_id,drafter:edms_profiles!drafter_id(name),reviewer:edms_profiles!reviewer_id(name),approver:edms_profiles!approver_id(name)')
+      .not('archived_at', 'is', null).order('archived_at', { ascending: false }).limit(500);
+    if (error) { body.innerHTML = `<tr><td colspan="8" style="color:#c0392b">${escHtml(error.message)}</td></tr>`; return; }
+    const fmt = (t) => t ? new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    body.innerHTML = data.length ? data.map(a => `<tr>
+      <td>${a.approval_type}</td><td>${a.doc_number}</td><td>${escHtml(a.title || '')}</td>
+      <td><span class="st-tag st-${a.status}">${a.status}</span></td>
+      <td>${nameOf(a.drafter, a.drafter_id)}</td><td>${nameOf(a.reviewer, a.reviewer_id)}</td><td>${nameOf(a.approver, a.approver_id)}</td>
+      <td>${fmt(a.archived_at)}</td></tr>`).join('') : '<tr><td colspan="8" style="color:#aaa">보관된 결재가 없습니다.</td></tr>';
+  }
+
+  // ── 이력/로그 (W4, 전원 열람) ───────────────────────────
+  const logModal = document.getElementById('logModal');
+  $('logBtn').addEventListener('click', () => { logModal.classList.add('open'); loadActivity(); });
+  $('logClose').addEventListener('click', () => logModal.classList.remove('open'));
+  logModal.addEventListener('click', (e) => { if (e.target === logModal) logModal.classList.remove('open'); });
+  let activityCache = [];
+  async function loadActivity() {
+    $('logBody').innerHTML = '<tr><td colspan="9" style="color:#888">불러오는 중...</td></tr>';
+    const { data, error } = await edmsClient.from('edms_activity').select('*').limit(2000);
+    if (error) { $('logBody').innerHTML = `<tr><td colspan="9" style="color:#c0392b">${escHtml(error.message)}</td></tr>`; return; }
+    activityCache = (data || []).slice().sort((a, b) => String(b['작성일'] || '').localeCompare(String(a['작성일'] || '')));
+    renderActivity();
+  }
+  function renderActivity() {
+    const q = $('logSearch').value.trim().toLowerCase();
+    const st = $('logStatus').value, dp = $('logDept').value, from = $('logFrom').value, to = $('logTo').value;
+    const fmt = (t) => t ? new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    const dOnly = (t) => t ? String(t).slice(0, 10) : '';
+    const rows = activityCache.filter(r => {
+      if (q && !((r.doc_number || '').toLowerCase().includes(q) || (r.title || '').toLowerCase().includes(q))) return false;
+      if (st === '진행중') { if (['승인완료', '반려', '취소'].includes(r['상태'])) return false; }
+      else if (st && r['상태'] !== st) return false;
+      if (dp && r.owner_dept !== dp) return false;
+      const d = dOnly(r['작성일']);
+      if (from && d && d < from) return false;
+      if (to && d && d > to) return false;
+      return true;
+    });
+    $('logBody').innerHTML = rows.length ? rows.map(r => `<tr>
+      <td>${r.doc_number || ''}</td><td>${escHtml(r.title || '')}</td><td>${r['구분'] || ''}</td>
+      <td><span class="st-tag st-${r['상태']}">${r['상태']}</span></td><td>${r.owner_dept || ''}</td>
+      <td>${escHtml(r['작성자'] || '')}<br><small>${fmt(r['작성일'])}</small></td>
+      <td>${escHtml(r['검토자'] || '')}<br><small>${fmt(r['검토일'])}</small></td>
+      <td>${escHtml(r['승인자'] || '')}<br><small>${fmt(r['결재일'])}</small></td>
+      <td><small style="color:#c0392b">${escHtml(r['반려사유'] || '')}</small></td></tr>`).join('')
+      : '<tr><td colspan="9" style="color:#aaa">해당하는 이력이 없습니다.</td></tr>';
+    $('logCount').textContent = `${rows.length}건 표시 (전체 ${activityCache.length}건)`;
+  }
+  ['logSearch', 'logStatus', 'logDept', 'logFrom', 'logTo'].forEach(id =>
+    $(id).addEventListener(id === 'logSearch' ? 'input' : 'change', renderActivity));
   await loadWorkflow();
 
   function render() {
