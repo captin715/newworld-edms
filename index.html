@@ -74,6 +74,33 @@
     border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap;
   }
   .rq-btn:hover { background:#fdf6e3; }
+  .cf-btn {
+    background:#2e7d32; color:#fff; border:none; padding:4px 12px;
+    border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap;
+  }
+  .cf-btn:hover { background:#246428; }
+  .wait-tag { font-size:11px; color:#999; white-space:nowrap; }
+  .cd-timer { font-size:11px; color:#c0392b; margin-left:6px; font-weight:bold; }
+
+  /* 대표 승인함 */
+  #approvalPanel { border-top:4px solid #e8b931; }
+  .ap-row {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 4px; border-bottom:1px solid #eef1f6; flex-wrap:wrap;
+  }
+  .ap-info { font-size:13px; line-height:1.5; }
+  .ap-info b { color:#1F3864; }
+  .ap-info small { color:#888; }
+  .ap-actions { display:flex; gap:8px; flex-shrink:0; }
+  .ap-ok {
+    background:#2e7d32; color:#fff; border:none; padding:6px 16px;
+    border-radius:6px; font-size:13px; cursor:pointer;
+  }
+  .ap-no {
+    background:#fff; color:#c0392b; border:1.5px solid #c0392b; padding:6px 16px;
+    border-radius:6px; font-size:13px; cursor:pointer;
+  }
+  .ap-empty { font-size:13px; color:#888; padding:6px 0; }
   .vw-btn {
     background:#fff; color:#1F3864; border:1.5px solid #1F3864; padding:3px 11px;
     border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap;
@@ -161,6 +188,13 @@
       </div>
     </div>
 
+    <div class="panel" id="approvalPanel" style="display:none">
+      <h2>📥 다운로드 승인 대기 <span id="apCount"></span>
+        <button id="apRefresh" style="float:right;font-size:12px;padding:3px 10px;cursor:pointer">새로고침</button>
+      </h2>
+      <div id="apList"></div>
+    </div>
+
     <div class="panel">
       <h2>시리즈별 문서 분포</h2>
       <div class="chart-wrap"><canvas id="seriesChart"></canvas></div>
@@ -238,7 +272,7 @@
 
   // 3) 문서 로드 (RLS가 권한 범위만 반환)
   const { data: docs, error } = await edmsClient.from('edms_documents')
-    .select('doc_number, title, doc_type, series, current_version, status, confidentiality, security_level, registered_at, storage_path')
+    .select('id, doc_number, title, doc_type, series, current_version, status, confidentiality, security_level, registered_at, storage_path')
     .order('doc_number')
     .limit(1000);
   if (error) {
@@ -300,15 +334,54 @@
 
   const tbody = document.getElementById('docTbody');
 
-  // 파일 열: 관리자=다운로드 버튼 / 그 외=승인 필요 표시 (실제 차단은 Storage RLS가 수행)
+  // ── 다운로드 승인제 ──────────────────────────────────────
+  // 내 요청 목록 → document_id별 최신 1건 (실제 차단은 Storage RLS가 수행)
+  const reqByDoc = {};
+  async function loadMyRequests() {
+    Object.keys(reqByDoc).forEach(k => delete reqByDoc[k]);
+    const { data } = await edmsClient.from('edms_download_requests')
+      .select('id, document_id, status, confirmed_at, expires_at, requested_at')
+      .eq('requester_id', session.user.id)
+      .order('requested_at', { ascending: false })
+      .limit(1000);
+    (data || []).forEach(r => {
+      if (!reqByDoc[r.document_id]) reqByDoc[r.document_id] = r;
+    });
+  }
+  await loadMyRequests();
+
+  const isForm = (d) => (d.doc_type || '').startsWith('W-FR');
+  const isLive = (r) => r && r.status === '승인' && r.confirmed_at &&
+    r.expires_at && new Date(r.expires_at).getTime() > Date.now();
+
+  // 다운로드 칸 상태:
+  //  관리자/양식 → 다운로드 | 요청없음·반려·만료 → 승인 요청 | 대기 → 요청 중… | 승인 → 확인 | 확인 후 10분 → 다운로드+남은시간
   function fileCell(d) {
     if (!d.storage_path) return '—';
-    if (isAdmin) {
-      return `<button class="dl-btn" data-path="${d.storage_path}" data-num="${d.doc_number}">다운로드</button>`;
+    const dlBtn = `<button class="dl-btn" data-path="${d.storage_path}" data-num="${d.doc_number}">다운로드</button>`;
+    if (isAdmin || isForm(d)) return dlBtn;
+    const r = reqByDoc[d.id];
+    if (r && r.status === '요청') return '<span class="wait-tag">요청 중…</span>';
+    if (r && r.status === '승인' && !r.confirmed_at) {
+      return `<button class="cf-btn" data-req="${r.id}" data-doc="${d.id}">확인</button>`;
     }
-    // 추후 다운로드 승인요청 기능 연결 예정 (현재는 표시만)
-    return '<button class="rq-btn" title="다운로드 승인 요청 기능은 준비 중입니다">승인 요청</button>';
+    if (isLive(r)) {
+      return dlBtn + `<span class="cd-timer" data-exp="${r.expires_at}"></span>`;
+    }
+    return `<button class="rq-btn" data-doc="${d.id}">승인 요청</button>`;
   }
+
+  // 남은시간 카운트다운(1초) — 만료되면 목록 다시 그림
+  setInterval(() => {
+    let expired = false;
+    document.querySelectorAll('.cd-timer').forEach(el => {
+      const left = new Date(el.dataset.exp).getTime() - Date.now();
+      if (left <= 0) { expired = true; return; }
+      const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
+      el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    });
+    if (expired) render();
+  }, 1000);
 
   // 열람(PDF 미리보기) — 모든 로그인 사용자 (Storage RLS가 view/* 읽기 허용)
   const modal = document.getElementById('viewModal');
@@ -344,13 +417,45 @@
       openViewer(vbtn.dataset.num, vbtn.dataset.title, vbtn.dataset.type, vbtn);
       return;
     }
+    // 승인 요청
+    const rbtn = e.target.closest('.rq-btn');
+    if (rbtn) {
+      rbtn.disabled = true;
+      const { data, error } = await edmsClient.rpc('edms_request_download',
+        { p_doc: rbtn.dataset.doc, p_reason: null });
+      if (error) { alert('요청 실패: ' + error.message); rbtn.disabled = false; return; }
+      reqByDoc[rbtn.dataset.doc] = { id: data, document_id: rbtn.dataset.doc, status: '요청' };
+      render();
+      return;
+    }
+    // 확인(타이머 시작)
+    const cbtn = e.target.closest('.cf-btn');
+    if (cbtn) {
+      cbtn.disabled = true;
+      const { data, error } = await edmsClient.rpc('edms_confirm_download',
+        { p_req: cbtn.dataset.req, p_minutes: 10 });
+      if (error) {
+        alert('확인 실패: ' + error.message);
+        await loadMyRequests(); render();
+        return;
+      }
+      const r = reqByDoc[cbtn.dataset.doc];
+      if (r) { r.confirmed_at = new Date().toISOString(); r.expires_at = data; }
+      render();
+      return;
+    }
+    // 다운로드 (관리자/양식/승인된 문서 — 권한 판정은 Storage RLS)
     const btn = e.target.closest('.dl-btn');
     if (!btn) return;
     const path = btn.dataset.path, num = btn.dataset.num;
     btn.disabled = true; btn.textContent = '받는 중...';
     try {
       const { data, error } = await edmsClient.storage.from('documents').download(path);
-      if (error) { alert('파일을 가져올 수 없습니다: ' + error.message); return; }
+      if (error) {
+        alert('다운로드 권한이 없거나 만료되었습니다.');
+        await loadMyRequests(); render();
+        return;
+      }
       const ext = path.slice(path.lastIndexOf('.'));
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
@@ -361,6 +466,46 @@
       btn.disabled = false; btn.textContent = '다운로드';
     }
   });
+
+  // ── 대표 승인함 (관리자에게만 표시) ─────────────────────
+  async function loadApprovals() {
+    if (!isAdmin) return;
+    const { data, error } = await edmsClient.from('edms_download_requests')
+      .select('id, requested_at, reason, edms_documents(doc_number, title), edms_profiles!requester_id(name, email)')
+      .eq('status', '요청')
+      .order('requested_at', { ascending: true });
+    if (error) { console.warn('승인함 조회 실패:', error.message); return; }
+    document.getElementById('approvalPanel').style.display = '';
+    document.getElementById('apCount').textContent = data.length ? `(${data.length}건)` : '';
+    const list = document.getElementById('apList');
+    if (!data.length) {
+      list.innerHTML = '<div class="ap-empty">대기 중인 요청이 없습니다.</div>';
+      return;
+    }
+    list.innerHTML = data.map(r => {
+      const doc = r.edms_documents || {}, who = r.edms_profiles || {};
+      const t = new Date(r.requested_at).toLocaleString('ko-KR');
+      return `<div class="ap-row">
+        <div class="ap-info"><b>${doc.doc_number || ''}</b> ${doc.title || ''}<br>
+          <small>요청자: ${who.name || who.email || '?'} · ${t}</small></div>
+        <div class="ap-actions">
+          <button class="ap-ok" data-req="${r.id}">승인</button>
+          <button class="ap-no" data-req="${r.id}">반려</button>
+        </div></div>`;
+    }).join('');
+  }
+  document.getElementById('apList').addEventListener('click', async (e) => {
+    const ok = e.target.closest('.ap-ok'), no = e.target.closest('.ap-no');
+    const b = ok || no;
+    if (!b) return;
+    b.disabled = true;
+    const { error } = await edmsClient.rpc('edms_decide_download',
+      { p_req: b.dataset.req, p_approve: !!ok, p_minutes: 10 });
+    if (error) alert('처리 실패: ' + error.message);
+    await loadApprovals();
+  });
+  document.getElementById('apRefresh').addEventListener('click', loadApprovals);
+  await loadApprovals();
 
   function render() {
     const q = document.getElementById('searchInput').value.trim().toLowerCase();
