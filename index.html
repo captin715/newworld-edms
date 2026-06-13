@@ -204,6 +204,27 @@
   .form-submit:disabled { background:#9aa7bd; cursor:wait; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
 
+  /* 버전·개정이력 */
+  .ver-link { background:none; border:none; color:#1F3864; font-size:13px; cursor:pointer; text-decoration:underline; padding:0; font-family:inherit; }
+  .ver-link:hover { color:#16294a; }
+  .hist-btn { background:#fff; color:#1F3864; border:1px solid #c3cfe2; border-radius:5px; font-size:11px; padding:2px 7px; cursor:pointer; margin-left:5px; white-space:nowrap; }
+  .hist-btn:hover { background:#eef3fb; }
+
+  #histModal { display:none; position:fixed; inset:0; z-index:1050; background:rgba(15,25,45,.6); padding:4vh 3vw; overflow:auto; }
+  #histModal.open { display:flex; align-items:flex-start; justify-content:center; }
+  .hist-box { background:#fff; border-radius:12px; width:100%; max-width:720px; box-shadow:0 18px 60px rgba(0,0,0,.4); }
+  .hist-head { background:#1F3864; color:#fff; padding:13px 18px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .hist-head .t { font-size:14px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hist-head .t small { font-weight:normal; opacity:.85; margin-right:8px; }
+  .hist-head button { background:transparent; border:1px solid rgba(255,255,255,.6); color:#fff; border-radius:6px; padding:3px 12px; cursor:pointer; flex-shrink:0; }
+  .hist-head button:hover { background:rgba(255,255,255,.15); }
+  .hist-body { padding:16px 18px; }
+  .hist-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .hist-table th { background:#f0f3f9; color:#1F3864; padding:8px 9px; text-align:left; white-space:nowrap; border-bottom:2px solid #d5dbe7; }
+  .hist-table td { padding:8px 9px; border-bottom:1px solid #eef1f6; vertical-align:top; white-space:nowrap; }
+  .hist-table td.chg { white-space:normal; min-width:160px; }
+  .hist-empty { color:#888; font-size:13px; padding:10px 0; }
+
   @media (max-width:768px) {
     .cards { grid-template-columns:repeat(2,1fr); }
     header h1 { font-size:15px; }
@@ -311,6 +332,26 @@
       <button id="modalClose">닫기 ✕</button>
     </div>
     <iframe id="modalFrame" title="문서 미리보기"></iframe>
+  </div>
+</div>
+
+<div id="histModal">
+  <div class="hist-box">
+    <div class="hist-head">
+      <div class="t" id="histTitle"></div>
+      <button id="histClose">닫기 ✕</button>
+    </div>
+    <div class="hist-body">
+      <div class="table-wrap">
+        <table class="hist-table">
+          <thead><tr>
+            <th>버전</th><th>개정일</th><th>구분</th><th>변경내용</th><th>개정자</th>
+          </tr></thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+      <div id="histEmpty" class="hist-empty" style="display:none">개정이력이 없습니다.</div>
+    </div>
   </div>
 </div>
 
@@ -579,6 +620,41 @@
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
+  // 개정이력 모달 — 모든 로그인 사용자 열람 (edms_revisions RLS 허용)
+  const histModal = document.getElementById('histModal');
+  function closeHist() { histModal.classList.remove('open'); }
+  document.getElementById('histClose').addEventListener('click', closeHist);
+  histModal.addEventListener('click', (e) => { if (e.target === histModal) closeHist(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHist(); });
+
+  const escHtml = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  async function openHistory(docId, num, title) {
+    document.getElementById('histTitle').innerHTML = `<small>${num}</small> ${escHtml(title)}`;
+    const body = document.getElementById('histBody');
+    const empty = document.getElementById('histEmpty');
+    body.innerHTML = '<tr><td colspan="5" style="color:#888">불러오는 중...</td></tr>';
+    empty.style.display = 'none';
+    histModal.classList.add('open');
+    const { data, error } = await edmsClient.from('edms_revisions')
+      .select('version, revision_date, revision_reason, changes_summary, revised_by')
+      .eq('document_id', docId)
+      .order('revision_date', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (error) {
+      body.innerHTML = `<tr><td colspan="5" style="color:#c0392b">조회 오류: ${escHtml(error.message)}</td></tr>`;
+      return;
+    }
+    if (!data.length) { body.innerHTML = ''; empty.style.display = ''; return; }
+    body.innerHTML = data.map(r => `<tr>
+      <td>${escHtml(r.version)}</td>
+      <td>${r.revision_date || ''}</td>
+      <td>${escHtml(r.revision_reason)}</td>
+      <td class="chg">${escHtml(r.changes_summary) || '—'}</td>
+      <td>${escHtml(r.revised_by)}</td>
+    </tr>`).join('');
+  }
+
   async function openViewer(num, title, docType, btn) {
     btn.disabled = true;
     try {
@@ -600,6 +676,12 @@
     const vbtn = e.target.closest('.vw-btn');
     if (vbtn) {
       openViewer(vbtn.dataset.num, vbtn.dataset.title, vbtn.dataset.type, vbtn);
+      return;
+    }
+    // 개정이력 보기 (버전 클릭 또는 '이력' 버튼)
+    const hbtn = e.target.closest('.hist-trigger');
+    if (hbtn) {
+      openHistory(hbtn.dataset.id, hbtn.dataset.num, hbtn.dataset.title);
       return;
     }
     // 승인 요청
@@ -914,7 +996,7 @@
         <td class="title-cell">${d.title || ''}</td>
         <td>${d.doc_type || ''}</td>
         <td>${d.series}</td>
-        <td>${d.current_version}</td>
+        <td><button class="ver-link hist-trigger" data-id="${d.id}" data-num="${d.doc_number}" data-title="${(d.title || '').replace(/"/g, '&quot;')}">${d.current_version}</button><button class="hist-btn hist-trigger" data-id="${d.id}" data-num="${d.doc_number}" data-title="${(d.title || '').replace(/"/g, '&quot;')}">이력</button></td>
         <td>${d.status}</td>
         <td><span class="conf-tag conf-${d.confidentiality}">P${d.security_level}</span></td>
         <td>${d.registered_at || ''}</td>
