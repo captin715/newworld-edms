@@ -22,6 +22,37 @@
     padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px;
   }
   #logoutBtn:hover { background:rgba(255,255,255,.15); }
+  #pwBtn {
+    background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff;
+    padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px;
+  }
+  #pwBtn:hover { background:rgba(255,255,255,.15); }
+  .role-badge.approver { background:#9ad0a0; color:#1F3864; }
+  .role-badge.reviewer { background:#a9c4ee; color:#1F3864; }
+
+  /* 결재선 미리보기 */
+  .apv-line {
+    font-size:12px; color:#1F3864; background:#eef3fb; border-radius:7px;
+    padding:8px 11px; margin-top:10px; line-height:1.5;
+  }
+  .apv-line b { font-weight:bold; }
+
+  /* 비밀번호 변경 모달 */
+  #pwModal { display:none; position:fixed; inset:0; z-index:1300; background:rgba(15,25,45,.6); padding:6vh 4vw; }
+  #pwModal.open { display:flex; align-items:flex-start; justify-content:center; }
+  .pw-box { background:#fff; border-radius:12px; width:100%; max-width:420px; box-shadow:0 18px 60px rgba(0,0,0,.4); }
+  .pw-head { background:#1F3864; color:#fff; padding:13px 18px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center; }
+  .pw-head h3 { font-size:15px; }
+  .pw-head button { background:transparent; border:1px solid rgba(255,255,255,.6); color:#fff; border-radius:6px; padding:3px 12px; cursor:pointer; }
+  .pw-body { padding:18px; }
+  .pw-body label { display:block; font-size:13px; color:#444; font-weight:bold; margin:12px 0 5px; }
+  .pw-body input { width:100%; padding:10px 12px; border:1.5px solid #d5dbe7; border-radius:7px; font-size:14px; outline:none; }
+  .pw-body input:focus { border-color:#1F3864; }
+  .pw-note { font-size:12px; color:#777; margin-top:10px; line-height:1.5; }
+  .pw-msg { font-size:12px; margin-top:10px; min-height:15px; }
+  .pw-msg.err { color:#c0392b; } .pw-msg.ok { color:#2e7d32; }
+  .pw-submit { width:100%; margin-top:16px; background:#1F3864; color:#fff; border:none; padding:11px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; }
+  .pw-submit:disabled { background:#9aa7bd; cursor:wait; }
 
   /* 인앱 알림 종 */
   .bell-wrap { position:relative; }
@@ -280,6 +311,7 @@
     </div>
     <span id="userName">—</span>
     <span class="role-badge" id="roleBadge" style="display:none"></span>
+    <button id="pwBtn">비밀번호 변경</button>
     <button id="logoutBtn">로그아웃</button>
   </div>
 </header>
@@ -324,6 +356,7 @@
         <button id="newDocBtn" style="display:none">+ 새 문서</button>
       </h2>
       <div id="apvTodo"></div>
+      <div id="apvMine"></div>
       <div class="apv-sub">결재 현황</div>
       <div class="table-wrap">
         <table class="apv-status-table">
@@ -393,6 +426,26 @@
         </table>
       </div>
       <div id="histEmpty" class="hist-empty" style="display:none">개정이력이 없습니다.</div>
+    </div>
+  </div>
+</div>
+
+<div id="pwModal">
+  <div class="pw-box">
+    <div class="pw-head">
+      <h3>비밀번호 변경</h3>
+      <button id="pwClose">닫기 ✕</button>
+    </div>
+    <div class="pw-body">
+      <label>현재 비밀번호</label>
+      <input type="password" id="pwCur" autocomplete="current-password" placeholder="현재 비밀번호">
+      <label>새 비밀번호</label>
+      <input type="password" id="pwNew" autocomplete="new-password" placeholder="새 비밀번호">
+      <label>새 비밀번호 확인</label>
+      <input type="password" id="pwNew2" autocomplete="new-password" placeholder="새 비밀번호 다시 입력">
+      <div class="pw-note">8자 이상, 영문과 숫자를 섞어 쓰시길 권장합니다. 변경 후에는 새 비밀번호로 다시 로그인하세요.</div>
+      <button class="pw-submit" id="pwSubmit">변경하기</button>
+      <div class="pw-msg" id="pwMsg"></div>
     </div>
   </div>
 </div>
@@ -482,14 +535,15 @@
 
       <div class="grid2">
         <div>
-          <label>검토자</label>
+          <label>검토자 (자동 지정 · 변경 가능)</label>
           <select id="fReviewer"></select>
         </div>
         <div>
-          <label>승인자</label>
+          <label>승인자 (자동 지정 · 변경 가능)</label>
           <select id="fApprover"></select>
         </div>
       </div>
+      <div class="apv-line" id="apvLine"></div>
 
       <label>초안 원본 파일 (선택 · docx/xlsx)</label>
       <input type="file" id="fFile" accept=".docx,.xlsx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
@@ -531,13 +585,50 @@
       .select('name, role').eq('id', session.user.id).maybeSingle();
     profile = data;
   } catch (e) { /* 프로필 없어도 동작 */ }
-  document.getElementById('userName').textContent =
-    (profile && profile.name) || session.user.email;
+  const myRole = (profile && profile.role) || 'general';
+  const myName = (profile && profile.name) || session.user.email;
+  const isAdmin = myRole === 'admin';
+  const ROLE_LABEL = { admin: '관리자', approver: '승인자', reviewer: '검토자', general: '일반' };
+  document.getElementById('userName').textContent = myName;
   const badge = document.getElementById('roleBadge');
-  const isAdmin = profile && profile.role === 'admin';
-  badge.textContent = isAdmin ? '관리자' : '일반';
-  badge.className = 'role-badge' + (isAdmin ? '' : ' general');
+  badge.textContent = ROLE_LABEL[myRole] || '일반';
+  badge.className = 'role-badge ' + myRole;
   badge.style.display = '';
+
+  // 비밀번호 변경 (모든 사용자) — 현재 비번 확인 후 변경
+  {
+    const pwModal = document.getElementById('pwModal');
+    const closePw = () => pwModal.classList.remove('open');
+    document.getElementById('pwBtn').addEventListener('click', () => {
+      document.getElementById('pwCur').value = '';
+      document.getElementById('pwNew').value = '';
+      document.getElementById('pwNew2').value = '';
+      document.getElementById('pwMsg').textContent = '';
+      pwModal.classList.add('open');
+    });
+    document.getElementById('pwClose').addEventListener('click', closePw);
+    pwModal.addEventListener('click', (e) => { if (e.target === pwModal) closePw(); });
+    document.getElementById('pwSubmit').addEventListener('click', async () => {
+      const cur = document.getElementById('pwCur').value;
+      const n1 = document.getElementById('pwNew').value;
+      const n2 = document.getElementById('pwNew2').value;
+      const msg = document.getElementById('pwMsg');
+      msg.className = 'pw-msg';
+      if (!cur || !n1) { msg.className = 'pw-msg err'; msg.textContent = '현재 비밀번호와 새 비밀번호를 입력하세요.'; return; }
+      if (n1.length < 8) { msg.className = 'pw-msg err'; msg.textContent = '새 비밀번호는 8자 이상이어야 합니다.'; return; }
+      if (n1 !== n2) { msg.className = 'pw-msg err'; msg.textContent = '새 비밀번호 확인이 일치하지 않습니다.'; return; }
+      const btn = document.getElementById('pwSubmit'); btn.disabled = true; msg.textContent = '처리 중...';
+      // 1) 현재 비번 확인(재로그인)
+      const { error: vErr } = await edmsClient.auth.signInWithPassword({ email: session.user.email, password: cur });
+      if (vErr) { msg.className = 'pw-msg err'; msg.textContent = '현재 비밀번호가 올바르지 않습니다.'; btn.disabled = false; return; }
+      // 2) 새 비번으로 변경
+      const { error: uErr } = await edmsClient.auth.updateUser({ password: n1 });
+      btn.disabled = false;
+      if (uErr) { msg.className = 'pw-msg err'; msg.textContent = '변경 실패: ' + uErr.message; return; }
+      msg.className = 'pw-msg ok'; msg.textContent = '변경되었습니다. 잠시 후 다시 로그인해 주세요.';
+      setTimeout(async () => { await edmsClient.auth.signOut(); location.replace('login.html'); }, 1800);
+    });
+  }
 
   // 3) 문서 로드 (RLS가 권한 범위만 반환)
   const { data: docs, error } = await edmsClient.from('edms_documents')
@@ -751,25 +842,24 @@
     const items = [];
     const me = session.user.id;
     const apv = lastApvData || [];
-    if (isAdmin) {
-      apv.filter(a => a.status === '검토중' && a.reviewer_id === me)
-        .forEach(a => items.push({ icon: '📝', label: `검토 대기: ${a.doc_number}`, sub: a.title || '', target: 'apvPanel' }));
-      apv.filter(a => a.status === '승인대기' && a.approver_id === me)
-        .forEach(a => items.push({ icon: '🖊️', label: `승인 대기: ${a.doc_number}`, sub: a.title || '', target: 'apvPanel' }));
-      (lastDownloadPending || []).forEach(r => items.push({
-        icon: '📥',
-        label: `다운로드 요청: ${(r.edms_documents && r.edms_documents.doc_number) || ''}`,
-        sub: `요청자 ${(r.edms_profiles && (r.edms_profiles.name || r.edms_profiles.email)) || ''}`,
-        target: 'approvalPanel',
-      }));
-    } else {
-      apv.filter(a => (a.status === '검토중' && a.reviewer_id === me) || (a.status === '승인대기' && a.approver_id === me))
-        .forEach(a => items.push({ icon: '📝', label: `내 결재 대기: ${a.doc_number}`, sub: a.status, target: 'apvPanel' }));
-      Object.values(reqByDoc).filter(r => r.status === '승인' && !r.confirmed_at)
-        .forEach(r => items.push({ icon: '✅', label: `다운로드 확인 필요: ${docNumById[r.document_id] || ''}`, sub: '승인됨 — 확인 시 10분 다운로드', target: 'docPanel' }));
-      Object.values(reqByDoc).filter(r => r.status === '반려')
-        .forEach(r => items.push({ icon: '⛔', label: `다운로드 반려: ${docNumById[r.document_id] || ''}`, sub: '다시 요청할 수 있습니다', target: 'docPanel' }));
-    }
+    // 검토 대기 (지정 검토자 또는 관리자)
+    apv.filter(a => a.status === '검토중' && (a.reviewer_id === me || isAdmin))
+      .forEach(a => items.push({ icon: '📝', label: `검토 대기: ${a.doc_number}`, sub: a.title || '', target: 'apvPanel' }));
+    // 승인 대기 (지정 승인자 또는 관리자)
+    apv.filter(a => a.status === '승인대기' && (a.approver_id === me || isAdmin))
+      .forEach(a => items.push({ icon: '🖊️', label: `승인 대기: ${a.doc_number}`, sub: a.title || '', target: 'apvPanel' }));
+    // 다운로드 요청 대기 (관리자)
+    if (isAdmin) (lastDownloadPending || []).forEach(r => items.push({
+      icon: '📥',
+      label: `다운로드 요청: ${(r.edms_documents && r.edms_documents.doc_number) || ''}`,
+      sub: `요청자 ${(r.edms_profiles && (r.edms_profiles.name || r.edms_profiles.email)) || ''}`,
+      target: 'approvalPanel',
+    }));
+    // 내 다운로드 확인 필요 / 반려 (전원)
+    Object.values(reqByDoc).filter(r => r.status === '승인' && !r.confirmed_at)
+      .forEach(r => items.push({ icon: '✅', label: `다운로드 확인 필요: ${docNumById[r.document_id] || ''}`, sub: '승인됨 — 확인 시 10분 다운로드', target: 'docPanel' }));
+    Object.values(reqByDoc).filter(r => r.status === '반려')
+      .forEach(r => items.push({ icon: '⛔', label: `다운로드 반려: ${docNumById[r.document_id] || ''}`, sub: '다시 요청할 수 있습니다', target: 'docPanel' }));
     return items;
   }
   function refreshBell() {
@@ -912,16 +1002,18 @@
   // ══ 결재 워크플로우 (작성→검토→승인) ════════════════════
   const myId = session.user.id;
 
-  // 관리자만 프로필 전체 조회 가능(RLS) → 검토자·승인자 드롭다운 + 이름맵
+  // 프로필 전체 조회(모든 로그인 사용자) → 검토자·승인자 후보 + 라우팅 + 이름맵
   let allProfiles = [];
   const profNameById = {};
-  if (isAdmin) {
+  {
     const { data } = await edmsClient.from('edms_profiles')
-      .select('id, name, email').order('email');
+      .select('id, name, email, role').order('email');
     allProfiles = data || [];
     allProfiles.forEach(p => { profNameById[p.id] = p.name || p.email; });
   }
   const nameOf = (embed, id) => (embed && embed.name) || profNameById[id] || (id ? '—' : '');
+  const roleAccts = (role) => allProfiles.filter(p => p.role === role)
+    .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
 
   // 폼 요소
   const formModal = document.getElementById('formModal');
@@ -938,11 +1030,42 @@
   }
   function closeForm() { formModal.classList.remove('open'); }
 
+  // 검토자·승인자 자동 라우팅 (R2) — 역할 기반, 편집 가능
+  function reviewerCandidates() {
+    return allProfiles.filter(p => p.role === 'reviewer' || p.role === 'admin')
+      .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+  }
+  function approverCandidates() {
+    const a = roleAccts('approver');
+    return a.length ? a : roleAccts('admin');
+  }
+  function pickReviewer(docType, series) {
+    let t;
+    if (docType === 'W-M') t = roleAccts('reviewer')[0];           // 매뉴얼 → 품질팀장(검토자)
+    else if (series === 'Q' || series === 'D') t = roleAccts('admin')[0]; // 품질·개발 → 부대표(직무분리)
+    else t = roleAccts('reviewer')[0];                            // 그 외 → 품질팀장
+    return t || roleAccts('admin')[0] || allProfiles[0];
+  }
+  function fillSel(sel, list, selectedId) {
+    sel.innerHTML = list.map(p => `<option value="${p.id}">${escHtml(p.name || p.email)} · ${ROLE_LABEL[p.role] || p.role}</option>`).join('');
+    if (selectedId) sel.value = selectedId;
+  }
+  function updateApprovalLine() {
+    const rN = profNameById[fReviewer.value] || '—';
+    const aN = profNameById[fApprover.value] || '—';
+    $('apvLine').innerHTML = `결재선: <b>작성</b> ${escHtml(myName)} → <b>검토</b> ${escHtml(rN)} → <b>승인</b> ${escHtml(aN)}`;
+  }
+  function applyRouting(docType, series) {
+    const rv = pickReviewer(docType, series);
+    fillSel(fReviewer, reviewerCandidates(), rv && rv.id);
+    const apps = approverCandidates();
+    fillSel(fApprover, apps, apps[0] && apps[0].id);
+    updateApprovalLine();
+  }
+  fReviewer.addEventListener('change', updateApprovalLine);
+  fApprover.addEventListener('change', updateApprovalLine);
+
   function openForm() {
-    [fReviewer, fApprover].forEach(sel => {
-      sel.innerHTML = allProfiles.map(p => `<option value="${p.id}">${p.name || p.email}</option>`).join('');
-      sel.value = myId;
-    });
     revSel.innerHTML = '<option value="">— 선택 —</option>' +
       docs.map(d => `<option value="${d.id}">${d.doc_number} — ${(d.title || '').slice(0, 28)}</option>`).join('');
     document.querySelector('input[name="apvType"][value="제정"]').checked = true;
@@ -958,7 +1081,8 @@
     formModal.classList.add('open');
   }
 
-  if (isAdmin) {
+  // 작성(+새 문서)은 모든 로그인 사용자에게 개방 (R1)
+  {
     const nb = $('newDocBtn');
     nb.style.display = '';
     nb.addEventListener('click', openForm);
@@ -984,6 +1108,7 @@
     fTitle.value = d.title || ''; fSeries.value = d.series || '';
     fDocType.value = d.doc_type || ''; fSecurity.value = String(d.security_level || 2);
     fVersion.value = nextVersion(d.current_version);
+    applyRouting(d.doc_type, d.series);
   });
 
   // ── 발번 도우미 (제정 전용) ─────────────────────────────
@@ -1039,6 +1164,7 @@
       fSeries.value = $('fDisc').value;
     }
     $('prefixHint').textContent = numPrefix() || '—';
+    applyRouting(fDocType.value, fSeries.value);
     checkDup();
   }
   $('fType').addEventListener('change', () => { applyFrMode(); syncDerived(); });
@@ -1098,12 +1224,12 @@
     }
     const btn = $('fSubmit'); btn.disabled = true; fMsg.textContent = '처리 중...';
 
-    // 1) 초안 파일 업로드(선택)
+    // 1) 초안 원본 업로드(선택) → draft/{문서번호}.{확장자} (모든 로그인 사용자 write 허용)
     let storagePath = null;
     const file = fFile.files[0];
     if (file) {
       const ext = file.name.slice(file.name.lastIndexOf('.'));
-      storagePath = `p${security}/${docNo}${ext}`;
+      storagePath = `draft/${docNo}${ext}`;
       const { error: upErr } = await edmsClient.storage.from('documents')
         .upload(storagePath, file, { upsert: true, contentType: file.type });
       if (upErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '파일 업로드 실패: ' + upErr.message; btn.disabled = false; return; }
@@ -1143,10 +1269,13 @@
     lastApvData = data || [];
     refreshBell();
 
-    // 내가 처리할 대기 건 (검토중→내가 검토자|관리자 / 승인대기→내가 승인자|관리자)
-    const todo = data.filter(a =>
-      (a.status === '검토중' && (a.reviewer_id === myId || isAdmin)) ||
-      (a.status === '승인대기' && (a.approver_id === myId || isAdmin)));
+    // 내가 처리할 대기 건 (R3: 역할 기반)
+    //  검토 대기 = 검토중 & (내가 검토자 또는 내 역할이 검토자/관리자)
+    //  승인 대기 = 승인대기 & (내가 승인자 또는 내 역할이 승인자)
+    //  처리는 결재 RPC가 '지정된 본인 또는 관리자'만 허용하므로 화면도 동일 기준으로 표시(불가 항목 숨김)
+    const canReview = (a) => a.status === '검토중' && (a.reviewer_id === myId || isAdmin);
+    const canApprove = (a) => a.status === '승인대기' && (a.approver_id === myId || isAdmin);
+    const todo = data.filter(a => canReview(a) || canApprove(a));
     const todoBox = $('apvTodo');
     if (!todo.length) {
       todoBox.innerHTML = '<div class="apv-empty">내가 처리할 결재 대기 건이 없습니다.</div>';
@@ -1169,6 +1298,20 @@
             </div></div>`;
         }).join('');
     }
+
+    // 내 작성함 (R3) — 내가 작성한 결재 건의 상태·반려사유
+    const mine = data.filter(a => a.drafter_id === myId);
+    const mineBox = $('apvMine');
+    mineBox.innerHTML = mine.length
+      ? '<div class="apv-sub">내 작성함 ' + `(${mine.length}건)</div>` +
+        mine.map(a => `<div class="apv-row">
+          <div class="apv-info">
+            <span class="st-tag st-${a.status}">${a.status}</span>
+            <b>${a.doc_number}</b> ${escHtml(a.title || '')} <small>(${a.approval_type})</small>
+            ${a.status === '반려' && a.reject_reason ? `<br><small style="color:#c0392b">반려 사유: ${escHtml(a.reject_reason)} · 다시 올리려면 ‘+ 새 문서’로 재상신</small>` : ''}
+          </div>
+        </div>`).join('')
+      : '';
 
     // 결재 현황(전체)
     const fmt = (t) => t ? new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '';
