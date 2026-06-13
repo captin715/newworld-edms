@@ -54,6 +54,22 @@
   .pw-submit { width:100%; margin-top:16px; background:#1F3864; color:#fff; border:none; padding:11px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; }
   .pw-submit:disabled { background:#9aa7bd; cursor:wait; }
 
+  /* 권한 위임(개정/권한) */
+  .rev-btn { background:#1F3864; color:#fff; border:none; padding:4px 12px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .rev-btn:hover { background:#16294a; }
+  .greq-btn { background:#fff; color:#b07d00; border:1.5px solid #e8b931; padding:4px 11px; border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .greq-btn:hover { background:#fdf6e3; }
+  .grant-badge { font-size:10px; background:#e3efe3; color:#2e7d32; padding:1px 6px; border-radius:8px; white-space:nowrap; margin-left:4px; }
+  .deny-note { font-size:11px; color:#c0392b; white-space:nowrap; }
+  .req-note { font-size:11px; color:#999; white-space:nowrap; }
+  #grantAdminPanel { border-top:4px solid #e8b931; }
+  .ga-sub { font-size:13px; color:#1F3864; font-weight:bold; margin:14px 0 6px; }
+  .ga-form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:13px; margin:4px 0 10px; }
+  .ga-form select, .ga-form input { padding:7px 9px; border:1.5px solid #d5dbe7; border-radius:7px; font-size:13px; }
+  .ga-form button { background:#1F3864; color:#fff; border:none; padding:7px 14px; border-radius:7px; font-size:13px; cursor:pointer; }
+  #grantModal { display:none; position:fixed; inset:0; z-index:1300; background:rgba(15,25,45,.6); padding:6vh 4vw; }
+  #grantModal.open { display:flex; align-items:flex-start; justify-content:center; }
+
   /* 인앱 알림 종 */
   .bell-wrap { position:relative; }
   #bell { position:relative; background:transparent; border:none; font-size:19px; cursor:pointer; line-height:1; padding:2px 4px; }
@@ -355,6 +371,22 @@
       <div id="apList"></div>
     </div>
 
+    <div class="panel" id="grantAdminPanel" style="display:none">
+      <h2>🔐 권한 관리 <button id="gaRefresh" style="float:right;font-size:12px;padding:3px 10px;cursor:pointer">새로고침</button></h2>
+      <div class="ga-sub">권한 요청 대기</div>
+      <div id="gaReqList"></div>
+      <div class="ga-sub">직접 부여 / 제한</div>
+      <div class="ga-form">
+        <select id="gaDoc"><option value="">문서 선택…</option></select>
+        <select id="gaUser"></select>
+        <select id="gaMode"><option value="allow">허용(개정 가능)</option><option value="deny">차단(개정 불가)</option></select>
+        <select id="gaTerm"><option value="perm">영구</option><option value="1">1일</option><option value="7">7일</option><option value="30">30일</option></select>
+        <button id="gaSet">적용</button>
+      </div>
+      <div class="ga-sub">활성 권한</div>
+      <div id="gaActiveList"></div>
+    </div>
+
     <div class="panel" id="apvPanel">
       <h2>📝 결재함
         <button id="apvRefresh">새로고침</button>
@@ -391,7 +423,7 @@
         <table>
           <thead><tr>
             <th>문서번호</th><th>제목</th><th>유형</th><th>시리즈</th>
-            <th>버전</th><th>상태</th><th>등급</th><th>제정일</th><th>열람</th><th>다운로드</th>
+            <th>버전</th><th>상태</th><th>등급</th><th>제정일</th><th>열람</th><th>다운로드</th><th>개정/권한</th>
           </tr></thead>
           <tbody id="docTbody"></tbody>
         </table>
@@ -431,6 +463,28 @@
         </table>
       </div>
       <div id="histEmpty" class="hist-empty" style="display:none">개정이력이 없습니다.</div>
+    </div>
+  </div>
+</div>
+
+<div id="grantModal">
+  <div class="pw-box">
+    <div class="pw-head">
+      <h3>문서 개정 권한 요청</h3>
+      <button id="grantClose">닫기 ✕</button>
+    </div>
+    <div class="pw-body">
+      <div class="pw-note" id="grantDocInfo" style="margin-top:0"></div>
+      <label>요청 기간</label>
+      <select id="grantTerm" style="width:100%;padding:10px 12px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px">
+        <option value="1">1일</option>
+        <option value="7">7일</option>
+        <option value="perm">영구 요청</option>
+      </select>
+      <label>요청 사유</label>
+      <textarea id="grantReason" style="width:100%;min-height:60px;padding:10px 12px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px;font-family:inherit" placeholder="이 문서를 개정해야 하는 이유"></textarea>
+      <button class="pw-submit" id="grantSubmit">권한 요청</button>
+      <div class="pw-msg" id="grantMsg"></div>
     </div>
   </div>
 </div>
@@ -587,11 +641,12 @@
   let profile = null;
   try {
     const { data } = await edmsClient.from('edms_profiles')
-      .select('name, role').eq('id', session.user.id).maybeSingle();
+      .select('name, role, dept').eq('id', session.user.id).maybeSingle();
     profile = data;
   } catch (e) { /* 프로필 없어도 동작 */ }
   const myRole = (profile && profile.role) || 'general';
   const myName = (profile && profile.name) || session.user.email;
+  const myDept = (profile && profile.dept) || null;
   const isAdmin = myRole === 'admin';
   const ROLE_LABEL = { admin: '관리자', approver: '승인자', reviewer: '검토자', general: '일반' };
   document.getElementById('userName').textContent = myName;
@@ -637,7 +692,7 @@
 
   // 3) 문서 로드 (RLS가 권한 범위만 반환)
   const { data: docs, error } = await edmsClient.from('edms_documents')
-    .select('id, doc_number, title, doc_type, series, current_version, status, confidentiality, security_level, registered_at, storage_path')
+    .select('id, doc_number, title, doc_type, series, current_version, status, confidentiality, security_level, registered_at, storage_path, owner_dept')
     .order('doc_number')
     .limit(1000);
   if (error) {
@@ -735,6 +790,21 @@
       return `<button class="dl-btn" data-path="${d.storage_path}" data-num="${d.doc_number}" data-exp="${r.expires_at}">다운로드</button>`;
     }
     return `<button class="rq-btn" data-doc="${d.id}">승인 요청</button>`;
+  }
+
+  // 개정/권한 칸 (Phase 10 D1 + Phase 11 G1/G3)
+  function reviseCell(d) {
+    if (canRevise(d)) {
+      let badge = '';
+      if (!isAdmin && d.owner_dept !== myDept && myGrant[d.id] === 'allow') {
+        const exp = myGrantExp[d.id];
+        badge = ` <span class="grant-badge">임시권한${exp ? ' ~' + new Date(exp).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>`;
+      }
+      return `<button class="rev-btn" data-id="${d.id}">개정</button>${badge}`;
+    }
+    if (myGrant[d.id] === 'deny') return '<span class="deny-note">🚫 권한 제한됨</span>';
+    if (myReqPending.has(d.id)) return '<span class="req-note">요청됨(승인 대기)</span>';
+    return `<button class="greq-btn" data-id="${d.id}" data-dept="${d.owner_dept || ''}" data-num="${d.doc_number}" data-title="${(d.title || '').replace(/"/g, '&quot;')}">권한 요청</button>`;
   }
 
   // 반려 안내 (한 번만 — 안내한 건은 localStorage에 기록)
@@ -842,7 +912,7 @@
   }
 
   // ── 인앱 알림 (🔔) ──────────────────────────────────────
-  let lastApvData = [], lastDownloadPending = [];
+  let lastApvData = [], lastDownloadPending = [], lastGrantReqs = [];
   function computeNotifications() {
     const items = [];
     const me = session.user.id;
@@ -859,6 +929,13 @@
       label: `다운로드 요청: ${(r.edms_documents && r.edms_documents.doc_number) || ''}`,
       sub: `요청자 ${(r.edms_profiles && (r.edms_profiles.name || r.edms_profiles.email)) || ''}`,
       target: 'approvalPanel',
+    }));
+    // 권한 요청 대기 (관리자)
+    if (isAdmin) lastGrantReqs.forEach(g => items.push({
+      key: 'gr:' + g.id, icon: '🔐',
+      label: `권한 요청: ${g.doc_number || ''}`,
+      sub: `요청자 ${profNameById[g.requested_by] || ''}`,
+      target: 'grantAdminPanel',
     }));
     // 내 다운로드 확인 필요 / 반려 (전원)
     Object.values(reqByDoc).filter(r => r.status === '승인' && !r.confirmed_at)
@@ -922,6 +999,12 @@
       openHistory(hbtn.dataset.id, hbtn.dataset.num, hbtn.dataset.title);
       return;
     }
+    // 개정 (담당팀/권한 보유)
+    const revB = e.target.closest('.rev-btn');
+    if (revB) { openReviseForm(revB.dataset.id); return; }
+    // 권한 요청
+    const greqB = e.target.closest('.greq-btn');
+    if (greqB) { openGrantRequest(greqB.dataset.id, greqB.dataset.num, greqB.dataset.title, greqB.dataset.dept); return; }
     // 승인 요청
     const rbtn = e.target.closest('.rq-btn');
     if (rbtn) {
@@ -1036,6 +1119,43 @@
   const roleAccts = (role) => allProfiles.filter(p => p.role === role)
     .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
 
+  // ── 문서 권한 위임 상태 (Phase 11) ──────────────────────
+  const myGrant = {};       // document_id → 'allow' | 'deny' (활성)
+  const myGrantExp = {};    // document_id → expires_at (임시 allow)
+  const myReqPending = new Set();  // 권한 요청 중인 document_id
+  async function loadMyGrants() {
+    Object.keys(myGrant).forEach(k => delete myGrant[k]);
+    Object.keys(myGrantExp).forEach(k => delete myGrantExp[k]);
+    myReqPending.clear();
+    const { data } = await edmsClient.from('edms_doc_grants')
+      .select('document_id, mode, status, permanent, expires_at')
+      .eq('grantee_id', session.user.id).limit(1000);
+    const now = Date.now();
+    (data || []).forEach(g => {
+      const active = g.permanent || (g.expires_at && new Date(g.expires_at).getTime() > now);
+      if (g.status === '승인' && active) {
+        if (g.mode === 'deny') myGrant[g.document_id] = 'deny';
+        else if (myGrant[g.document_id] !== 'deny') {
+          myGrant[g.document_id] = 'allow';
+          if (!g.permanent) myGrantExp[g.document_id] = g.expires_at;
+        }
+      } else if (g.status === '요청') {
+        myReqPending.add(g.document_id);
+      }
+    });
+  }
+  await loadMyGrants();
+
+  // 개정 가능? = 관리자 OR ((담당팀 OR allow) AND deny 아님)  (서버 edms_apv_create와 동일)
+  function canRevise(d) {
+    if (isAdmin) return true;
+    if (myGrant[d.id] === 'deny') return false;
+    return d.owner_dept === myDept || myGrant[d.id] === 'allow';
+  }
+  // 담당 구분자(시리즈) → 팀 매핑 (서버 edms_series_dept와 동일 규칙)
+  const DISC_DEPT = { C: '공사', Q: '품질', G: '관리', E: '관리', R: '관리', S: '관리', M: '관리', D: '관리' };
+  const canUseDisc = (c) => isAdmin || DISC_DEPT[c] === myDept;
+
   // 폼 요소
   const formModal = document.getElementById('formModal');
   const $ = (id) => document.getElementById(id);
@@ -1092,7 +1212,7 @@
     document.querySelector('input[name="apvType"][value="제정"]').checked = true;
     $('revisePick').style.display = 'none';
     $('numHelper').style.display = '';
-    $('fType').value = 'W-M'; $('fDisc').value = 'G'; $('fLayer').value = 'P';
+    $('fType').value = 'W-M'; $('fDisc').selectedIndex = 0; $('fLayer').value = 'P';
     $('fParent').value = ''; $('fSeq').value = '';
     $('usedList').style.display = 'none'; $('usedList').innerHTML = '';
     fDocNo.value = ''; fDocNo.readOnly = false; fTitle.value = '';
@@ -1110,6 +1230,116 @@
   }
   $('formClose').addEventListener('click', closeForm);
   formModal.addEventListener('click', (e) => { if (e.target === formModal) closeForm(); });
+
+  // 개정 진입(목록의 '개정' 버튼) — 폼을 개정 모드로 열고 해당 문서 선택
+  function openReviseForm(docId) {
+    openForm();
+    document.querySelector('input[name="apvType"][value="개정"]').checked = true;
+    $('revisePick').style.display = ''; $('numHelper').style.display = 'none'; fDocNo.readOnly = true;
+    revSel.value = docId;
+    revSel.dispatchEvent(new Event('change'));
+  }
+
+  // ── 권한 요청 모달 (G1) ─────────────────────────────────
+  const grantModal = document.getElementById('grantModal');
+  let grantReqDocId = null;
+  function openGrantRequest(docId, num, title, dept) {
+    grantReqDocId = docId;
+    $('grantDocInfo').innerHTML = `<b>${escHtml(num)}</b> ${escHtml(title)}<br>이 문서는 <b>${escHtml(dept || '미지정')}</b>팀 담당입니다. 개정하려면 권한을 요청하세요.`;
+    $('grantTerm').value = '1'; $('grantReason').value = ''; $('grantMsg').textContent = '';
+    grantModal.classList.add('open');
+  }
+  $('grantClose').addEventListener('click', () => grantModal.classList.remove('open'));
+  grantModal.addEventListener('click', (e) => { if (e.target === grantModal) grantModal.classList.remove('open'); });
+  $('grantSubmit').addEventListener('click', async () => {
+    const term = $('grantTerm').value;
+    const minutes = term === 'perm' ? null : (term === '7' ? 10080 : 1440);
+    const msg = $('grantMsg'); msg.className = 'pw-msg';
+    const btn = $('grantSubmit'); btn.disabled = true; msg.textContent = '요청 중...';
+    const { error } = await edmsClient.rpc('edms_grant_request',
+      { p_document_id: grantReqDocId, p_action: '개정', p_minutes: minutes, p_reason: $('grantReason').value.trim() || null });
+    btn.disabled = false;
+    if (error) { msg.className = 'pw-msg err'; msg.textContent = '요청 실패: ' + error.message; return; }
+    myReqPending.add(grantReqDocId);
+    grantModal.classList.remove('open');
+    render();
+    alert('권한을 요청했습니다. 관리자(부대표) 승인 후 개정할 수 있습니다.');
+  });
+
+  // ── 권한 관리함 (G2, 관리자 전용) ───────────────────────
+  async function loadGrantAdmin() {
+    if (!isAdmin) return;
+    $('grantAdminPanel').style.display = '';
+    const { data: reqs } = await edmsClient.from('edms_doc_grants')
+      .select('id, doc_number, reason, requested_by, created_at')
+      .eq('status', '요청').order('created_at', { ascending: true });
+    lastGrantReqs = reqs || [];
+    $('gaReqList').innerHTML = lastGrantReqs.length
+      ? lastGrantReqs.map(g => `<div class="apv-row">
+          <div class="apv-info"><b>${escHtml(g.doc_number || '')}</b> · 요청자 ${escHtml(profNameById[g.requested_by] || '?')}
+            ${g.reason ? '<br><small>사유: ' + escHtml(g.reason) + '</small>' : ''}</div>
+          <div class="apv-actions">
+            <button class="apv-ok" data-g="${g.id}" data-act="temp">임시승인</button>
+            <button class="apv-ok" data-g="${g.id}" data-act="perm">영구승인</button>
+            <button class="apv-no" data-g="${g.id}" data-act="deny">거부</button>
+          </div></div>`).join('')
+      : '<div class="apv-empty">대기 중인 권한 요청이 없습니다.</div>';
+    const { data: act } = await edmsClient.from('edms_doc_grants')
+      .select('id, doc_number, grantee_id, mode, permanent, expires_at')
+      .eq('status', '승인').order('created_at', { ascending: false });
+    const now = Date.now();
+    const active = (act || []).filter(g => g.permanent || (g.expires_at && new Date(g.expires_at).getTime() > now));
+    $('gaActiveList').innerHTML = active.length
+      ? active.map(g => `<div class="apv-row">
+          <div class="apv-info"><b>${escHtml(g.doc_number || '')}</b> · ${escHtml(profNameById[g.grantee_id] || '?')}
+            · ${g.mode === 'deny' ? '🚫 차단' : '✅ 허용'} · ${g.permanent ? '영구' : '~' + new Date(g.expires_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+          <div class="apv-actions"><button class="apv-no" data-rv="${g.id}">회수</button></div>
+        </div>`).join('')
+      : '<div class="apv-empty">활성 권한이 없습니다.</div>';
+    refreshBell();
+  }
+  if (isAdmin) {
+    $('gaDoc').innerHTML = '<option value="">문서 선택…</option>' +
+      docs.map(d => `<option value="${d.id}">${d.doc_number} — ${(d.title || '').slice(0, 24)}</option>`).join('');
+    $('gaUser').innerHTML = allProfiles.map(p => `<option value="${p.id}">${escHtml(p.name || p.email)} (${ROLE_LABEL[p.role] || p.role})</option>`).join('');
+    $('gaReqList').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-g]'); if (!b) return;
+      b.disabled = true;
+      const act = b.dataset.act;
+      let args;
+      if (act === 'deny') args = { p_id: b.dataset.g, p_approve: false };
+      else if (act === 'perm') args = { p_id: b.dataset.g, p_approve: true, p_permanent: true };
+      else {
+        const days = prompt('며칠 동안 허용할까요? (숫자)', '1');
+        if (days === null) { b.disabled = false; return; }
+        args = { p_id: b.dataset.g, p_approve: true, p_permanent: false, p_minutes: Math.max(1, parseInt(days, 10) || 1) * 1440 };
+      }
+      const { error } = await edmsClient.rpc('edms_grant_decide', args);
+      if (error) { alert('처리 실패: ' + error.message); b.disabled = false; return; }
+      await loadGrantAdmin();
+    });
+    $('gaActiveList').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-rv]'); if (!b) return;
+      if (!confirm('이 권한을 회수할까요?')) return;
+      b.disabled = true;
+      const { error } = await edmsClient.rpc('edms_grant_revoke', { p_id: b.dataset.rv });
+      if (error) { alert('회수 실패: ' + error.message); b.disabled = false; return; }
+      await loadGrantAdmin();
+    });
+    $('gaSet').addEventListener('click', async () => {
+      const doc = $('gaDoc').value, user = $('gaUser').value, mode = $('gaMode').value, term = $('gaTerm').value;
+      if (!doc || !user) { alert('문서와 대상자를 선택하세요.'); return; }
+      const permanent = term === 'perm';
+      const minutes = permanent ? null : parseInt(term, 10) * 1440;
+      const { error } = await edmsClient.rpc('edms_grant_admin_set',
+        { p_document_id: doc, p_grantee_id: user, p_mode: mode, p_permanent: permanent, p_minutes: minutes, p_action: '개정', p_reason: '관리자 직접 설정' });
+      if (error) { alert('적용 실패: ' + error.message); return; }
+      alert('적용되었습니다.');
+      await loadGrantAdmin();
+    });
+    $('gaRefresh').addEventListener('click', loadGrantAdmin);
+    await loadGrantAdmin();
+  }
 
   // 제정/개정 토글
   document.querySelectorAll('input[name="apvType"]').forEach(r =>
@@ -1149,7 +1379,10 @@
     { c: 'Q', label: '검사기준서 예하' }, { c: 'I', label: '작업지침서 예하' },
   ];
   $('fType').innerHTML = NUM_TYPES.map(t => `<option value="${t.code}">W-${t.suffix} (${t.label})</option>`).join('');
-  $('fDisc').innerHTML = NUM_DISCS.map(d => `<option value="${d.c}">${d.c} (${d.label})</option>`).join('');
+  // 담당팀이 쓸 수 있는 구분자만 (관리자는 전체) — D1.2
+  $('fDisc').innerHTML = NUM_DISCS.filter(d => canUseDisc(d.c))
+    .map(d => `<option value="${d.c}">${d.c} (${d.label})</option>`).join('')
+    || '<option value="">담당 구분자 없음</option>';
   $('fLayer').innerHTML = NUM_LAYERS.map(l => `<option value="${l.c}">${l.c} (${l.label})</option>`).join('');
 
   const isFRType = () => $('fType').value === 'W-FR';
@@ -1401,6 +1634,7 @@
         <td>${d.registered_at || ''}</td>
         <td><button class="vw-btn" data-num="${d.doc_number}" data-type="${d.doc_type || ''}" data-title="${(d.title || '').replace(/"/g, '&quot;')}">📖 열람</button></td>
         <td>${fileCell(d)}</td>
+        <td>${reviseCell(d)}</td>
       </tr>`).join('');
   }
   document.getElementById('searchInput').addEventListener('input', render);
@@ -1415,10 +1649,13 @@
     if (document.visibilityState !== 'visible') return;
     if (isAdmin) {
       loadApprovals();
+      loadGrantAdmin();  // 권한 요청/활성 자동 갱신
     } else {
       const before = reqSig();
       await loadMyRequests();
+      await loadMyGrants();  // 내 권한(승인/만료) 변화 반영
       if (reqSig() !== before) { render(); notifyRejected(); }
+      else { render(); }     // 권한 변화도 칸에 반영
     }
     loadWorkflow();  // 결재함 대기·현황 자동 갱신 (전체 사용자)
   }, 15000);
