@@ -69,6 +69,11 @@
   .dl-btn:hover { background:#16294a; }
   .dl-btn:disabled { background:#9aa7bd; cursor:wait; }
   .dl-lock { font-size:11px; color:#999; white-space:nowrap; }
+  .rq-btn {
+    background:#fff; color:#b07d00; border:1.5px solid #e8b931; padding:3px 11px;
+    border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap;
+  }
+  .rq-btn:hover { background:#fdf6e3; }
   .vw-btn {
     background:#fff; color:#1F3864; border:1.5px solid #1F3864; padding:3px 11px;
     border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap;
@@ -173,7 +178,7 @@
         <table>
           <thead><tr>
             <th>문서번호</th><th>제목</th><th>유형</th><th>시리즈</th>
-            <th>버전</th><th>상태</th><th>등급</th><th>제정일</th><th>열람</th><th>파일</th>
+            <th>버전</th><th>상태</th><th>등급</th><th>제정일</th><th>열람</th><th>다운로드</th>
           </tr></thead>
           <tbody id="docTbody"></tbody>
         </table>
@@ -301,7 +306,8 @@
     if (isAdmin) {
       return `<button class="dl-btn" data-path="${d.storage_path}" data-num="${d.doc_number}">다운로드</button>`;
     }
-    return '<span class="dl-lock">🔒 대표 승인 필요</span>';
+    // 추후 다운로드 승인요청 기능 연결 예정 (현재는 표시만)
+    return '<button class="rq-btn" title="다운로드 승인 요청 기능은 준비 중입니다">승인 요청</button>';
   }
 
   // 열람(PDF 미리보기) — 모든 로그인 사용자 (Storage RLS가 view/* 읽기 허용)
@@ -315,7 +321,7 @@
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-  async function openViewer(num, title, btn) {
+  async function openViewer(num, title, docType, btn) {
     btn.disabled = true;
     try {
       const { data, error } = await edmsClient.storage.from('documents')
@@ -323,7 +329,9 @@
       if (error) { alert('열람본을 불러올 수 없습니다: ' + error.message); return; }
       document.getElementById('modalTitle').innerHTML =
         `<small>${num}</small> ${title || ''}`;
-      frame.src = data.signedUrl;
+      // 양식·기록(W-FR*)은 도구막대 허용(다운로드·인쇄), 그 외(유형 없음 포함)는 열람만
+      const isForm = (docType || '').startsWith('W-FR');
+      frame.src = data.signedUrl + (isForm ? '' : '#toolbar=0&navpanes=0');
       modal.classList.add('open');
     } finally {
       btn.disabled = false;
@@ -333,7 +341,7 @@
   tbody.addEventListener('click', async (e) => {
     const vbtn = e.target.closest('.vw-btn');
     if (vbtn) {
-      openViewer(vbtn.dataset.num, vbtn.dataset.title, vbtn);
+      openViewer(vbtn.dataset.num, vbtn.dataset.title, vbtn.dataset.type, vbtn);
       return;
     }
     const btn = e.target.closest('.dl-btn');
@@ -374,7 +382,7 @@
         <td>${d.status}</td>
         <td><span class="conf-tag conf-${d.confidentiality}">P${d.security_level}</span></td>
         <td>${d.registered_at || ''}</td>
-        <td><button class="vw-btn" data-num="${d.doc_number}" data-title="${(d.title || '').replace(/"/g, '&quot;')}">📖 열람</button></td>
+        <td><button class="vw-btn" data-num="${d.doc_number}" data-type="${d.doc_type || ''}" data-title="${(d.title || '').replace(/"/g, '&quot;')}">📖 열람</button></td>
         <td>${fileCell(d)}</td>
       </tr>`).join('');
   }
