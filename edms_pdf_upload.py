@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PDF_DIR = r"D:\EDMS\EDMS_적재데이터\pdf_열람본"
+PDF_DIR = r"D:\EDMS\EDMS_적재데이터\pdf_kr"  # 한글 정상화 열람본 (2026-06-13 교체)
 BUCKET = "documents"
 
 ENV = {}
