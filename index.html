@@ -147,6 +147,63 @@
 
   #loading { text-align:center; padding:60px 0; color:#1F3864; font-size:15px; }
 
+  /* 결재함 */
+  #apvPanel { border-top:4px solid #2d4f8a; }
+  #newDocBtn {
+    float:right; background:#1F3864; color:#fff; border:none; padding:5px 14px;
+    border-radius:6px; font-size:13px; cursor:pointer; margin-left:8px;
+  }
+  #newDocBtn:hover { background:#16294a; }
+  #apvRefresh { float:right; font-size:12px; padding:3px 10px; cursor:pointer; }
+  .apv-sub { font-size:13px; color:#1F3864; font-weight:bold; margin:14px 0 6px; }
+  .apv-row {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:9px 4px; border-bottom:1px solid #eef1f6; flex-wrap:wrap;
+  }
+  .apv-info { font-size:13px; line-height:1.5; flex:1; min-width:200px; }
+  .apv-info b { color:#1F3864; }
+  .apv-info small { color:#888; }
+  .apv-actions { display:flex; gap:6px; flex-shrink:0; }
+  .apv-ok { background:#2e7d32; color:#fff; border:none; padding:5px 13px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .apv-no { background:#fff; color:#c0392b; border:1.5px solid #c0392b; padding:5px 13px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .apv-empty { font-size:13px; color:#aaa; padding:4px 0; }
+  .st-tag { font-size:11px; padding:1px 8px; border-radius:10px; white-space:nowrap; }
+  .st-작성중 { background:#eceff4; color:#666; }
+  .st-검토중 { background:#e3eefc; color:#1F3864; }
+  .st-승인대기 { background:#fdf0d5; color:#b07d00; }
+  .st-승인완료 { background:#e3efe3; color:#2e7d32; }
+  .st-반려 { background:#fbe2e0; color:#c0392b; }
+  .apv-status-table { width:100%; border-collapse:collapse; font-size:12px; margin-top:4px; }
+  .apv-status-table th { background:#2d4f8a; color:#fff; padding:7px 8px; text-align:left; white-space:nowrap; }
+  .apv-status-table td { padding:6px 8px; border-bottom:1px solid #eef1f6; }
+
+  /* 새 문서 작성 폼 모달 */
+  #formModal { display:none; position:fixed; inset:0; z-index:1100; background:rgba(15,25,45,.6); padding:3vh 3vw; overflow:auto; }
+  #formModal.open { display:flex; align-items:flex-start; justify-content:center; }
+  .form-box { background:#fff; border-radius:12px; width:100%; max-width:560px; padding:0 0 20px; box-shadow:0 18px 60px rgba(0,0,0,.4); }
+  .form-head { background:#1F3864; color:#fff; padding:14px 20px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center; }
+  .form-head h3 { font-size:16px; }
+  .form-head button { background:transparent; border:1px solid rgba(255,255,255,.6); color:#fff; border-radius:6px; padding:3px 12px; cursor:pointer; }
+  .form-body { padding:18px 20px; }
+  .form-body label { display:block; font-size:13px; color:#444; font-weight:bold; margin:12px 0 5px; }
+  .form-body input, .form-body select, .form-body textarea {
+    width:100%; padding:9px 11px; border:1.5px solid #d5dbe7; border-radius:7px; font-size:14px; outline:none; font-family:inherit;
+  }
+  .form-body input:focus, .form-body select:focus, .form-body textarea:focus { border-color:#1F3864; }
+  .form-body textarea { min-height:60px; resize:vertical; }
+  .radio-row { display:flex; gap:18px; margin-top:4px; }
+  .radio-row label { display:flex; align-items:center; gap:5px; font-weight:normal; margin:0; cursor:pointer; }
+  .radio-row input { width:auto; }
+  .num-row { display:flex; gap:8px; }
+  .num-row input { flex:1; }
+  .num-row button { flex-shrink:0; background:#eef3fb; color:#1F3864; border:1.5px solid #1F3864; border-radius:7px; padding:0 12px; font-size:12px; cursor:pointer; }
+  .form-msg { font-size:12px; margin-top:10px; min-height:16px; }
+  .form-msg.err { color:#c0392b; }
+  .form-msg.ok { color:#2e7d32; }
+  .form-submit { width:100%; margin-top:18px; background:#1F3864; color:#fff; border:none; padding:12px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; }
+  .form-submit:disabled { background:#9aa7bd; cursor:wait; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+
   @media (max-width:768px) {
     .cards { grid-template-columns:repeat(2,1fr); }
     header h1 { font-size:15px; }
@@ -198,6 +255,24 @@
       <div id="apList"></div>
     </div>
 
+    <div class="panel" id="apvPanel">
+      <h2>📝 결재함
+        <button id="apvRefresh">새로고침</button>
+        <button id="newDocBtn" style="display:none">+ 새 문서</button>
+      </h2>
+      <div id="apvTodo"></div>
+      <div class="apv-sub">결재 현황</div>
+      <div class="table-wrap">
+        <table class="apv-status-table">
+          <thead><tr>
+            <th>구분</th><th>문서번호</th><th>제목</th><th>상태</th>
+            <th>작성</th><th>검토</th><th>승인</th><th>최근일시</th>
+          </tr></thead>
+          <tbody id="apvStatusBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="panel">
       <h2>시리즈별 문서 분포</h2>
       <div class="chart-wrap"><canvas id="seriesChart"></canvas></div>
@@ -236,6 +311,83 @@
       <button id="modalClose">닫기 ✕</button>
     </div>
     <iframe id="modalFrame" title="문서 미리보기"></iframe>
+  </div>
+</div>
+
+<div id="formModal">
+  <div class="form-box">
+    <div class="form-head">
+      <h3>새 문서 결재 작성</h3>
+      <button id="formClose">닫기 ✕</button>
+    </div>
+    <div class="form-body">
+      <label>구분</label>
+      <div class="radio-row">
+        <label><input type="radio" name="apvType" value="제정" checked> 제정 (새 문서)</label>
+        <label><input type="radio" name="apvType" value="개정" id="rType개정"> 개정 (기존 문서 변경)</label>
+      </div>
+
+      <div id="revisePick" style="display:none">
+        <label>개정할 기존 문서</label>
+        <select id="fReviseDoc"><option value="">— 선택 —</option></select>
+      </div>
+
+      <label>문서번호</label>
+      <div class="num-row">
+        <input type="text" id="fDocNo" placeholder="예: W-FR-I-Q071110-99">
+        <button type="button" id="fSuggestNo">다음번호 제안</button>
+      </div>
+
+      <label>제목</label>
+      <input type="text" id="fTitle" placeholder="문서 제목">
+
+      <div class="grid2">
+        <div>
+          <label>시리즈</label>
+          <input type="text" id="fSeries" placeholder="예: Q, CFSPS">
+        </div>
+        <div>
+          <label>유형(doc_type)</label>
+          <input type="text" id="fDocType" placeholder="예: W-FR, W-P">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>보안등급</label>
+          <select id="fSecurity">
+            <option value="1">P1 (일반)</option>
+            <option value="2" selected>P2 (일반)</option>
+            <option value="3">P3 (대외비)</option>
+            <option value="4">P4 (기밀)</option>
+          </select>
+        </div>
+        <div>
+          <label>버전</label>
+          <input type="text" id="fVersion" value="Rev1.00">
+        </div>
+      </div>
+
+      <label>제정/개정 사유 · 변경 내용</label>
+      <textarea id="fChange" placeholder="이 문서를 만들거나 고치는 이유를 적어주세요."></textarea>
+
+      <div class="grid2">
+        <div>
+          <label>검토자</label>
+          <select id="fReviewer"></select>
+        </div>
+        <div>
+          <label>승인자</label>
+          <select id="fApprover"></select>
+        </div>
+      </div>
+
+      <label>초안 파일 (선택 · docx/xlsx)</label>
+      <input type="file" id="fFile" accept=".docx,.xlsx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+
+      <button class="form-submit" id="fSubmit">검토 상신</button>
+      <div class="form-msg" id="fMsg"></div>
+    </div>
   </div>
 </div>
 
@@ -546,6 +698,206 @@
   document.getElementById('apRefresh').addEventListener('click', loadApprovals);
   await loadApprovals();
 
+  // ══ 결재 워크플로우 (작성→검토→승인) ════════════════════
+  const myId = session.user.id;
+
+  // 관리자만 프로필 전체 조회 가능(RLS) → 검토자·승인자 드롭다운 + 이름맵
+  let allProfiles = [];
+  const profNameById = {};
+  if (isAdmin) {
+    const { data } = await edmsClient.from('edms_profiles')
+      .select('id, name, email').order('email');
+    allProfiles = data || [];
+    allProfiles.forEach(p => { profNameById[p.id] = p.name || p.email; });
+  }
+  const nameOf = (embed, id) => (embed && embed.name) || profNameById[id] || (id ? '—' : '');
+
+  // 폼 요소
+  const formModal = document.getElementById('formModal');
+  const $ = (id) => document.getElementById(id);
+  const fDocNo = $('fDocNo'), fTitle = $('fTitle'), fSeries = $('fSeries'),
+        fDocType = $('fDocType'), fSecurity = $('fSecurity'), fVersion = $('fVersion'),
+        fChange = $('fChange'), fReviewer = $('fReviewer'), fApprover = $('fApprover'),
+        fFile = $('fFile'), fMsg = $('fMsg'), revSel = $('fReviseDoc');
+
+  function nextVersion(v) {
+    const m = (v || '').match(/^Rev(\d+)\.(\d+)$/);
+    if (!m) return 'Rev1.01';
+    return `Rev${m[1]}.${String(parseInt(m[2], 10) + 1).padStart(2, '0')}`;
+  }
+  function closeForm() { formModal.classList.remove('open'); }
+
+  function openForm() {
+    [fReviewer, fApprover].forEach(sel => {
+      sel.innerHTML = allProfiles.map(p => `<option value="${p.id}">${p.name || p.email}</option>`).join('');
+      sel.value = myId;
+    });
+    revSel.innerHTML = '<option value="">— 선택 —</option>' +
+      docs.map(d => `<option value="${d.id}">${d.doc_number} — ${(d.title || '').slice(0, 28)}</option>`).join('');
+    document.querySelector('input[name="apvType"][value="제정"]').checked = true;
+    $('revisePick').style.display = 'none';
+    fDocNo.value = ''; fDocNo.readOnly = false; fTitle.value = '';
+    fSeries.value = ''; fDocType.value = ''; fSecurity.value = '2';
+    fVersion.value = 'Rev1.00'; fChange.value = ''; fFile.value = ''; fMsg.textContent = '';
+    formModal.classList.add('open');
+  }
+
+  if (isAdmin) {
+    const nb = $('newDocBtn');
+    nb.style.display = '';
+    nb.addEventListener('click', openForm);
+  }
+  $('formClose').addEventListener('click', closeForm);
+  formModal.addEventListener('click', (e) => { if (e.target === formModal) closeForm(); });
+
+  // 제정/개정 토글
+  document.querySelectorAll('input[name="apvType"]').forEach(r =>
+    r.addEventListener('change', () => {
+      const isRev = document.querySelector('input[name="apvType"]:checked').value === '개정';
+      $('revisePick').style.display = isRev ? '' : 'none';
+      if (!isRev) { fDocNo.readOnly = false; }
+    }));
+
+  // 개정 대상 선택 → 기존 값 채우기
+  revSel.addEventListener('change', () => {
+    const d = docs.find(x => x.id === revSel.value);
+    if (!d) return;
+    fDocNo.value = d.doc_number; fDocNo.readOnly = true;
+    fTitle.value = d.title || ''; fSeries.value = d.series || '';
+    fDocType.value = d.doc_type || ''; fSecurity.value = String(d.security_level || 2);
+    fVersion.value = nextVersion(d.current_version);
+  });
+
+  // 다음번호 제안
+  $('fSuggestNo').addEventListener('click', async () => {
+    const prefix = fDocNo.value.trim();
+    if (!prefix) { alert('먼저 문서번호 앞부분(접두)을 입력한 뒤 눌러주세요. 예: W-FR-I-Q0711'); return; }
+    const { data, error } = await edmsClient.rpc('edms_next_docno', { p_prefix: prefix });
+    if (error) { alert('제안 실패: ' + error.message); return; }
+    fDocNo.value = data;
+  });
+
+  // 상신
+  $('fSubmit').addEventListener('click', async () => {
+    const type = document.querySelector('input[name="apvType"]:checked').value;
+    const docNo = fDocNo.value.trim(), title = fTitle.value.trim();
+    const security = parseInt(fSecurity.value, 10);
+    const documentId = type === '개정' ? (revSel.value || null) : null;
+    fMsg.className = 'form-msg';
+    if (type === '개정' && !documentId) { fMsg.className = 'form-msg err'; fMsg.textContent = '개정할 기존 문서를 선택하세요.'; return; }
+    if (!docNo) { fMsg.className = 'form-msg err'; fMsg.textContent = '문서번호를 입력하세요.'; return; }
+    if (!title) { fMsg.className = 'form-msg err'; fMsg.textContent = '제목을 입력하세요.'; return; }
+    if (type === '제정' && docs.some(d => d.doc_number === docNo)) {
+      fMsg.className = 'form-msg err'; fMsg.textContent = '이미 존재하는 문서번호입니다. 다른 번호를 쓰거나 개정으로 진행하세요.'; return;
+    }
+    const btn = $('fSubmit'); btn.disabled = true; fMsg.textContent = '처리 중...';
+
+    // 1) 초안 파일 업로드(선택)
+    let storagePath = null;
+    const file = fFile.files[0];
+    if (file) {
+      const ext = file.name.slice(file.name.lastIndexOf('.'));
+      storagePath = `p${security}/${docNo}${ext}`;
+      const { error: upErr } = await edmsClient.storage.from('documents')
+        .upload(storagePath, file, { upsert: true, contentType: file.type });
+      if (upErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '파일 업로드 실패: ' + upErr.message; btn.disabled = false; return; }
+    }
+    // 2) 결재 생성
+    const { data: apvId, error: cErr } = await edmsClient.rpc('edms_apv_create', {
+      p_type: type, p_doc_number: docNo, p_title: title, p_series: fSeries.value.trim(),
+      p_doc_type: fDocType.value.trim(), p_security: security, p_version: fVersion.value.trim() || 'Rev1.00',
+      p_change: fChange.value.trim(), p_document_id: documentId,
+      p_reviewer: fReviewer.value || myId, p_approver: fApprover.value || myId,
+      p_storage_path: storagePath,
+    });
+    if (cErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '작성 실패: ' + cErr.message; btn.disabled = false; return; }
+    // 3) 검토 상신
+    const { error: sErr } = await edmsClient.rpc('edms_apv_submit', { p_id: apvId });
+    btn.disabled = false;
+    if (sErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '상신 실패: ' + sErr.message; return; }
+    closeForm();
+    await loadWorkflow();
+    alert('검토 상신했습니다. 결재함의 "검토 대기"에서 진행 상황을 볼 수 있습니다.');
+  });
+
+  // 결재함 로드 (대기 + 현황)
+  async function loadWorkflow() {
+    const { data, error } = await edmsClient.from('edms_approvals')
+      .select('*, drafter:edms_profiles!drafter_id(name), reviewer:edms_profiles!reviewer_id(name), approver:edms_profiles!approver_id(name)')
+      .order('created_at', { ascending: false }).limit(500);
+    if (error) { console.warn('결재함 조회 실패:', error.message); return; }
+
+    // 내가 처리할 대기 건 (검토중→내가 검토자|관리자 / 승인대기→내가 승인자|관리자)
+    const todo = data.filter(a =>
+      (a.status === '검토중' && (a.reviewer_id === myId || isAdmin)) ||
+      (a.status === '승인대기' && (a.approver_id === myId || isAdmin)));
+    const todoBox = $('apvTodo');
+    if (!todo.length) {
+      todoBox.innerHTML = '<div class="apv-empty">내가 처리할 결재 대기 건이 없습니다.</div>';
+    } else {
+      todoBox.innerHTML = '<div class="apv-sub">내 결재 대기 ' + `(${todo.length}건)</div>` +
+        todo.map(a => {
+          const isReview = a.status === '검토중';
+          const okAct = isReview ? 'review-ok' : 'approve-ok';
+          const noAct = isReview ? 'review-no' : 'approve-no';
+          const okLabel = isReview ? '검토 승인' : '승인';
+          return `<div class="apv-row">
+            <div class="apv-info">
+              <span class="st-tag st-${a.status}">${a.status}</span>
+              <b>${a.doc_number}</b> ${a.title || ''} <small>(${a.approval_type})</small><br>
+              <small>작성: ${nameOf(a.drafter, a.drafter_id)}${a.change_summary ? ' · ' + a.change_summary : ''}</small>
+            </div>
+            <div class="apv-actions">
+              <button class="apv-ok" data-act="${okAct}" data-id="${a.id}">${okLabel}</button>
+              <button class="apv-no" data-act="${noAct}" data-id="${a.id}">반려</button>
+            </div></div>`;
+        }).join('');
+    }
+
+    // 결재 현황(전체)
+    const fmt = (t) => t ? new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    const latest = (a) => a.approved_at || a.reviewed_at || a.submitted_at || a.drafted_at;
+    $('apvStatusBody').innerHTML = data.length
+      ? data.map(a => `<tr>
+          <td>${a.approval_type}</td>
+          <td>${a.doc_number}</td>
+          <td>${a.title || ''}</td>
+          <td><span class="st-tag st-${a.status}">${a.status}</span>${a.reject_reason ? ' <small style="color:#c0392b">(' + a.reject_reason + ')</small>' : ''}</td>
+          <td>${nameOf(a.drafter, a.drafter_id)}</td>
+          <td>${nameOf(a.reviewer, a.reviewer_id)}</td>
+          <td>${nameOf(a.approver, a.approver_id)}</td>
+          <td>${fmt(latest(a))}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="8" class="apv-empty">결재 건이 없습니다.</td></tr>';
+  }
+
+  // 검토/승인/반려 처리
+  $('apvTodo').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act, id = btn.dataset.id;
+    const isReject = act.endsWith('-no');
+    let comment = null;
+    if (isReject) {
+      comment = prompt('반려 사유를 입력하세요:');
+      if (comment === null) return;  // 취소
+    }
+    btn.disabled = true;
+    const rpc = act.startsWith('review') ? 'edms_apv_review' : 'edms_apv_approve';
+    const { error } = await edmsClient.rpc(rpc, { p_id: id, p_approve: !isReject, p_comment: comment });
+    if (error) { alert('처리 실패: ' + error.message); btn.disabled = false; return; }
+    await loadWorkflow();
+    if (act === 'approve-ok') {
+      alert('승인 완료되어 문서가 발행되었습니다. 문서목록은 페이지를 새로고침하면 반영됩니다.');
+    } else if (act === 'review-ok') {
+      alert('검토 승인했습니다. 이제 승인자의 최종 승인 단계로 넘어갑니다.');
+    } else {
+      alert('반려 처리했습니다.');
+    }
+  });
+  $('apvRefresh').addEventListener('click', loadWorkflow);
+  await loadWorkflow();
+
   function render() {
     const q = document.getElementById('searchInput').value.trim().toLowerCase();
     const fs = seriesSel.value, ft = typeSel.value;
@@ -587,6 +939,7 @@
       await loadMyRequests();
       if (reqSig() !== before) { render(); notifyRejected(); }
     }
+    loadWorkflow();  // 결재함 대기·현황 자동 갱신 (전체 사용자)
   }, 15000);
 
   document.getElementById('loading').style.display = 'none';
