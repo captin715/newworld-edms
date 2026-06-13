@@ -376,9 +376,9 @@
   }
 
   // 반려 안내 (한 번만 — 안내한 건은 localStorage에 기록)
-  {
-    const docNumById = {};
-    docs.forEach(d => { docNumById[d.id] = d.doc_number; });
+  const docNumById = {};
+  docs.forEach(d => { docNumById[d.id] = d.doc_number; });
+  function notifyRejected() {
     const seenKey = 'edms_seen_rejected';
     const seen = new Set(JSON.parse(localStorage.getItem(seenKey) || '[]'));
     const newRejected = Object.values(reqByDoc).filter(r => r.status === '반려' && !seen.has(r.id));
@@ -389,6 +389,14 @@
       newRejected.forEach(r => seen.add(r.id));
       localStorage.setItem(seenKey, JSON.stringify([...seen]));
     }
+  }
+  notifyRejected();
+
+  // 내 요청 상태 변화 감지용 서명
+  function reqSig() {
+    return Object.values(reqByDoc)
+      .map(r => `${r.document_id}:${r.status}:${r.confirmed_at || ''}:${r.expires_at || ''}`)
+      .sort().join('|');
   }
 
   // 남은시간 카운트다운(1초) — 버튼 안에 "다운로드 (m:ss)" 표시, 만료 시 복귀+안내
@@ -566,6 +574,20 @@
   seriesSel.addEventListener('change', render);
   typeSel.addEventListener('change', render);
   render();
+
+  // ── 자동갱신(15초 폴링) — 화면이 보일 때만 ───────────────
+  //  · 관리자: 승인 대기 목록 자동 갱신(새 요청이 바로 뜸)
+  //  · 일반:   내 요청 상태 변화 시 자동 반영(승인되면 '확인'으로 전환, 반려 안내)
+  setInterval(async () => {
+    if (document.visibilityState !== 'visible') return;
+    if (isAdmin) {
+      loadApprovals();
+    } else {
+      const before = reqSig();
+      await loadMyRequests();
+      if (reqSig() !== before) { render(); notifyRejected(); }
+    }
+  }, 15000);
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('content').style.display = '';
