@@ -79,8 +79,11 @@
     border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap;
   }
   .cf-btn:hover { background:#246428; }
-  .wait-tag { font-size:11px; color:#999; white-space:nowrap; }
-  .cd-timer { font-size:11px; color:#c0392b; margin-left:6px; font-weight:bold; }
+  .wait-btn {
+    background:#eceff4; color:#888; border:1.5px solid #d5dbe7; padding:3px 11px;
+    border-radius:6px; font-size:12px; white-space:nowrap; cursor:default;
+  }
+  .ok-note { font-size:11px; color:#2e7d32; margin-left:6px; white-space:nowrap; }
 
   /* 대표 승인함 */
   #approvalPanel { border-top:4px solid #e8b931; }
@@ -361,26 +364,48 @@
     const dlBtn = `<button class="dl-btn" data-path="${d.storage_path}" data-num="${d.doc_number}">다운로드</button>`;
     if (isAdmin || isForm(d)) return dlBtn;
     const r = reqByDoc[d.id];
-    if (r && r.status === '요청') return '<span class="wait-tag">요청 중…</span>';
+    if (r && r.status === '요청') return '<button class="wait-btn" disabled>요청 중…</button>';
     if (r && r.status === '승인' && !r.confirmed_at) {
-      return `<button class="cf-btn" data-req="${r.id}" data-doc="${d.id}">확인</button>`;
+      return `<button class="cf-btn" data-req="${r.id}" data-doc="${d.id}">확인</button>`
+        + '<span class="ok-note">승인됨 — 확인 시 10분 다운로드</span>';
     }
     if (isLive(r)) {
-      return dlBtn + `<span class="cd-timer" data-exp="${r.expires_at}"></span>`;
+      return `<button class="dl-btn" data-path="${d.storage_path}" data-num="${d.doc_number}" data-exp="${r.expires_at}">다운로드</button>`;
     }
     return `<button class="rq-btn" data-doc="${d.id}">승인 요청</button>`;
   }
 
-  // 남은시간 카운트다운(1초) — 만료되면 목록 다시 그림
+  // 반려 안내 (한 번만 — 안내한 건은 localStorage에 기록)
+  {
+    const docNumById = {};
+    docs.forEach(d => { docNumById[d.id] = d.doc_number; });
+    const seenKey = 'edms_seen_rejected';
+    const seen = new Set(JSON.parse(localStorage.getItem(seenKey) || '[]'));
+    const newRejected = Object.values(reqByDoc).filter(r => r.status === '반려' && !seen.has(r.id));
+    if (newRejected.length) {
+      alert('승인이 반려되었습니다: '
+        + newRejected.map(r => docNumById[r.document_id] || '').filter(Boolean).join(', ')
+        + '\n필요하면 다시 "승인 요청"을 눌러주세요.');
+      newRejected.forEach(r => seen.add(r.id));
+      localStorage.setItem(seenKey, JSON.stringify([...seen]));
+    }
+  }
+
+  // 남은시간 카운트다운(1초) — 버튼 안에 "다운로드 (m:ss)" 표시, 만료 시 복귀+안내
   setInterval(() => {
     let expired = false;
-    document.querySelectorAll('.cd-timer').forEach(el => {
+    document.querySelectorAll('.dl-btn[data-exp]').forEach(el => {
       const left = new Date(el.dataset.exp).getTime() - Date.now();
       if (left <= 0) { expired = true; return; }
-      const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
-      el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+      if (!el.disabled) {
+        const m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
+        el.textContent = `다운로드 (${m}:${String(s).padStart(2, '0')})`;
+      }
     });
-    if (expired) render();
+    if (expired) {
+      render();
+      alert('다운로드 권한이 만료되었습니다. 다시 요청해 주세요.');
+    }
   }, 1000);
 
   // 열람(PDF 미리보기) — 모든 로그인 사용자 (Storage RLS가 view/* 읽기 허용)
@@ -426,11 +451,15 @@
       if (error) { alert('요청 실패: ' + error.message); rbtn.disabled = false; return; }
       reqByDoc[rbtn.dataset.doc] = { id: data, document_id: rbtn.dataset.doc, status: '요청' };
       render();
+      alert('다운로드 승인을 요청했습니다. 대표 승인 후 \'확인\'을 누르면 다운로드할 수 있습니다.');
       return;
     }
     // 확인(타이머 시작)
     const cbtn = e.target.closest('.cf-btn');
     if (cbtn) {
+      if (!confirm('지금부터 10분간만 다운로드할 수 있습니다. 10분 후 자동 만료되어 다시 요청해야 합니다. 시작할까요?')) {
+        return;
+      }
       cbtn.disabled = true;
       const { data, error } = await edmsClient.rpc('edms_confirm_download',
         { p_req: cbtn.dataset.req, p_minutes: 10 });
@@ -448,6 +477,7 @@
     const btn = e.target.closest('.dl-btn');
     if (!btn) return;
     const path = btn.dataset.path, num = btn.dataset.num;
+    const timed = !!btn.dataset.exp;  // 승인-확인 건은 카운트다운이 텍스트를 갱신함
     btn.disabled = true; btn.textContent = '받는 중...';
     try {
       const { data, error } = await edmsClient.storage.from('documents').download(path);
@@ -463,7 +493,8 @@
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
     } finally {
-      btn.disabled = false; btn.textContent = '다운로드';
+      btn.disabled = false;
+      if (!timed) btn.textContent = '다운로드';  // 카운트다운 버튼은 타이머가 텍스트 복원
     }
   });
 
