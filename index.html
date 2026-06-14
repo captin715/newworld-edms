@@ -589,16 +589,22 @@
       <div id="numHelper">
         <div class="num-note">번호는 발번대장(EDMS)을 기준으로 부여되며 중복은 자동 차단됩니다.
           6자리는 문서 영역·계층 의미를 담으니 구조에 맞게 확인 후 확정하세요.</div>
-        <div class="grid2">
-          <div>
-            <label>유형</label>
-            <select id="fType"></select>
-          </div>
-          <div id="discWrap">
-            <label>구분자</label>
-            <select id="fDisc"></select>
-          </div>
+        <label id="schemeRow">문서 체계</label>
+        <div class="radio-row" id="schemeRadios">
+          <label><input type="radio" name="numScheme" value="w" checked> QEMS W-체계</label>
+          <label id="cfspSchemeOpt"><input type="radio" name="numScheme" value="cfsp"> CFSP 확장</label>
         </div>
+        <div id="wScheme">
+          <div class="grid2">
+            <div>
+              <label>유형</label>
+              <select id="fType"></select>
+            </div>
+            <div id="discWrap">
+              <label>구분자</label>
+              <select id="fDisc"></select>
+            </div>
+          </div>
         <div id="frWrap" style="display:none">
           <div class="grid2">
             <div>
@@ -612,6 +618,32 @@
           </div>
           <label>상위문서 (구분자+6자리, 예: Q071110)</label>
           <input type="text" id="fParent" placeholder="예: Q071110">
+        </div>
+        </div><!-- /wScheme -->
+        <div id="cfspWrap" style="display:none">
+          <div class="num-note" style="background:#fff8e6">CFSP 확장: <b>CFSP-[구분자]-[계층코드]-[6자리]</b>
+            (NT 건설신기술 · ST 전략 · DS 디지털시스템 / MAN 매뉴얼 · SPEC 시방서 · PLAN 계획서 · GL 지침서)</div>
+          <div class="grid2">
+            <div>
+              <label>구분자</label>
+              <select id="cfspDisc">
+                <option value="NT">NT (건설신기술)</option>
+                <option value="ST">ST (전략)</option>
+                <option value="DS" selected>DS (디지털시스템)</option>
+              </select>
+            </div>
+            <div>
+              <label>계층코드</label>
+              <select id="cfspLayer">
+                <option value="MAN">MAN (시스템 매뉴얼)</option>
+                <option value="SPEC">SPEC (기술시방서)</option>
+                <option value="PLAN">PLAN (계획서)</option>
+                <option value="GL">GL (지침서)</option>
+              </select>
+            </div>
+          </div>
+          <label>6자리 일련번호 (예: 010000)</label>
+          <input type="text" id="cfspSeq" placeholder="010000" maxlength="6">
         </div>
         <div class="prefix-hint">조립 접두사: <b id="prefixHint">—</b></div>
         <div class="num-row" style="margin-top:8px">
@@ -1284,7 +1316,7 @@
   function pickReviewer(docType, series) {
     let t;
     if (docType === 'W-M') t = roleAccts('reviewer')[0];           // 매뉴얼 → 품질팀장(검토자)
-    else if (series === 'Q' || series === 'D') t = roleAccts('admin')[0]; // 품질·개발 → 부대표(직무분리)
+    else if (series === 'Q' || series === 'D' || series === 'DS') t = roleAccts('admin')[0]; // 품질·개발·디지털시스템 → 부대표(직무분리)
     else t = roleAccts('reviewer')[0];                            // 그 외 → 품질팀장
     return t || roleAccts('admin')[0] || allProfiles[0];
   }
@@ -1313,13 +1345,17 @@
     document.querySelector('input[name="apvType"][value="제정"]').checked = true;
     $('revisePick').style.display = 'none';
     $('numHelper').style.display = '';
+    // 문서체계: 기본 W-체계. CFSP 확장 선택지는 품질팀·관리자에게만 노출(CFSP=품질 담당)
+    document.querySelector('input[name="numScheme"][value="w"]').checked = true;
+    $('cfspSchemeOpt').style.display = (isAdmin || myDept === '품질') ? '' : 'none';
+    $('cfspDisc').value = 'DS'; $('cfspLayer').value = 'MAN'; $('cfspSeq').value = '';
     $('fType').value = 'W-M'; $('fDisc').selectedIndex = 0; $('fLayer').value = 'P';
     $('fParent').value = ''; $('fSeq').value = '';
     $('usedList').style.display = 'none'; $('usedList').innerHTML = '';
     fDocNo.value = ''; fDocNo.readOnly = false; fTitle.value = '';
     fSeries.value = ''; fDocType.value = ''; fSecurity.value = '2';
     fVersion.value = 'Rev1.00'; fChange.value = ''; fFile.value = ''; fPdf.value = ''; fMsg.textContent = '';
-    applyFrMode(); syncDerived();
+    applyScheme(); applyFrMode(); syncDerived();
     formModal.classList.add('open');
   }
 
@@ -1487,11 +1523,18 @@
   $('fLayer').innerHTML = NUM_LAYERS.map(l => `<option value="${l.c}">${l.c} (${l.label})</option>`).join('');
 
   const isFRType = () => $('fType').value === 'W-FR';
+  const isCfsp = () => document.querySelector('input[name="numScheme"]:checked').value === 'cfsp';
   function numPrefix() {
+    if (isCfsp()) return `CFSP-${$('cfspDisc').value}-${$('cfspLayer').value}-`;
     const t = NUM_TYPES.find(x => x.code === $('fType').value);
     if (!t) return '';
     if (t.code === 'W-FR') return `W-FR-${$('fLayer').value}-${$('fParent').value.trim()}`;
     return `W-${t.suffix}-${$('fDisc').value}`;
+  }
+  function applyScheme() {
+    const cfsp = isCfsp();
+    $('wScheme').style.display = cfsp ? 'none' : '';
+    $('cfspWrap').style.display = cfsp ? '' : 'none';
   }
   function applyFrMode() {
     const fr = isFRType();
@@ -1508,22 +1551,32 @@
   }
   // 컨트롤 변경 → 파생값(시리즈·유형)·접두사 갱신, 양식은 자동 조립
   function syncDerived() {
-    const t = NUM_TYPES.find(x => x.code === $('fType').value);
-    fDocType.value = t ? t.code : '';
-    if (isFRType()) {
-      const parent = $('fParent').value.trim();
-      fSeries.value = /^[A-Za-z]/.test(parent) ? parent[0].toUpperCase() : '';
-      const seq = $('fSeq').value.trim();
-      if (parent && seq) fDocNo.value = `W-FR-${$('fLayer').value}-${parent}-${seq.padStart(2, '0')}`;
+    if (isCfsp()) {
+      const disc = $('cfspDisc').value, layer = $('cfspLayer').value, seq = $('cfspSeq').value.trim();
+      fDocType.value = `CFSP-${disc}-${layer}`;
+      fSeries.value = disc;
+      if (seq) fDocNo.value = `CFSP-${disc}-${layer}-${seq}`;
     } else {
-      fSeries.value = $('fDisc').value;
+      const t = NUM_TYPES.find(x => x.code === $('fType').value);
+      fDocType.value = t ? t.code : '';
+      if (isFRType()) {
+        const parent = $('fParent').value.trim();
+        fSeries.value = /^[A-Za-z]/.test(parent) ? parent[0].toUpperCase() : '';
+        const seq = $('fSeq').value.trim();
+        if (parent && seq) fDocNo.value = `W-FR-${$('fLayer').value}-${parent}-${seq.padStart(2, '0')}`;
+      } else {
+        fSeries.value = $('fDisc').value;
+      }
     }
     $('prefixHint').textContent = numPrefix() || '—';
     applyRouting(fDocType.value, fSeries.value);
     checkDup();
   }
   $('fType').addEventListener('change', () => { applyFrMode(); syncDerived(); });
-  ['fDisc', 'fLayer', 'fParent', 'fSeq'].forEach(id => $(id).addEventListener('input', syncDerived));
+  document.querySelectorAll('input[name="numScheme"]').forEach(r =>
+    r.addEventListener('change', () => { applyScheme(); syncDerived(); }));
+  ['fDisc', 'fLayer', 'fParent', 'fSeq', 'cfspDisc', 'cfspLayer', 'cfspSeq'].forEach(id => $(id).addEventListener('input', syncDerived));
+  ['cfspDisc', 'cfspLayer'].forEach(id => $(id).addEventListener('change', syncDerived));
   fDocNo.addEventListener('input', checkDup);
 
   // 사용 중인 번호 보기
@@ -1544,7 +1597,15 @@
 
   // 다음 후보 제안 (참고용 — 편집 가능)
   $('fSuggestNo').addEventListener('click', () => {
-    if (isFRType()) {
+    if (isCfsp()) {
+      const prefix = numPrefix();  // CFSP-DS-MAN-
+      const cores = docs.filter(d => d.doc_number.startsWith(prefix))
+        .map(d => { const m = d.doc_number.slice(prefix.length).match(/^(\d{6})/); return m ? parseInt(m[1], 10) : null; })
+        .filter(n => n !== null);
+      const maxArea = cores.length ? Math.max(...cores) : 0;
+      const nextArea = (Math.floor(maxArea / 10000) + 1) * 10000;  // 다음 주문서 영역
+      $('cfspSeq').value = String(nextArea).padStart(6, '0');
+    } else if (isFRType()) {
       const parent = $('fParent').value.trim();
       if (!parent) { alert('상위문서(구분자+6자리)를 먼저 입력하세요.'); return; }
       const base = `W-FR-${$('fLayer').value}-${parent}-`;
