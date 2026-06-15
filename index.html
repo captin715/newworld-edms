@@ -420,7 +420,7 @@
         <table class="apv-status-table">
           <thead><tr>
             <th>구분</th><th>문서번호</th><th>제목</th><th>상태</th>
-            <th>작성</th><th>검토</th><th>승인</th><th>최근일시</th>
+            <th>작성(일시)</th><th>검토(일시)</th><th>승인(일시)</th>
           </tr></thead>
           <tbody id="apvStatusBody"></tbody>
         </table>
@@ -788,60 +788,54 @@
     });
   }
 
-  // 3) 문서 로드 (RLS가 권한 범위만 반환)
-  const { data: docs, error } = await edmsClient.from('edms_documents')
-    .select('id, doc_number, title, doc_type, series, current_version, status, confidentiality, security_level, registered_at, storage_path, owner_dept')
-    .order('doc_number')
-    .limit(1000);
-  if (error) {
-    document.getElementById('loading').textContent = '데이터 조회 오류: ' + error.message;
-    return;
+  // 3) 문서 로드 + 요약카드 (F2: 함수화 — 등록/진입/복귀 때마다 최신 재계산, 캐시 없음)
+  let docs = [], bySeries = {}, seriesNames = [], seriesChart = null;
+  async function loadDocs() {
+    const { data, error } = await edmsClient.from('edms_documents')
+      .select('id, doc_number, title, doc_type, series, current_version, status, confidentiality, security_level, registered_at, storage_path, owner_dept')
+      .order('doc_number').limit(2000);  // RLS가 열람가능 범위만 반환(read_scope 반영)
+    if (error) { document.getElementById('loading').textContent = '데이터 조회 오류: ' + error.message; return false; }
+    docs = data || [];
+    bySeries = {};
+    docs.forEach(d => { bySeries[d.series] = (bySeries[d.series] || 0) + 1; });
+    seriesNames = Object.keys(bySeries).sort((a, b) => bySeries[b] - bySeries[a]);
+    return true;
   }
+  async function computeCards() {
+    document.getElementById('cardTotal').textContent = docs.length;
+    document.getElementById('cardSeries').innerHTML = seriesNames.length + '<span style="font-size:14px">종</span>';
+    document.getElementById('cardSeriesSub').textContent = seriesNames.slice(0, 3).map(s => `${s} ${bySeries[s]}`).join(' · ');
+    const byStatus = {};
+    docs.forEach(d => { byStatus[d.status] = (byStatus[d.status] || 0) + 1; });
+    document.getElementById('cardDone').textContent = byStatus['등록완료'] || 0;
+    document.getElementById('cardStatusSub').textContent = Object.entries(byStatus).map(([k, v]) => `${k} ${v}`).join(' · ');
+    const ym = new Date().toISOString().slice(0, 7);  // 당월
+    let monthCnt = 0;
+    try {
+      const { data: revs } = await edmsClient.from('edms_revisions').select('revision_date').gte('revision_date', ym + '-01').limit(3000);
+      monthCnt = (revs || []).length;  // 당월 등재(제정)·개정 이력 수
+    } catch (e) { /* 권한 밖이면 0 */ }
+    document.getElementById('cardMonth').textContent = monthCnt;
+    document.getElementById('cardMonthSub').textContent = ym.replace('-', '년 ') + '월 기준';
+  }
+  if (!(await loadDocs())) return;
+  await computeCards();
 
-  // 4) 요약카드
-  document.getElementById('cardTotal').textContent = docs.length;
-  const bySeries = {};
-  docs.forEach(d => { bySeries[d.series] = (bySeries[d.series] || 0) + 1; });
-  const seriesNames = Object.keys(bySeries).sort((a, b) => bySeries[b] - bySeries[a]);
-  document.getElementById('cardSeries').innerHTML =
-    seriesNames.length + '<span style="font-size:14px">종</span>';
-  document.getElementById('cardSeriesSub').textContent =
-    seriesNames.slice(0, 3).map(s => `${s} ${bySeries[s]}`).join(' · ');
-
-  const byStatus = {};
-  docs.forEach(d => { byStatus[d.status] = (byStatus[d.status] || 0) + 1; });
-  document.getElementById('cardDone').textContent = byStatus['등록완료'] || 0;
-  document.getElementById('cardStatusSub').textContent =
-    Object.entries(byStatus).map(([k, v]) => `${k} ${v}`).join(' · ');
-
-  const ym = new Date().toISOString().slice(0, 7);
-  let monthCnt = 0;
-  try {
-    const { data: revs } = await edmsClient.from('edms_revisions')
-      .select('revision_date').gte('revision_date', ym + '-01').limit(1000);
-    monthCnt = (revs || []).length;
-  } catch (e) { /* 권한 범위 밖이면 0 */ }
-  document.getElementById('cardMonth').textContent = monthCnt;
-  document.getElementById('cardMonthSub').textContent = ym.replace('-', '년 ') + '월 기준';
-
-  // 5) 시리즈 차트
-  new Chart(document.getElementById('seriesChart'), {
+  // 5) 시리즈 차트 (ref 보관 → 등록 후 갱신)
+  seriesChart = new Chart(document.getElementById('seriesChart'), {
     type: 'bar',
-    data: {
-      labels: seriesNames,
-      datasets: [{
-        label: '문서 수',
-        data: seriesNames.map(s => bySeries[s]),
-        backgroundColor: '#1F3864',
-        borderRadius: 4,
-      }],
-    },
-    options: {
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-    },
+    data: { labels: seriesNames, datasets: [{ label: '문서 수', data: seriesNames.map(s => bySeries[s]), backgroundColor: '#1F3864', borderRadius: 4 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
   });
+  function updateChart() {
+    if (!seriesChart) return;
+    seriesChart.data.labels = seriesNames;
+    seriesChart.data.datasets[0].data = seriesNames.map(s => bySeries[s]);
+    seriesChart.update();
+  }
+  // 등록(승인) 후·탭 복귀 시 대시보드 즉시 갱신
+  async function refreshDocs() { if (await loadDocs()) { await computeCards(); updateChart(); render(); } }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshDocs(); });
 
   // 6) 목록 테이블 + 검색·필터
   const seriesSel = document.getElementById('seriesFilter');
@@ -997,6 +991,14 @@
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHist(); });
 
   const escHtml = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // F3: 표준 파일명 [문서번호]_[버전]_[문서명]_[보안등급].ext (예: CFSP-DS-MAN-010000_Rev1.00_EDMS사용자매뉴얼_P2.docx)
+  function stdFilename(num, ext) {
+    const d = docs.find(x => x.doc_number === num);
+    if (!d) return num + ext;
+    const safe = (s) => String(s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '').trim();
+    return `${num}_${d.current_version || ''}_${safe(d.title)}_P${d.security_level}${ext}`;
+  }
 
   async function openHistory(docId, num, title) {
     document.getElementById('histTitle').innerHTML = `<small>${num}</small> ${escHtml(title)}`;
@@ -1192,7 +1194,7 @@
       const ext = path.slice(path.lastIndexOf('.'));
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
-      a.href = url; a.download = num + ext;
+      a.href = url; a.download = stdFilename(num, ext);  // 표준 파일명(보안등급 포함)
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
     } finally {
@@ -1736,16 +1738,17 @@
         }).join('')
       : '';
 
-    // 결재 현황(활성)
+    // 결재 현황 — 작성→검토→승인 각 단계·일시 분리 표시 (F1 타임라인)
     const fmt = (t) => t ? new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '';
-    const latest = (a) => a.approved_at || a.reviewed_at || a.submitted_at || a.drafted_at || a.created_at;
+    const step = (name, t, pending) => `${escHtml(name || '—')}<br><small style="color:#888">${t ? fmt(t) : pending}</small>`;
     $('apvStatusBody').innerHTML = active.length
       ? active.map(a => `<tr>
           <td>${a.approval_type}</td><td>${a.doc_number}</td><td>${escHtml(a.title || '')}</td>
           <td><span class="st-tag st-${a.status}">${a.status}</span></td>
-          <td>${nameOf(a.drafter, a.drafter_id)}</td><td>${nameOf(a.reviewer, a.reviewer_id)}</td>
-          <td>${nameOf(a.approver, a.approver_id)}</td><td>${fmt(latest(a))}</td></tr>`).join('')
-      : '<tr><td colspan="8" class="apv-empty">진행 중인 결재가 없습니다.</td></tr>';
+          <td>${step(nameOf(a.drafter, a.drafter_id), a.submitted_at || a.created_at || a.drafted_at, '작성')}</td>
+          <td>${step(nameOf(a.reviewer, a.reviewer_id), a.reviewed_at, a.status === '검토중' ? '검토 대기' : '—')}</td>
+          <td>${step(nameOf(a.approver, a.approver_id), a.approved_at, a.status === '승인대기' ? '승인 대기' : '—')}</td></tr>`).join('')
+      : '<tr><td colspan="7" class="apv-empty">진행 중인 결재가 없습니다.</td></tr>';
     refreshBell();
   }
 
@@ -1775,7 +1778,7 @@
     } else { btn.disabled = false; return; }
     if (res && res.error) { alert('처리 실패: ' + res.error.message); btn.disabled = false; return; }
     await loadWorkflow();
-    if (act === 'approve-ok') alert('승인 완료되어 문서가 발행되었습니다. 문서목록은 새로고침 시 반영됩니다.');
+    if (act === 'approve-ok') { await refreshDocs(); alert('승인 완료되어 문서가 발행되었습니다. 대시보드·문서목록이 갱신되었습니다.'); }
   }
   $('apvTodo').addEventListener('click', apvAction);
   $('apvMine').addEventListener('click', apvAction);
