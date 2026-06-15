@@ -54,6 +54,29 @@
   .pw-submit { width:100%; margin-top:16px; background:#1F3864; color:#fff; border:none; padding:11px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; }
   .pw-submit:disabled { background:#9aa7bd; cursor:wait; }
 
+  /* 공지사항 */
+  #noticePanel { border-top:4px solid #c0392b; }
+  #noticeNewBtn { float:right; background:#1F3864; color:#fff; border:none; padding:5px 14px; border-radius:6px; font-size:13px; cursor:pointer; margin-left:8px; }
+  #noticeNewBtn:hover { background:#16294a; }
+  #noticeRefresh { float:right; font-size:12px; padding:3px 10px; cursor:pointer; }
+  .notice-card { border:1px solid #eef1f6; border-left:4px solid #aebcd6; border-radius:8px; padding:11px 14px; margin-bottom:9px; background:#fafbfd; }
+  .notice-card.pinned { background:#fff8f6; border-left-color:#c0392b; }
+  .notice-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; cursor:pointer; }
+  .notice-top .nt-title { font-size:14px; font-weight:bold; color:#1F3864; }
+  .nlv { font-size:11px; padding:1px 8px; border-radius:10px; font-weight:bold; }
+  .nlv-일반 { background:#e8edf5; color:#5a6b86; }
+  .nlv-중요 { background:#fde3c4; color:#b9560a; }
+  .nlv-긴급 { background:#fbd5d1; color:#c0392b; }
+  .npin { font-size:12px; color:#c0392b; }
+  .notice-meta { font-size:11px; color:#999; margin-left:auto; }
+  .notice-body { font-size:13px; color:#333; line-height:1.6; margin-top:8px; white-space:pre-wrap; display:none; }
+  .notice-body.open { display:block; }
+  .notice-rel { font-size:12px; margin-top:6px; }
+  .notice-rel a { color:#1F3864; cursor:pointer; text-decoration:underline; }
+  .notice-admin { margin-top:8px; display:flex; gap:6px; }
+  .notice-admin button { font-size:11px; padding:3px 9px; border-radius:5px; cursor:pointer; border:1px solid #d5dbe7; background:#fff; }
+  .notice-inactive { opacity:.55; }
+
   /* 권한 위임(개정/권한) */
   .rev-btn { background:#1F3864; color:#fff; border:none; padding:4px 12px; border-radius:6px; font-size:12px; cursor:pointer; }
   .rev-btn:hover { background:#16294a; }
@@ -364,6 +387,14 @@
   <div id="loading">문서 현황을 불러오는 중...</div>
 
   <div id="content" style="display:none">
+    <div class="panel" id="noticePanel" style="display:none">
+      <h2>📢 공지사항
+        <button id="noticeNewBtn" style="display:none">+ 공지 작성</button>
+        <button id="noticeRefresh">새로고침</button>
+      </h2>
+      <div id="noticeList"></div>
+    </div>
+
     <div class="cards">
       <div class="card">
         <div class="label">총 문서</div>
@@ -525,6 +556,36 @@
         </table>
       </div>
       <div class="count-info" id="logCount" style="margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<div id="noticeModal">
+  <div class="form-box">
+    <div class="form-head">
+      <h3 id="noticeFormTitle">공지 작성</h3>
+      <button id="noticeClose">닫기 ✕</button>
+    </div>
+    <div class="form-body">
+      <label>제목</label>
+      <input type="text" id="nTitle" placeholder="공지 제목">
+      <label>본문</label>
+      <textarea id="nBody" style="min-height:90px" placeholder="공지 내용"></textarea>
+      <div class="grid2">
+        <div>
+          <label>등급</label>
+          <select id="nLevel"><option>일반</option><option>중요</option><option>긴급</option></select>
+        </div>
+        <div>
+          <label>관련 문서번호 (선택)</label>
+          <input type="text" id="nRelated" placeholder="예: CFSP-DS-MAN-010000">
+        </div>
+      </div>
+      <div class="radio-row" style="margin-top:10px">
+        <label><input type="checkbox" id="nPinned"> 상단 고정</label>
+      </div>
+      <button class="form-submit" id="nSubmit">게시</button>
+      <div class="form-msg" id="nMsg"></div>
     </div>
   </div>
 </div>
@@ -1929,6 +1990,101 @@
   typeSel.addEventListener('change', render);
   render();
 
+  // ── PART B: 공지사항 ────────────────────────────────────
+  const noticeModal = document.getElementById('noticeModal');
+  let editingNoticeId = null, noticesCache = [];
+  if (isAdmin) {
+    const nb = $('noticeNewBtn'); nb.style.display = '';
+    nb.addEventListener('click', () => openNoticeForm());
+  }
+  $('noticeClose').addEventListener('click', () => noticeModal.classList.remove('open'));
+  noticeModal.addEventListener('click', (e) => { if (e.target === noticeModal) noticeModal.classList.remove('open'); });
+  $('noticeRefresh').addEventListener('click', loadNotices);
+
+  function openNoticeForm(n) {
+    editingNoticeId = n ? n.id : null;
+    $('noticeFormTitle').textContent = n ? '공지 수정' : '공지 작성';
+    $('nTitle').value = n ? n.title : '';
+    $('nBody').value = n ? n.body : '';
+    $('nLevel').value = n ? n.level : '일반';
+    $('nRelated').value = n ? (n.related_doc || '') : '';
+    $('nPinned').checked = n ? !!n.pinned : false;
+    $('nMsg').textContent = '';
+    noticeModal.classList.add('open');
+  }
+  $('nSubmit').addEventListener('click', async () => {
+    const title = $('nTitle').value.trim(), body = $('nBody').value.trim();
+    const msg = $('nMsg'); msg.className = 'form-msg';
+    if (!title || !body) { msg.className = 'form-msg err'; msg.textContent = '제목과 본문을 입력하세요.'; return; }
+    const btn = $('nSubmit'); btn.disabled = true; msg.textContent = '처리 중...';
+    const level = $('nLevel').value, pinned = $('nPinned').checked, related = $('nRelated').value.trim() || null;
+    let error;
+    if (editingNoticeId) {
+      ({ error } = await edmsClient.from('edms_notices')
+        .update({ title, body, level, pinned, related_doc: related, updated_at: new Date().toISOString() })
+        .eq('id', editingNoticeId));
+    } else {
+      ({ error } = await edmsClient.rpc('edms_notice_post', { p_title: title, p_body: body, p_level: level, p_pinned: pinned, p_related_doc: related }));
+    }
+    btn.disabled = false;
+    if (error) { msg.className = 'form-msg err'; msg.textContent = '실패: ' + error.message; return; }
+    noticeModal.classList.remove('open');
+    await loadNotices();
+  });
+
+  async function loadNotices() {
+    // 뷰는 RLS를 우회하므로 일반 사용자에겐 active=true만 명시적으로 필터(관리자는 게시중지 건도 관리용으로 조회)
+    let q = edmsClient.from('edms_notices_view').select('*');
+    if (!isAdmin) q = q.eq('active', true);
+    const { data, error } = await q.order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(100);
+    if (error) { console.warn('공지 조회 실패:', error.message); return; }
+    noticesCache = data || [];
+    const panel = document.getElementById('noticePanel');
+    panel.style.display = (isAdmin || noticesCache.length) ? '' : 'none';  // 일반은 공지 없으면 숨김
+    const fmt = (t) => t ? new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    $('noticeList').innerHTML = noticesCache.length ? noticesCache.map(n => `
+      <div class="notice-card ${n.pinned ? 'pinned' : ''} ${n.active ? '' : 'notice-inactive'}">
+        <div class="notice-top" data-toggle="${n.id}">
+          ${n.pinned ? '<span class="npin">📌</span>' : ''}
+          <span class="nlv nlv-${n.level}">${n.level}</span>
+          <span class="nt-title">${escHtml(n.title)}</span>
+          ${n.active ? '' : '<span class="nlv nlv-일반">게시중지</span>'}
+          <span class="notice-meta">${escHtml(n.author_name || '')} · ${fmt(n.created_at)}</span>
+        </div>
+        <div class="notice-body" id="nb-${n.id}">${escHtml(n.body)}
+          ${n.related_doc ? `<div class="notice-rel">관련 문서: <a data-rel="${escHtml(n.related_doc)}">${escHtml(n.related_doc)}</a></div>` : ''}
+        </div>
+        ${isAdmin ? `<div class="notice-admin">
+          <button data-nedit="${n.id}">수정</button>
+          <button data-ntoggle="${n.id}" data-active="${n.active}">${n.active ? '게시중지' : '재게시'}</button>
+          <button data-ndel="${n.id}" style="color:#c0392b;border-color:#c0392b">삭제</button>
+        </div>` : ''}
+      </div>`).join('') : '<div class="apv-empty">게시된 공지가 없습니다.</div>';
+  }
+  $('noticeList').addEventListener('click', async (e) => {
+    const rel = e.target.closest('[data-rel]');
+    if (rel) { document.getElementById('searchInput').value = rel.dataset.rel; render(); document.getElementById('docPanel').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    const edit = e.target.closest('[data-nedit]');
+    if (edit) { const n = noticesCache.find(x => x.id === edit.dataset.nedit); if (n) openNoticeForm(n); return; }
+    const toggle = e.target.closest('[data-ntoggle]');
+    if (toggle) {
+      const active = toggle.dataset.active !== 'true';
+      const { error } = await edmsClient.from('edms_notices').update({ active, updated_at: new Date().toISOString() }).eq('id', toggle.dataset.ntoggle);
+      if (error) alert('실패: ' + error.message);
+      await loadNotices(); return;
+    }
+    const del = e.target.closest('[data-ndel]');
+    if (del) {
+      if (!confirm('이 공지를 삭제할까요?')) return;
+      const { error } = await edmsClient.from('edms_notices').delete().eq('id', del.dataset.ndel);
+      if (error) alert('삭제 실패: ' + error.message);
+      await loadNotices(); return;
+    }
+    const top = e.target.closest('.notice-top');
+    if (top) { const b = document.getElementById('nb-' + top.dataset.toggle); if (b) b.classList.toggle('open'); }
+  });
+  await loadNotices();
+
   // ── 자동갱신(15초 폴링) — 화면이 보일 때만 ───────────────
   //  · 관리자: 승인 대기 목록 자동 갱신(새 요청이 바로 뜸)
   //  · 일반:   내 요청 상태 변화 시 자동 반영(승인되면 '확인'으로 전환, 반려 안내)
@@ -1945,6 +2101,7 @@
       else { render(); }     // 권한 변화도 칸에 반영
     }
     loadWorkflow();  // 결재함 대기·현황 자동 갱신 (전체 사용자)
+    loadNotices();   // 공지 자동 갱신
   }, 15000);
 
   document.getElementById('loading').style.display = 'none';
