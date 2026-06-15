@@ -55,6 +55,8 @@
   .pw-submit:disabled { background:#9aa7bd; cursor:wait; }
 
   /* 공지사항 */
+  #noticeModal { display:none; position:fixed; inset:0; z-index:1300; background:rgba(15,25,45,.6); padding:6vh 4vw; overflow:auto; }
+  #noticeModal.open { display:flex; align-items:flex-start; justify-content:center; }
   #noticePanel { border-top:4px solid #c0392b; }
   #noticeNewBtn { float:right; background:#1F3864; color:#fff; border:none; padding:5px 14px; border-radius:6px; font-size:13px; cursor:pointer; margin-left:8px; }
   #noticeNewBtn:hover { background:#16294a; }
@@ -155,6 +157,13 @@
   td { padding:8px 10px; border-bottom:1px solid #eef1f6; white-space:nowrap; }
   td.title-cell { white-space:normal; min-width:180px; }
   tr:hover td { background:#f5f8fd; }
+  /* 표준문서 목록 — 잘림 방지: 고정 레이아웃 + 말줄임 */
+  .doc-table { table-layout:fixed; width:100%; }
+  .doc-table th, .doc-table td { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:8px 7px; }
+  .doc-table td.title-cell { white-space:nowrap; min-width:0; }
+  .doc-table .vw-btn, .doc-table .dl-btn, .doc-table .rev-btn, .doc-table .greq-btn,
+  .doc-table .rq-btn, .doc-table .wait-btn, .doc-table .cf-btn { padding:3px 7px; font-size:11px; }
+  @media (max-width:1000px) { .doc-table { min-width:1040px; } }  /* 좁은 화면은 가로 스크롤로 다운로드 열 접근 */
   .conf-tag { font-size:11px; padding:1px 7px; border-radius:10px; }
   .conf-일반 { background:#e3efe3; color:#2e7d32; }
   .conf-대외비 { background:#fdf0d5; color:#b07d00; }
@@ -476,7 +485,12 @@
       </div>
       <div class="count-info" id="countInfo"></div>
       <div class="table-wrap">
-        <table>
+        <table class="doc-table">
+          <colgroup>
+            <col style="width:15%"><col style="width:19%"><col style="width:8%"><col style="width:6%">
+            <col style="width:8%"><col style="width:7%"><col style="width:5%"><col style="width:8%">
+            <col style="width:7%"><col style="width:9%"><col style="width:8%">
+          </colgroup>
           <thead><tr>
             <th>문서번호</th><th>제목</th><th>유형</th><th>시리즈</th>
             <th>버전</th><th>상태</th><th>등급</th><th>제정일</th><th>열람</th><th>다운로드</th><th>개정/권한</th>
@@ -1135,22 +1149,10 @@
     if (error) { alert('열람 권한이 없거나 파일이 없습니다: ' + error.message); return; }
     window.open(data.signedUrl, '_blank');
   }
-  async function apvDownload(num, storagePath, ver, title, level) {
-    if (!storagePath) { alert('첨부 원본이 없습니다 — 작성자에게 재상신을 요청하세요.'); return; }
-    const ext = storagePath.slice(storagePath.lastIndexOf('.'));
-    const { data, error } = await edmsClient.storage.from('documents').download(storagePath);
-    if (error) { alert('다운로드 권한이 없거나 파일이 없습니다: ' + error.message); return; }
-    const safe = (s) => String(s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '').trim();
-    const url = URL.createObjectURL(data);
-    const a = document.createElement('a');
-    a.href = url; a.download = `${num}_${ver || ''}_${safe(title)}_P${level}${ext}`;
-    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-  }
-  // 결재 항목용 파일 버튼(보기/다운로드)
+  // 결재 항목용 파일 버튼 — 결재 단계는 '열람만'(정책). 다운로드는 승인 후 목록의 다운로드 승인제로.
   function apvFileBtns(a) {
     const t = (a.title || '').replace(/"/g, '&quot;');
-    return `<button class="apv-view" data-act="apv-view" data-num="${a.doc_number}" data-title="${t}" data-path="${a.storage_path || ''}">📖 문서 보기</button>`
-      + `<button class="apv-dl" data-act="apv-dl" data-num="${a.doc_number}" data-title="${t}" data-path="${a.storage_path || ''}" data-ver="${a.target_version || ''}" data-level="${a.security_level || 2}">⬇ 다운로드</button>`;
+    return `<button class="apv-view" data-act="apv-view" data-num="${a.doc_number}" data-title="${t}" data-path="${a.storage_path || ''}">📖 문서 보기</button>`;
   }
 
   // ── 인앱 알림 (🔔) ──────────────────────────────────────
@@ -1859,9 +1861,8 @@
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     const act = btn.dataset.act, id = btn.dataset.id;
-    // 문서 보기 / 다운로드 (결재 항목)
+    // 문서 보기 (결재 단계는 열람만 — 다운로드 없음)
     if (act === 'apv-view') { apvViewDoc(btn.dataset.num, btn.dataset.title, btn.dataset.path); return; }
-    if (act === 'apv-dl') { apvDownload(btn.dataset.num, btn.dataset.path, btn.dataset.ver, btn.dataset.title, btn.dataset.level); return; }
     let res;
     const ask = (m, d) => { const v = prompt(m, d === undefined ? '' : d); return v; };
     btn.disabled = true;
@@ -2033,14 +2034,15 @@
   });
 
   async function loadNotices() {
-    // 뷰는 RLS를 우회하므로 일반 사용자에겐 active=true만 명시적으로 필터(관리자는 게시중지 건도 관리용으로 조회)
-    let q = edmsClient.from('edms_notices_view').select('*');
+    // base 테이블 직접 조회(뷰 RLS 회피). 일반=active만, 관리자=게시중지 포함(관리용)
+    let q = edmsClient.from('edms_notices')
+      .select('id,title,body,level,pinned,active,related_doc,created_by,created_at');
     if (!isAdmin) q = q.eq('active', true);
     const { data, error } = await q.order('pinned', { ascending: false }).order('created_at', { ascending: false }).limit(100);
-    if (error) { console.warn('공지 조회 실패:', error.message); return; }
-    noticesCache = data || [];
     const panel = document.getElementById('noticePanel');
-    panel.style.display = (isAdmin || noticesCache.length) ? '' : 'none';  // 일반은 공지 없으면 숨김
+    panel.style.display = '';  // 공지 칸은 모든 역할에 항상 표시
+    if (error) { console.error('공지 조회 오류', error); $('noticeList').innerHTML = '<div class="apv-empty">공지를 불러오지 못했습니다: ' + escHtml(error.message) + '</div>'; return; }
+    noticesCache = data || [];
     const fmt = (t) => t ? new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '';
     $('noticeList').innerHTML = noticesCache.length ? noticesCache.map(n => `
       <div class="notice-card ${n.pinned ? 'pinned' : ''} ${n.active ? '' : 'notice-inactive'}">
@@ -2049,7 +2051,7 @@
           <span class="nlv nlv-${n.level}">${n.level}</span>
           <span class="nt-title">${escHtml(n.title)}</span>
           ${n.active ? '' : '<span class="nlv nlv-일반">게시중지</span>'}
-          <span class="notice-meta">${escHtml(n.author_name || '')} · ${fmt(n.created_at)}</span>
+          <span class="notice-meta">${escHtml(profNameById[n.created_by] || '')} · ${fmt(n.created_at)}</span>
         </div>
         <div class="notice-body" id="nb-${n.id}">${escHtml(n.body)}
           ${n.related_doc ? `<div class="notice-rel">관련 문서: <a data-rel="${escHtml(n.related_doc)}">${escHtml(n.related_doc)}</a></div>` : ''}
@@ -2059,7 +2061,7 @@
           <button data-ntoggle="${n.id}" data-active="${n.active}">${n.active ? '게시중지' : '재게시'}</button>
           <button data-ndel="${n.id}" style="color:#c0392b;border-color:#c0392b">삭제</button>
         </div>` : ''}
-      </div>`).join('') : '<div class="apv-empty">게시된 공지가 없습니다.</div>';
+      </div>`).join('') : '<div class="apv-empty">등록된 공지가 없습니다.</div>';
   }
   $('noticeList').addEventListener('click', async (e) => {
     const rel = e.target.closest('[data-rel]');
@@ -2103,6 +2105,21 @@
     loadWorkflow();  // 결재함 대기·현황 자동 갱신 (전체 사용자)
     loadNotices();   // 공지 자동 갱신
   }, 15000);
+
+  // ── 자동 로그아웃 (60분 미사용) — 로그인 후에만 동작 ─────
+  let idleTimer;
+  const IDLE_MS = 60 * 60 * 1000;
+  function resetIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(async () => {
+      try { await edmsClient.auth.signOut(); } catch (e) { /* 무시 */ }
+      alert('장시간 미사용으로 자동 로그아웃되었습니다. 다시 로그인해 주세요.');
+      location.replace('login.html');
+    }, IDLE_MS);
+  }
+  ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(ev =>
+    window.addEventListener(ev, resetIdle, { passive: true }));
+  resetIdle();
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('content').style.display = '';
