@@ -679,6 +679,13 @@
         </div>
       </div>
 
+      <label>열람 범위</label>
+      <div class="radio-row">
+        <label><input type="radio" name="readScope" value="all" checked> 전체 (전 임직원 열람)</label>
+        <label><input type="radio" name="readScope" value="dev"> 개발·관리자 한정</label>
+      </div>
+      <div class="num-note" style="margin-top:6px">‘개발·관리자 한정’ 문서는 <b>품질팀·부대표·대표</b>에게만 목록·열람이 보입니다(서버 차단). 그 외 임직원에게는 아예 표시되지 않습니다.</div>
+
       <label>제정/개정 사유 · 변경 내용</label>
       <textarea id="fChange" placeholder="이 문서를 만들거나 고치는 이유를 적어주세요."></textarea>
 
@@ -1349,6 +1356,7 @@
     document.querySelector('input[name="numScheme"][value="w"]').checked = true;
     $('cfspSchemeOpt').style.display = (isAdmin || myDept === '품질') ? '' : 'none';
     $('cfspDisc').value = 'DS'; $('cfspLayer').value = 'MAN'; $('cfspSeq').value = '';
+    document.querySelector('input[name="readScope"][value="all"]').checked = true;
     $('fType').value = 'W-M'; $('fDisc').selectedIndex = 0; $('fLayer').value = 'P';
     $('fParent').value = ''; $('fSeq').value = '';
     $('usedList').style.display = 'none'; $('usedList').innerHTML = '';
@@ -1658,12 +1666,13 @@
       if (pErr) { fMsg.className = 'form-msg err'; fMsg.textContent = 'PDF 열람본 업로드 실패: ' + pErr.message; btn.disabled = false; return; }
     }
     // 2) 결재 생성
+    const readScope = document.querySelector('input[name="readScope"]:checked').value;
     const { data: apvId, error: cErr } = await edmsClient.rpc('edms_apv_create', {
       p_type: type, p_doc_number: docNo, p_title: title, p_series: fSeries.value.trim(),
       p_doc_type: fDocType.value.trim(), p_security: security, p_version: fVersion.value.trim() || 'Rev1.00',
       p_change: fChange.value.trim(), p_document_id: documentId,
       p_reviewer: fReviewer.value || myId, p_approver: fApprover.value || myId,
-      p_storage_path: storagePath,
+      p_storage_path: storagePath, p_read_scope: readScope,
     });
     if (cErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '작성 실패: ' + cErr.message; btn.disabled = false; return; }
     // 3) 검토 상신
