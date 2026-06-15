@@ -251,6 +251,10 @@
   .st-보류 { background:#fdecc8; color:#9a6700; }
   .apv-hold { background:#fff; color:#9a6700; border:1.5px solid #e8b931; padding:5px 13px; border-radius:6px; font-size:12px; cursor:pointer; }
   .apv-arch { background:#eceff4; color:#555; border:1px solid #d5dbe7; padding:5px 13px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .apv-view { background:#fff; color:#1F3864; border:1.5px solid #1F3864; padding:5px 11px; border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .apv-view:hover { background:#eef3fb; }
+  .apv-dl { background:#1F3864; color:#fff; border:none; padding:5px 11px; border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .apv-dl:hover { background:#16294a; }
   #apvClear, #apvArchiveBtn, #logBtn { font-size:12px; padding:3px 10px; cursor:pointer; margin-left:6px; }
   /* 보관함·이력 공용 큰 모달 */
   #archiveModal, #logModal { display:none; position:fixed; inset:0; z-index:1100; background:rgba(15,25,45,.6); padding:4vh 3vw; overflow:auto; }
@@ -420,7 +424,7 @@
         <table class="apv-status-table">
           <thead><tr>
             <th>구분</th><th>문서번호</th><th>제목</th><th>상태</th>
-            <th>작성(일시)</th><th>검토(일시)</th><th>승인(일시)</th>
+            <th>작성(일시)</th><th>검토(일시)</th><th>승인(일시)</th><th>문서</th>
           </tr></thead>
           <tbody id="apvStatusBody"></tbody>
         </table>
@@ -1051,6 +1055,41 @@
     } finally {
       btn.disabled = false;
     }
+  }
+
+  // ── PART A: 결재 상신문서 열람·다운로드 ──────────────────
+  function openPdfModal(num, title, signedUrl) {
+    document.getElementById('modalTitle').innerHTML = `<small>${num}</small> ${escHtml(title || '')}`;
+    frame.style.display = 'none'; frame.src = 'about:blank';
+    const wrap = document.getElementById('pdfCanvasWrap'); wrap.style.display = '';
+    modal.classList.add('open');
+    renderPdfJs(signedUrl);
+  }
+  async function apvViewDoc(num, title, storagePath) {
+    // PDF 열람본 우선(워터마크 PDF.js), 없으면 storage_path(초안 원본) 새 탭
+    const { data: vp } = await edmsClient.storage.from('documents').createSignedUrl('view/' + num + '.pdf', 600);
+    if (vp && vp.signedUrl) { openPdfModal(num, title, vp.signedUrl); return; }
+    if (!storagePath) { alert('첨부 파일이 없습니다 — 작성자에게 재상신을 요청하세요.'); return; }
+    const { data, error } = await edmsClient.storage.from('documents').createSignedUrl(storagePath, 600);
+    if (error) { alert('열람 권한이 없거나 파일이 없습니다: ' + error.message); return; }
+    window.open(data.signedUrl, '_blank');
+  }
+  async function apvDownload(num, storagePath, ver, title, level) {
+    if (!storagePath) { alert('첨부 원본이 없습니다 — 작성자에게 재상신을 요청하세요.'); return; }
+    const ext = storagePath.slice(storagePath.lastIndexOf('.'));
+    const { data, error } = await edmsClient.storage.from('documents').download(storagePath);
+    if (error) { alert('다운로드 권한이 없거나 파일이 없습니다: ' + error.message); return; }
+    const safe = (s) => String(s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '').trim();
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${num}_${ver || ''}_${safe(title)}_P${level}${ext}`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  // 결재 항목용 파일 버튼(보기/다운로드)
+  function apvFileBtns(a) {
+    const t = (a.title || '').replace(/"/g, '&quot;');
+    return `<button class="apv-view" data-act="apv-view" data-num="${a.doc_number}" data-title="${t}" data-path="${a.storage_path || ''}">📖 문서 보기</button>`
+      + `<button class="apv-dl" data-act="apv-dl" data-num="${a.doc_number}" data-title="${t}" data-path="${a.storage_path || ''}" data-ver="${a.target_version || ''}" data-level="${a.security_level || 2}">⬇ 다운로드</button>`;
   }
 
   // ── 인앱 알림 (🔔) ──────────────────────────────────────
@@ -1710,6 +1749,7 @@
               <b>${a.doc_number}</b> ${escHtml(a.title || '')} <small>(${a.approval_type})</small><br>
               <small>작성: ${nameOf(a.drafter, a.drafter_id)}${a.change_summary ? ' · ' + escHtml(a.change_summary) : ''}</small></div>
             <div class="apv-actions">
+              ${apvFileBtns(a)}
               <button class="apv-ok" data-act="${isRev ? 'review-ok' : 'approve-ok'}" data-id="${a.id}">${isRev ? '검토 승인' : '승인'}</button>
               <button class="apv-no" data-act="${isRev ? 'review-no' : 'approve-no'}" data-id="${a.id}">반려</button>
               ${isRev ? `<button class="apv-hold" data-act="hold" data-id="${a.id}">검토 보류</button>` : ''}
@@ -1734,7 +1774,7 @@
             <div class="apv-info"><span class="st-tag st-${a.status}">${a.status}</span>
               <b>${a.doc_number}</b> ${escHtml(a.title || '')} <small>(${a.approval_type})</small>
               ${a.status === '반려' && a.reject_reason ? `<br><small style="color:#c0392b">반려 사유: ${escHtml(a.reject_reason)}</small>` : ''}</div>
-            <div class="apv-actions">${btns}</div></div>`;
+            <div class="apv-actions">${apvFileBtns(a)}${btns}</div></div>`;
         }).join('')
       : '';
 
@@ -1747,8 +1787,9 @@
           <td><span class="st-tag st-${a.status}">${a.status}</span></td>
           <td>${step(nameOf(a.drafter, a.drafter_id), a.submitted_at || a.created_at || a.drafted_at, '작성')}</td>
           <td>${step(nameOf(a.reviewer, a.reviewer_id), a.reviewed_at, a.status === '검토중' ? '검토 대기' : '—')}</td>
-          <td>${step(nameOf(a.approver, a.approver_id), a.approved_at, a.status === '승인대기' ? '승인 대기' : '—')}</td></tr>`).join('')
-      : '<tr><td colspan="7" class="apv-empty">진행 중인 결재가 없습니다.</td></tr>';
+          <td>${step(nameOf(a.approver, a.approver_id), a.approved_at, a.status === '승인대기' ? '승인 대기' : '—')}</td>
+          <td>${apvFileBtns(a)}</td></tr>`).join('')
+      : '<tr><td colspan="8" class="apv-empty">진행 중인 결재가 없습니다.</td></tr>';
     refreshBell();
   }
 
@@ -1757,6 +1798,9 @@
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
     const act = btn.dataset.act, id = btn.dataset.id;
+    // 문서 보기 / 다운로드 (결재 항목)
+    if (act === 'apv-view') { apvViewDoc(btn.dataset.num, btn.dataset.title, btn.dataset.path); return; }
+    if (act === 'apv-dl') { apvDownload(btn.dataset.num, btn.dataset.path, btn.dataset.ver, btn.dataset.title, btn.dataset.level); return; }
     let res;
     const ask = (m, d) => { const v = prompt(m, d === undefined ? '' : d); return v; };
     btn.disabled = true;
@@ -1782,6 +1826,7 @@
   }
   $('apvTodo').addEventListener('click', apvAction);
   $('apvMine').addEventListener('click', apvAction);
+  $('apvStatusBody').addEventListener('click', apvAction);
   $('apvRefresh').addEventListener('click', loadWorkflow);
   // 결재함 비우기(완료·반려·취소 일괄 보관) + 보관함 (W3)
   $('apvClear').addEventListener('click', async () => {
