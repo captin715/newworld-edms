@@ -1835,22 +1835,24 @@
         .upload(storagePath, file, { upsert: true, contentType: file.type });
       if (upErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '파일 업로드 실패: ' + upErr.message; btn.disabled = false; return; }
     }
-    // 1b) PDF 열람본 업로드(필수) → view/{문서번호}.pdf
+    // 1b) 상신본 PDF 업로드(필수) → review/{번호}_{Rev}.pdf (격리 경로; 현행 view/ 열람본은 승인 '승급' 때만 변경)
     //     ★워터마크 미적용(저장본은 깨끗) — 워터마크는 열람 시 PDF.js 뷰어가 열람자·일시로 동적 합성
+    const targetRev = fVersion.value.trim() || 'Rev1.00';
+    const reviewPath = `review/${docNo}_${targetRev}.pdf`;
     {
       const { error: pErr } = await edmsClient.storage.from('documents')
-        .upload(`view/${docNo}.pdf`, pdfFile, { upsert: true, contentType: 'application/pdf' });
-      if (pErr) { fMsg.className = 'form-msg err'; fMsg.textContent = 'PDF 열람본 업로드 실패: ' + pErr.message; btn.disabled = false; return; }
+        .upload(reviewPath, pdfFile, { upsert: true, contentType: 'application/pdf' });
+      if (pErr) { fMsg.className = 'form-msg err'; fMsg.textContent = 'PDF 업로드 실패: ' + pErr.message; alert('[업로드 실패] ' + pErr.message); btn.disabled = false; return; }
     }
     // 2) 결재 생성
     const readScope = document.querySelector('input[name="readScope"]:checked').value;
     const reviewer = fReviewer.value || myId, approver = fApprover.value || myId;
     const { data: apvId, error: cErr } = await edmsClient.rpc('edms_apv_create', {
       p_type: type, p_doc_number: docNo, p_title: title, p_series: fSeries.value.trim(),
-      p_doc_type: fDocType.value.trim(), p_security: security, p_version: fVersion.value.trim() || 'Rev1.00',
+      p_doc_type: fDocType.value.trim(), p_security: security, p_version: targetRev,
       p_change: fChange.value.trim(), p_document_id: documentId,
       p_reviewer: reviewer, p_approver: approver,
-      p_storage_path: storagePath, p_read_scope: readScope,
+      p_storage_path: reviewPath, p_read_scope: readScope,
     });
     if (cErr || !apvId) {
       btn.disabled = false;
