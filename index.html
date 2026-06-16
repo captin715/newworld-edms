@@ -54,6 +54,11 @@
   .pw-submit { width:100%; margin-top:16px; background:#1F3864; color:#fff; border:none; padding:11px; border-radius:8px; font-size:15px; font-weight:bold; cursor:pointer; }
   .pw-submit:disabled { background:#9aa7bd; cursor:wait; }
 
+  /* CFSPS 일괄 상신 */
+  #cfspsBulkPanel { border-top:4px solid #2e7d32; }
+  #cfspsRows input[type=file] { font-size:11px; max-width:160px; }
+  #cfspsMulti { font-size:12px; }
+
   /* 공지사항 */
   #noticeModal { display:none; position:fixed; inset:0; z-index:1300; background:rgba(15,25,45,.6); padding:6vh 4vw; overflow:auto; }
   #noticeModal.open { display:flex; align-items:flex-start; justify-content:center; }
@@ -446,6 +451,28 @@
       </div>
       <div class="ga-sub">활성 권한</div>
       <div id="gaActiveList"></div>
+    </div>
+
+    <div class="panel" id="cfspsBulkPanel" style="display:none">
+      <h2>📚 CFSPS 일괄 개정 등재·상신</h2>
+      <div class="num-note">CFSPS 표준 18종 개정본을 한 번에 등재·상신합니다. 각 행에 <b>열람본 PDF(필수)</b>·docx(선택)를 첨부하거나,
+        아래 ‘한꺼번에 첨부’로 폴더 파일을 골라 파일명 자동 배정하세요. 결재선: <b>작성(나) → 검토(부대표) → 승인(대표)</b>.</div>
+      <div class="ga-form">
+        <label>한꺼번에 첨부:</label><input type="file" id="cfspsMulti" multiple accept=".pdf,.docx">
+        <span style="font-size:12px;color:#888">파일명이 ‘CFSPS-번호’로 시작해야 자동 배정됩니다</span>
+      </div>
+      <div class="grid2">
+        <div><label>검토자 (부대표)</label><select id="cfspsReviewer"></select></div>
+        <div><label>승인자 (대표)</label><select id="cfspsApprover"></select></div>
+      </div>
+      <div class="table-wrap" style="max-height:52vh;overflow:auto;margin-top:10px">
+        <table class="log-table">
+          <thead><tr><th>문서번호</th><th>제목</th><th>버전</th><th>개정요약</th><th>PDF(필수)</th><th>docx</th><th>상태</th></tr></thead>
+          <tbody id="cfspsRows"></tbody>
+        </table>
+      </div>
+      <button class="form-submit" id="cfspsSubmit" style="max-width:260px">일괄 상신 (18건)</button>
+      <div class="form-msg" id="cfspsMsg"></div>
     </div>
 
     <div class="panel" id="apvPanel">
@@ -2093,6 +2120,111 @@
     if (top) { const b = document.getElementById('nb-' + top.dataset.toggle); if (b) b.classList.toggle('open'); }
   });
   await loadNotices();
+
+  // ── CFSPS 일괄 개정 등재·상신 (품질팀·관리자 전용) ───────
+  if (myDept === '품질' || isAdmin) {
+    const CFSPS_TARGETS = [
+      { n: 'CFSPS-3.0', rev: 'Rev1.03', s: '정합 정정·결재선·표지·보류항목·위계마커' },
+      { n: 'CFSPS-3.3', rev: 'Rev1.03', s: '절번호 드리프트·§3.2.7 부제·3.3.11A NOTE' },
+      { n: 'CFSPS-3.6', rev: 'Rev1.03', s: '자율판정 정합·운영모드 2축 NOTE' },
+      { n: 'CFSPS-3.2', rev: 'Rev1.02', s: '참조오기·정의 신설·도식번호' },
+      { n: 'CFSPS-3.4', rev: 'Rev1.02', s: 'D-번호·Annex 참조·D17·승인자속성' },
+      { n: 'CFSPS-3.5', rev: 'Rev1.02', s: 'Lifecycle·Multi-Site·cross-walk' },
+      { n: 'CFSPS-3.7', rev: 'Rev1.02', s: 'Spine 8단계·기술Spine·마감공사' },
+      { n: 'CFSPS-3.1', rev: 'Rev1.01', s: '결재선·표지·오타' },
+      { n: 'CFSPS-0', rev: 'Rev1.01', s: '결재선·표지 정정' },
+      { n: 'CFSPS-1', rev: 'Rev1.01', s: '결재선·표지 정정' },
+      { n: 'CFSPS-2', rev: 'Rev1.01', s: '결재선·표지 정정' },
+      { n: 'CFSPS-4', rev: 'Rev1.01', s: '결재선·표지 정정' },
+      { n: 'CFSPS-5', rev: 'Rev1.01', s: '결재선·표지 정정' },
+      { n: 'CFSPS-6', rev: 'Rev1.01', s: '결재선·표지 정정' },
+      { n: 'CFSPS-7', rev: 'Rev1.01', s: '결재선·표지 정정' },
+      { n: 'CFSPS-8', rev: 'Rev1.01', s: '결재선·표지 정정' },
+      { n: 'CFSPS-9', rev: 'Rev1.01', s: '결재선·표지 정정' },
+      { n: 'CFSPS-10', rev: 'Rev1.01', s: '결재선·표지 정정' },
+    ];
+    document.getElementById('cfspsBulkPanel').style.display = '';
+    const cRv = document.getElementById('cfspsReviewer'), cAp = document.getElementById('cfspsApprover');
+    const opts = allProfiles.map(p => `<option value="${p.id}">${escHtml(p.name || p.email)} (${ROLE_LABEL[p.role] || p.role})</option>`).join('');
+    cRv.innerHTML = opts; cAp.innerHTML = opts;
+    const idByEmail = (e) => (allProfiles.find(p => p.email === e) || {}).id;
+    if (idByEmail('mws@newworldkr.com')) cRv.value = idByEmail('mws@newworldkr.com');  // 부대표
+    if (idByEmail('nw@newworldkr.com')) cAp.value = idByEmail('nw@newworldkr.com');     // 대표
+
+    const docByNum = {}; docs.forEach(d => { docByNum[d.doc_number] = d; });
+    const rowState = {};
+    const cBody = document.getElementById('cfspsRows');
+    cBody.innerHTML = CFSPS_TARGETS.map(t => {
+      rowState[t.n] = {};
+      const d = docByNum[t.n];
+      return `<tr>
+        <td><b>${t.n}</b></td><td>${escHtml((d && d.title) || '—')}</td><td>${t.rev}</td><td>${escHtml(t.s)}</td>
+        <td><input type="file" class="cfsps-pdf" accept=".pdf" data-num="${t.n}"></td>
+        <td><input type="file" class="cfsps-docx" accept=".docx" data-num="${t.n}"></td>
+        <td class="cfsps-status" data-num="${t.n}">${d ? '대기(개정)' : '⚠ EDMS에 없음(제정)'}</td>
+      </tr>`;
+    }).join('');
+    const setStatus = (n, html) => { const el = cBody.querySelector(`.cfsps-status[data-num="${n}"]`); if (el) el.innerHTML = html; };
+    cBody.addEventListener('change', (e) => {
+      const inp = e.target;
+      if (inp.classList.contains('cfsps-pdf')) { rowState[inp.dataset.num].pdf = inp.files[0] || null; setStatus(inp.dataset.num, rowState[inp.dataset.num].pdf ? 'PDF 준비됨' : '대기'); }
+      if (inp.classList.contains('cfsps-docx')) rowState[inp.dataset.num].docx = inp.files[0] || null;
+    });
+    // 한꺼번에 첨부 → 파일명으로 행 자동 배정(긴 번호 우선 매칭)
+    document.getElementById('cfspsMulti').addEventListener('change', (e) => {
+      const nums = CFSPS_TARGETS.map(t => t.n).sort((a, b) => b.length - a.length);
+      [...e.target.files].forEach(f => {
+        const base = f.name.replace(/\.[^.]+$/, '');
+        const num = nums.find(n => base === n || [n + '_', n + '-', n + '.', n + ' '].some(p => base.startsWith(p)));
+        if (!num) return;
+        const lc = f.name.toLowerCase();
+        const ext = lc.endsWith('.pdf') ? 'pdf' : (lc.endsWith('.docx') ? 'docx' : null);
+        if (!ext) return;
+        rowState[num][ext] = f;
+        const sel = cBody.querySelector(`.cfsps-${ext}[data-num="${num}"]`);
+        if (sel) { try { const dt = new DataTransfer(); dt.items.add(f); sel.files = dt.files; } catch (x) { /* 표시만 실패, rowState로 처리 */ } }
+        if (ext === 'pdf') setStatus(num, 'PDF 준비됨');
+      });
+    });
+    // 일괄 상신
+    document.getElementById('cfspsSubmit').addEventListener('click', async () => {
+      const reviewer = cRv.value, approver = cAp.value;
+      if (!reviewer || !approver) { alert('검토자·승인자를 지정하세요.'); return; }
+      const btn = document.getElementById('cfspsSubmit'); btn.disabled = true;
+      const msg = document.getElementById('cfspsMsg'); msg.className = 'form-msg'; msg.textContent = '처리 중...';
+      let okN = 0, failN = 0, skipN = 0;
+      for (const t of CFSPS_TARGETS) {
+        const d = docByNum[t.n], rs = rowState[t.n];
+        if (!rs.pdf) { setStatus(t.n, '<span style="color:#c0392b">⏭ PDF 없음 — 상신 차단</span>'); skipN++; continue; }
+        setStatus(t.n, '업로드 중…');
+        try {
+          const u1 = await edmsClient.storage.from('documents').upload(`view/${t.n}.pdf`, rs.pdf, { contentType: 'application/pdf', upsert: true });
+          if (u1.error) throw new Error('PDF 업로드: ' + u1.error.message);
+          if (rs.docx) {
+            const u2 = await edmsClient.storage.from('documents').upload(`draft/${t.n}.docx`, rs.docx, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', upsert: true });
+            if (u2.error) throw new Error('docx 업로드: ' + u2.error.message);
+          }
+          const { data: apvId, error: cErr } = await edmsClient.rpc('edms_apv_create', {
+            p_type: d ? '개정' : '제정', p_doc_number: t.n, p_title: (d && d.title) || t.n,
+            p_series: (d && d.series) || 'CFSPS', p_doc_type: (d && d.doc_type) || 'CFSPS',
+            p_security: 3, p_version: t.rev, p_change: t.s,
+            p_document_id: d ? d.id : null, p_reviewer: reviewer, p_approver: approver,
+            p_storage_path: `view/${t.n}.pdf`, p_read_scope: 'all',
+          });
+          if (cErr) throw new Error('작성: ' + cErr.message);
+          const { error: sErr } = await edmsClient.rpc('edms_apv_submit', { p_id: apvId });
+          if (sErr) throw new Error('상신: ' + sErr.message);
+          setStatus(t.n, '<span style="color:#2e7d32">✓ 검토중 상신</span>'); okN++;
+        } catch (err) {
+          setStatus(t.n, '<span style="color:#c0392b">✗ ' + escHtml(err.message) + '</span>'); failN++;
+        }
+      }
+      btn.disabled = false;
+      msg.className = 'form-msg ' + (failN ? 'err' : 'ok');
+      msg.textContent = `완료: 상신 ${okN}건 / 실패 ${failN}건 / PDF없음 ${skipN}건. 부대표 결재함에서 검토하세요.`;
+      await loadWorkflow(); refreshBell();
+    });
+  }
 
   // ── 자동갱신(15초 폴링) — 화면이 보일 때만 ───────────────
   //  · 관리자: 승인 대기 목록 자동 갱신(새 요청이 바로 뜸)
