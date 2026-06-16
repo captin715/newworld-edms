@@ -471,7 +471,11 @@
           <tbody id="cfspsRows"></tbody>
         </table>
       </div>
-      <button class="form-submit" id="cfspsSubmit" style="max-width:260px">일괄 상신 (18건)</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="form-submit" id="cfspsSubmit" style="max-width:260px;margin-top:0">일괄 상신 (18건)</button>
+        <button id="cfspsCancelOld" style="background:#fff;color:#c0392b;border:1.5px solid #c0392b;border-radius:8px;padding:11px 16px;font-size:14px;cursor:pointer">기존 CFSPS 상신 취소</button>
+      </div>
+      <div class="num-note" style="margin-top:6px">‘기존 CFSPS 상신 취소’: 문서가 안 붙은 채 올라간 내 CFSPS 진행 건을 취소합니다(취소 후 PDF 포함하여 재상신).</div>
       <div class="form-msg" id="cfspsMsg"></div>
     </div>
 
@@ -1166,9 +1170,15 @@
     renderPdfJs(signedUrl);
   }
   async function apvViewDoc(num, title, storagePath) {
-    // PDF 열람본 우선(워터마크 PDF.js), 없으면 storage_path(초안 원본) 새 탭
+    // ★ 결재 건의 storage_path(이번 상신의 개정본)를 우선 — PDF면 PDF.js 뷰어로
+    if (storagePath && /\.pdf$/i.test(storagePath)) {
+      const { data, error } = await edmsClient.storage.from('documents').createSignedUrl(storagePath, 600);
+      if (!error && data && data.signedUrl) { openPdfModal(num, title, data.signedUrl); return; }
+    }
+    // 그 다음 열람본 규약 view/{문서번호}.pdf
     const { data: vp } = await edmsClient.storage.from('documents').createSignedUrl('view/' + num + '.pdf', 600);
     if (vp && vp.signedUrl) { openPdfModal(num, title, vp.signedUrl); return; }
+    // 마지막으로 storage_path(초안 원본 docx 등)를 새 탭
     if (!storagePath) { alert('첨부 파일이 없습니다 — 작성자에게 재상신을 요청하세요.'); return; }
     const { data, error } = await edmsClient.storage.from('documents').createSignedUrl(storagePath, 600);
     if (error) { alert('열람 권한이 없거나 파일이 없습니다: ' + error.message); return; }
@@ -2214,7 +2224,7 @@
           if (cErr) throw new Error('작성: ' + cErr.message);
           const { error: sErr } = await edmsClient.rpc('edms_apv_submit', { p_id: apvId });
           if (sErr) throw new Error('상신: ' + sErr.message);
-          setStatus(t.n, '<span style="color:#2e7d32">✓ 검토중 상신</span>'); okN++;
+          setStatus(t.n, '<span style="color:#2e7d32">✓ 검토중 상신(문서 포함)</span>'); okN++;
         } catch (err) {
           setStatus(t.n, '<span style="color:#c0392b">✗ ' + escHtml(err.message) + '</span>'); failN++;
         }
@@ -2222,6 +2232,25 @@
       btn.disabled = false;
       msg.className = 'form-msg ' + (failN ? 'err' : 'ok');
       msg.textContent = `완료: 상신 ${okN}건 / 실패 ${failN}건 / PDF없음 ${skipN}건. 부대표 결재함에서 검토하세요.`;
+      await loadWorkflow(); refreshBell();
+    });
+    // 기존 CFSPS 상신 취소 — 내가 작성한 진행 중 CFSPS 결재 건을 일괄 취소
+    document.getElementById('cfspsCancelOld').addEventListener('click', async () => {
+      const msg = document.getElementById('cfspsMsg'); msg.className = 'form-msg';
+      const { data: rows, error } = await edmsClient.from('edms_approvals')
+        .select('id, doc_number, status')
+        .like('doc_number', 'CFSPS%')
+        .eq('drafter_id', myId)
+        .in('status', ['작성중', '검토중', '승인대기', '보류']);
+      if (error) { msg.className = 'form-msg err'; msg.textContent = '조회 실패: ' + error.message; return; }
+      if (!rows || !rows.length) { msg.className = 'form-msg'; msg.textContent = '취소할 진행 중 CFSPS 상신 건이 없습니다.'; return; }
+      if (!confirm(`내가 올린 진행 중 CFSPS 결재 ${rows.length}건을 취소합니다. 계속할까요?`)) return;
+      let n = 0;
+      for (const r of rows) {
+        const { error: e } = await edmsClient.rpc('edms_apv_cancel', { p_id: r.id, p_reason: '문서 미첨부 재상신' });
+        if (!e) n++;
+      }
+      msg.className = 'form-msg ok'; msg.textContent = `${n}건 취소했습니다. PDF를 첨부해 다시 [일괄 상신] 하세요.`;
       await loadWorkflow(); refreshBell();
     });
   }
