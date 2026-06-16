@@ -1844,18 +1844,29 @@
     }
     // 2) 결재 생성
     const readScope = document.querySelector('input[name="readScope"]:checked').value;
+    const reviewer = fReviewer.value || myId, approver = fApprover.value || myId;
     const { data: apvId, error: cErr } = await edmsClient.rpc('edms_apv_create', {
       p_type: type, p_doc_number: docNo, p_title: title, p_series: fSeries.value.trim(),
       p_doc_type: fDocType.value.trim(), p_security: security, p_version: fVersion.value.trim() || 'Rev1.00',
       p_change: fChange.value.trim(), p_document_id: documentId,
-      p_reviewer: fReviewer.value || myId, p_approver: fApprover.value || myId,
+      p_reviewer: reviewer, p_approver: approver,
       p_storage_path: storagePath, p_read_scope: readScope,
     });
-    if (cErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '작성 실패: ' + cErr.message; btn.disabled = false; return; }
+    if (cErr || !apvId) {
+      btn.disabled = false;
+      const detail = `[작성 실패]\n${cErr ? (cErr.code || '') + ' ' + cErr.message : 'id 미반환'}\n\n구분=${type} 번호=${docNo}\n검토자=${reviewer}\n승인자=${approver}`;
+      fMsg.className = 'form-msg err'; fMsg.textContent = '작성 실패: ' + (cErr ? cErr.message : 'id 미반환');
+      alert(detail);  // 숨기지 않고 원문 노출(진단용)
+      return;
+    }
     // 3) 검토 상신
     const { error: sErr } = await edmsClient.rpc('edms_apv_submit', { p_id: apvId });
     btn.disabled = false;
-    if (sErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '상신 실패: ' + sErr.message; return; }
+    if (sErr) {
+      fMsg.className = 'form-msg err'; fMsg.textContent = '상신 실패: ' + sErr.message;
+      alert(`[상신 실패]\n${(sErr.code || '') + ' ' + sErr.message}\n\n생성 id=${apvId}`);
+      return;
+    }
     closeForm();
     await loadWorkflow();
     alert('검토 상신했습니다. 열람본 PDF가 함께 등록되어, 승인 후 모든 임원이 목록에서 열람할 수 있습니다.');
