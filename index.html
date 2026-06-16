@@ -2242,18 +2242,21 @@
         if (!rs.pdf) { setStatus(t.n, '<span style="color:#c0392b">⏭ PDF 없음 — 상신 차단</span>'); skipN++; continue; }
         setStatus(t.n, '업로드 중…');
         try {
-          const u1 = await edmsClient.storage.from('documents').upload(`view/${t.n}.pdf`, rs.pdf, { contentType: 'application/pdf', upsert: true });
-          if (u1.error) throw new Error('PDF 업로드: ' + u1.error.message);
+          // 상신본 PDF는 review/ 격리 경로(현행 view/ 열람본은 승인 전 변경 안 함)
+          const reviewPath = `review/${t.n}_${t.rev}.pdf`;
+          const u1 = await edmsClient.storage.from('documents').upload(reviewPath, rs.pdf, { contentType: 'application/pdf', upsert: true });
+          if (u1.error) throw new Error('PDF 업로드: ' + u1.error.message);  // 업로드 실패면 상신 안 함
+          // docx는 선택(원본 보관용 draft/) — 실패해도 상신은 진행(PDF가 필수)
           if (rs.docx) {
             const u2 = await edmsClient.storage.from('documents').upload(`draft/${t.n}.docx`, rs.docx, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', upsert: true });
-            if (u2.error) throw new Error('docx 업로드: ' + u2.error.message);
+            if (u2.error) console.warn('docx 업로드 생략(' + t.n + '): ' + u2.error.message);
           }
           const { data: apvId, error: cErr } = await edmsClient.rpc('edms_apv_create', {
             p_type: d ? '개정' : '제정', p_doc_number: t.n, p_title: (d && d.title) || t.n,
             p_series: (d && d.series) || 'CFSPS', p_doc_type: (d && d.doc_type) || 'CFSPS',
             p_security: 3, p_version: t.rev, p_change: t.s,
             p_document_id: d ? d.id : null, p_reviewer: reviewer, p_approver: approver,
-            p_storage_path: `view/${t.n}.pdf`, p_read_scope: 'all',
+            p_storage_path: reviewPath, p_read_scope: 'all',
           });
           if (cErr) throw new Error('작성: ' + cErr.message);
           const { error: sErr } = await edmsClient.rpc('edms_apv_submit', { p_id: apvId });
