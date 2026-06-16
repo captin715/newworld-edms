@@ -56,6 +56,9 @@
 
   /* CFSPS 일괄 상신 */
   #cfspsBulkPanel { border-top:4px solid #2e7d32; }
+  .cfsps-tabs { display:flex; gap:6px; margin:4px 0 12px; border-bottom:2px solid #eef1f6; }
+  .cfsps-tab { background:none; border:none; padding:8px 16px; font-size:14px; color:#888; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; }
+  .cfsps-tab.active { color:#1F3864; font-weight:bold; border-bottom-color:#1F3864; }
   #cfspsRows input[type=file] { font-size:11px; max-width:160px; }
   #cfspsMulti { font-size:12px; }
 
@@ -454,12 +457,21 @@
     </div>
 
     <div class="panel" id="cfspsBulkPanel" style="display:none">
-      <h2>📚 CFSPS 일괄 개정 등재·상신</h2>
+      <h2>📝 문서 작성·상신</h2>
+      <div class="cfsps-tabs">
+        <button id="tabSingle" class="cfsps-tab active">개별 상신</button>
+        <button id="tabBulk" class="cfsps-tab">CFSPS 일괄 상신</button>
+      </div>
+      <div id="cfspsTabSingle">
+        <div class="num-note">문서 1건을 작성·상신합니다(제정/개정 · 발번 도우미 · 열람본 PDF 필수). 결재선은 유형·구분자에 따라 자동 지정됩니다.</div>
+        <button class="form-submit" id="cfspsOpenSingle" style="max-width:220px">📄 문서 작성 열기</button>
+      </div>
+      <div id="cfspsTabBulk" style="display:none">
       <div class="num-note">CFSPS 표준 18종 개정본을 한 번에 등재·상신합니다. 각 행에 <b>열람본 PDF(필수)</b>·docx(선택)를 첨부하거나,
         아래 ‘한꺼번에 첨부’로 폴더 파일을 골라 파일명 자동 배정하세요. 결재선: <b>작성(나) → 검토(부대표) → 승인(대표)</b>.</div>
       <div class="ga-form">
         <label>한꺼번에 첨부:</label><input type="file" id="cfspsMulti" multiple accept=".pdf,.docx">
-        <span style="font-size:12px;color:#888">파일명이 ‘CFSPS-번호’로 시작해야 자동 배정됩니다</span>
+        <span style="font-size:12px;color:#888">파일명이 ‘CFSPS-번호(장)’로 시작해야 자동 배정됩니다</span>
       </div>
       <div class="grid2">
         <div><label>검토자 (부대표)</label><select id="cfspsReviewer"></select></div>
@@ -476,6 +488,7 @@
         <button id="cfspsCancelOld" style="background:#fff;color:#c0392b;border:1.5px solid #c0392b;border-radius:8px;padding:11px 16px;font-size:14px;cursor:pointer">기존 CFSPS 상신 취소</button>
       </div>
       <div class="num-note" style="margin-top:6px">‘기존 CFSPS 상신 취소’: 문서가 안 붙은 채 올라간 내 CFSPS 진행 건을 취소합니다(취소 후 PDF 포함하여 재상신).</div>
+      </div><!-- /cfspsTabBulk -->
       <div class="form-msg" id="cfspsMsg"></div>
     </div>
 
@@ -2131,8 +2144,9 @@
   });
   await loadNotices();
 
-  // ── CFSPS 일괄 개정 등재·상신 (품질팀·관리자 전용) ───────
-  if (myDept === '품질' || isAdmin) {
+  // ── CFSPS 일괄 개정 등재·상신 (★품질팀장 전용) ───────────
+  //  관리자(부대표)·승인자(대표)·일반에는 노출 안 함 — 그들은 결재함에서만 처리
+  if (myRole === 'reviewer' && myDept === '품질') {
     const CFSPS_TARGETS = [
       { n: 'CFSPS-3.0', rev: 'Rev1.03', s: '정합 정정·결재선·표지·보류항목·위계마커' },
       { n: 'CFSPS-3.3', rev: 'Rev1.03', s: '절번호 드리프트·§3.2.7 부제·3.3.11A NOTE' },
@@ -2154,6 +2168,18 @@
       { n: 'CFSPS-10', rev: 'Rev1.01', s: '결재선·표지 정정' },
     ];
     document.getElementById('cfspsBulkPanel').style.display = '';
+    // 개별/일괄 모드 탭 (기본: 개별)
+    const tabS = document.getElementById('tabSingle'), tabB = document.getElementById('tabBulk');
+    const paneS = document.getElementById('cfspsTabSingle'), paneB = document.getElementById('cfspsTabBulk');
+    function showTab(bulk) {
+      tabB.classList.toggle('active', bulk); tabS.classList.toggle('active', !bulk);
+      paneB.style.display = bulk ? '' : 'none'; paneS.style.display = bulk ? 'none' : '';
+      document.getElementById('cfspsMsg').textContent = '';
+    }
+    tabS.addEventListener('click', () => showTab(false));
+    tabB.addEventListener('click', () => showTab(true));
+    document.getElementById('cfspsOpenSingle').addEventListener('click', () => openForm());  // 개별=기존 문서 작성 모달
+    showTab(false);  // 기본 개별
     const cRv = document.getElementById('cfspsReviewer'), cAp = document.getElementById('cfspsApprover');
     const opts = allProfiles.map(p => `<option value="${p.id}">${escHtml(p.name || p.email)} (${ROLE_LABEL[p.role] || p.role})</option>`).join('');
     cRv.innerHTML = opts; cAp.innerHTML = opts;
@@ -2180,21 +2206,29 @@
       if (inp.classList.contains('cfsps-pdf')) { rowState[inp.dataset.num].pdf = inp.files[0] || null; setStatus(inp.dataset.num, rowState[inp.dataset.num].pdf ? 'PDF 준비됨' : '대기'); }
       if (inp.classList.contains('cfsps-docx')) rowState[inp.dataset.num].docx = inp.files[0] || null;
     });
-    // 한꺼번에 첨부 → 파일명으로 행 자동 배정(긴 번호 우선 매칭)
+    // 파일명 → 문서번호 (숫자 뒤 '장' 표기 허용: CFSPS-0장_…→CFSPS-0, CFSPS-10장…→CFSPS-10, CFSPS-3.0_…→CFSPS-3.0)
+    const validNums = new Set(CFSPS_TARGETS.map(t => t.n));
+    function docNoFromFilename(name) {
+      const m = name.match(/^CFSPS-(\d+(?:\.\d+)?)\s*장?[\s_.\-]/i) || name.match(/^CFSPS-(\d+(?:\.\d+)?)/i);
+      const n = m ? ('CFSPS-' + m[1]) : null;
+      return (n && validNums.has(n)) ? n : null;
+    }
+    // 한꺼번에 첨부 → 파일명으로 행 자동 배정
     document.getElementById('cfspsMulti').addEventListener('change', (e) => {
-      const nums = CFSPS_TARGETS.map(t => t.n).sort((a, b) => b.length - a.length);
+      let matched = 0, ignored = 0;
       [...e.target.files].forEach(f => {
-        const base = f.name.replace(/\.[^.]+$/, '');
-        const num = nums.find(n => base === n || [n + '_', n + '-', n + '.', n + ' '].some(p => base.startsWith(p)));
-        if (!num) return;
+        const num = docNoFromFilename(f.name);
         const lc = f.name.toLowerCase();
         const ext = lc.endsWith('.pdf') ? 'pdf' : (lc.endsWith('.docx') ? 'docx' : null);
-        if (!ext) return;
+        if (!num || !ext) { ignored++; return; }
         rowState[num][ext] = f;
         const sel = cBody.querySelector(`.cfsps-${ext}[data-num="${num}"]`);
         if (sel) { try { const dt = new DataTransfer(); dt.items.add(f); sel.files = dt.files; } catch (x) { /* 표시만 실패, rowState로 처리 */ } }
         if (ext === 'pdf') setStatus(num, 'PDF 준비됨');
+        matched++;
       });
+      document.getElementById('cfspsMsg').className = 'form-msg';
+      document.getElementById('cfspsMsg').textContent = `자동 배정: ${matched}개 매칭${ignored ? ` · ${ignored}개 무시(CFSPS-번호 형식 아님)` : ''}`;
     });
     // 일괄 상신
     document.getElementById('cfspsSubmit').addEventListener('click', async () => {
