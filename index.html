@@ -781,10 +781,10 @@
       <label>초안 원본 파일 (선택 · docx/xlsx)</label>
       <input type="file" id="fFile" accept=".docx,.xlsx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
 
-      <label>PDF 열람본 (권장 · pdf)</label>
+      <label>PDF 열람본 (★필수 · pdf)</label>
       <input type="file" id="fPdf" accept=".pdf,application/pdf">
-      <div class="num-note" style="margin-top:6px">워드/엑셀에서 ‘다른 이름으로 저장 → PDF’로 만든 PDF를 함께 올리면
-        모든 임원이 목록에서 열람할 수 있습니다.</div>
+      <div class="num-note" style="margin-top:6px">빌드엔진이 docx와 함께 산출한 <b>열람본 PDF</b>를 첨부하세요(필수).
+        이 PDF는 모든 임원의 목록 열람에 쓰입니다. 워터마크는 저장본에 굽지 않고 열람할 때 자동 합성됩니다.</div>
 
       <button class="form-submit" id="fSubmit">검토 상신</button>
       <div class="form-msg" id="fMsg"></div>
@@ -1748,9 +1748,19 @@
     if (type === '제정' && docs.some(d => d.doc_number === docNo)) {
       fMsg.className = 'form-msg err'; fMsg.textContent = '이미 존재하는 문서번호입니다. 다른 번호를 쓰거나 개정으로 진행하세요.'; return;
     }
+    // ★ 열람본 PDF 필수 (SHALL NOT: 없으면 등재 차단) — 빌드엔진이 docx와 함께 산출한 PDF
+    const pdfFile = fPdf.files[0];
+    if (!pdfFile) {
+      fMsg.className = 'form-msg err';
+      fMsg.textContent = '열람본 PDF가 없습니다. 빌드엔진에서 docx와 함께 산출한 PDF를 첨부하세요.';
+      return;
+    }
+    if (!/\.pdf$/i.test(pdfFile.name)) {
+      fMsg.className = 'form-msg err'; fMsg.textContent = '열람본은 PDF 파일이어야 합니다.'; return;
+    }
     const btn = $('fSubmit'); btn.disabled = true; fMsg.textContent = '처리 중...';
 
-    // 1) 초안 원본 업로드(선택) → draft/{문서번호}.{확장자} (모든 로그인 사용자 write 허용)
+    // 1) 초안 원본(docx 등) 업로드(선택) → draft/{문서번호}.{확장자}
     let storagePath = null;
     const file = fFile.files[0];
     if (file) {
@@ -1760,9 +1770,9 @@
         .upload(storagePath, file, { upsert: true, contentType: file.type });
       if (upErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '파일 업로드 실패: ' + upErr.message; btn.disabled = false; return; }
     }
-    // 1b) PDF 열람본 업로드(선택·권장) → view/{문서번호}.pdf (모든 임원 열람용)
-    const pdfFile = fPdf.files[0];
-    if (pdfFile) {
+    // 1b) PDF 열람본 업로드(필수) → view/{문서번호}.pdf
+    //     ★워터마크 미적용(저장본은 깨끗) — 워터마크는 열람 시 PDF.js 뷰어가 열람자·일시로 동적 합성
+    {
       const { error: pErr } = await edmsClient.storage.from('documents')
         .upload(`view/${docNo}.pdf`, pdfFile, { upsert: true, contentType: 'application/pdf' });
       if (pErr) { fMsg.className = 'form-msg err'; fMsg.textContent = 'PDF 열람본 업로드 실패: ' + pErr.message; btn.disabled = false; return; }
@@ -1783,8 +1793,7 @@
     if (sErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '상신 실패: ' + sErr.message; return; }
     closeForm();
     await loadWorkflow();
-    alert('검토 상신했습니다. 결재함의 "검토 대기"에서 진행 상황을 볼 수 있습니다.'
-      + (pdfFile ? '' : '\n\n※ PDF 열람본을 첨부하지 않아, 승인 후에도 목록에서 ‘열람’이 안 될 수 있습니다. 나중에 PDF를 올리면 열람이 가능합니다.'));
+    alert('검토 상신했습니다. 열람본 PDF가 함께 등록되어, 승인 후 모든 임원이 목록에서 열람할 수 있습니다.');
   });
 
   // 결재함 로드 (대기 + 현황)
