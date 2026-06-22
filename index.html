@@ -406,6 +406,12 @@
     header h1 { font-size:15px; }
     .card .value { font-size:21px; }
   }
+  /* 대시보드 카드 클릭 → 관련 문서/뷰 이동 */
+  .cards .card { cursor:pointer; transition:box-shadow .12s, transform .12s; }
+  .cards .card:hover { box-shadow:0 4px 14px rgba(31,56,100,.18); transform:translateY(-1px); }
+  .cards .card:active { transform:translateY(0); }
+  .card-clear { margin-left:8px; background:#1F3864; color:#fff; border:none; border-radius:12px; font-size:11px; padding:2px 9px; cursor:pointer; vertical-align:middle; }
+  .card-clear:hover { background:#16294a; }
 </style>
 </head>
 <body>
@@ -440,22 +446,22 @@
     </div>
 
     <div class="cards">
-      <div class="card">
+      <div class="card" data-card="total" title="전체 문서 목록 보기">
         <div class="label">총 문서</div>
         <div class="value" id="cardTotal">0</div>
-        <div class="sub">권한 범위 내 표시</div>
+        <div class="sub">권한 범위 내 표시 · 클릭하면 목록</div>
       </div>
-      <div class="card">
+      <div class="card" data-card="series" title="시리즈별 분포 보기">
         <div class="label">시리즈</div>
         <div class="value" id="cardSeries">0<span style="font-size:14px">종</span></div>
         <div class="sub" id="cardSeriesSub"></div>
       </div>
-      <div class="card">
+      <div class="card" data-card="done" title="등록완료 문서만 보기">
         <div class="label">등록완료</div>
         <div class="value" id="cardDone">0</div>
         <div class="sub" id="cardStatusSub"></div>
       </div>
-      <div class="card">
+      <div class="card" data-card="month" title="이달 제·개정된 문서만 보기">
         <div class="label">이달 등재·개정</div>
         <div class="value" id="cardMonth">0</div>
         <div class="sub" id="cardMonthSub"></div>
@@ -981,6 +987,8 @@
     seriesNames = Object.keys(bySeries).sort((a, b) => bySeries[b] - bySeries[a]);
     return true;
   }
+  let cardFilter = null;        // null | 'done' | 'month'
+  let monthDocIds = new Set();   // 당월 제·개정 문서 id
   async function computeCards() {
     document.getElementById('cardTotal').textContent = docs.length;
     document.getElementById('cardSeries').innerHTML = seriesNames.length + '<span style="font-size:14px">종</span>';
@@ -992,8 +1000,9 @@
     const ym = new Date().toISOString().slice(0, 7);  // 당월
     let monthCnt = 0;
     try {
-      const { data: revs } = await edmsClient.from('edms_revisions').select('revision_date').gte('revision_date', ym + '-01').limit(3000);
+      const { data: revs } = await edmsClient.from('edms_revisions').select('document_id, revision_date').gte('revision_date', ym + '-01').limit(3000);
       monthCnt = (revs || []).length;  // 당월 등재(제정)·개정 이력 수
+      monthDocIds = new Set((revs || []).map(r => r.document_id));
     } catch (e) { /* 권한 밖이면 0 */ }
     document.getElementById('cardMonth').textContent = monthCnt;
     document.getElementById('cardMonthSub').textContent = ym.replace('-', '년 ') + '월 기준';
@@ -2188,10 +2197,14 @@
     const list = docs.filter(d =>
       (!q || d.doc_number.toLowerCase().includes(q) || (d.title || '').toLowerCase().includes(q)) &&
       (!fs || d.series === fs) &&
-      (!ft || d.doc_type === ft)
+      (!ft || d.doc_type === ft) &&
+      (cardFilter !== 'done' || d.status === '등록완료') &&
+      (cardFilter !== 'month' || monthDocIds.has(d.id))
     );
-    document.getElementById('countInfo').textContent =
-      `전체 ${docs.length}건 중 ${list.length}건 표시`;
+    const _chip = { done: '등록완료', month: '이달 등재·개정' }[cardFilter];
+    document.getElementById('countInfo').innerHTML =
+      `전체 ${docs.length}건 중 ${list.length}건 표시`
+      + (_chip ? ` <button id="cardFilterClear" class="card-clear">${_chip}만 표시 ✕ 해제</button>` : '');
     tbody.innerHTML = list.map(d => `
       <tr data-id="${d.id}">
         <td>${d.doc_number}</td>
@@ -2208,9 +2221,28 @@
       </tr>`).join('');
     syncDocScrollWidth();
   }
-  document.getElementById('searchInput').addEventListener('input', render);
+  document.getElementById('searchInput').addEventListener('input', () => { cardFilter = null; render(); });
   seriesSel.addEventListener('change', render);
   typeSel.addEventListener('change', render);
+  // 카드필터 해제 버튼
+  document.getElementById('countInfo').addEventListener('click', (e) => {
+    if (e.target.closest('#cardFilterClear')) { cardFilter = null; render(); }
+  });
+  // 대시보드 카드 클릭 → 관련 문서/뷰로 이동
+  document.querySelector('.cards').addEventListener('click', (e) => {
+    const card = e.target.closest('.card[data-card]');
+    if (!card) return;
+    const k = card.dataset.card;
+    if (k === 'series') {
+      document.getElementById('seriesChart').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    document.getElementById('searchInput').value = '';
+    seriesSel.value = ''; typeSel.value = '';
+    cardFilter = (k === 'total') ? null : k;   // total → 전체
+    render();
+    document.getElementById('docPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   render();
 
   // ── PART B: 공지사항 ────────────────────────────────────
