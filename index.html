@@ -172,6 +172,35 @@
   .doc-table .vw-btn, .doc-table .dl-btn, .doc-table .rev-btn, .doc-table .greq-btn,
   .doc-table .rq-btn, .doc-table .wait-btn, .doc-table .cf-btn { padding:3px 7px; font-size:11px; }
   @media (max-width:1000px) { .doc-table { min-width:1040px; } }  /* 좁은 화면은 가로 스크롤로 다운로드 열 접근 */
+  /* 표준문서 목록 — 제목행(헤더) 고정 + 가로 스크롤 상단 배치 */
+  #docPanel .table-wrap { max-height:70vh; overflow:auto; border:1px solid #e3e8f0; border-radius:8px; }
+  #docPanel .doc-table thead th { position:sticky; top:0; z-index:3; box-shadow:0 1px 0 #16294a; }
+  #docPanel .doc-table tbody tr { cursor:pointer; }
+  #docPanel .doc-table tbody tr:hover td { background:#eef3fb; }
+  /* 헤더 바로 위(상단)에 항상 보이는 가로 스크롤바 — 아래로 내려가도 옆으로 이동 가능 */
+  #docTopScroll { overflow-x:auto; overflow-y:hidden; height:14px; margin-bottom:2px; }
+  #docTopScroll::-webkit-scrollbar { height:11px; }
+  #docTopScroll::-webkit-scrollbar-thumb { background:#9aa7bd; border-radius:6px; }
+  #docTopScroll::-webkit-scrollbar-track { background:#eef1f6; }
+  #docTopScrollInner { height:1px; }
+
+  /* 문서 상세 모달 (행 클릭) */
+  #docDetailModal { display:none; position:fixed; inset:0; z-index:1060; background:rgba(15,25,45,.6); padding:4vh 3vw; overflow:auto; }
+  #docDetailModal.open { display:flex; align-items:flex-start; justify-content:center; }
+  .dd-box { background:#fff; border-radius:12px; width:100%; max-width:760px; box-shadow:0 18px 60px rgba(0,0,0,.4); }
+  .dd-head { background:#1F3864; color:#fff; padding:13px 18px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .dd-head .t { font-size:14px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dd-head .t small { font-weight:normal; opacity:.85; margin-right:8px; }
+  .dd-head button { background:transparent; border:1px solid rgba(255,255,255,.6); color:#fff; border-radius:6px; padding:3px 12px; cursor:pointer; flex-shrink:0; }
+  .dd-head button:hover { background:rgba(255,255,255,.15); }
+  .dd-body { padding:16px 18px; }
+  .dd-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 18px; margin-bottom:14px; }
+  .dd-row { display:flex; gap:10px; padding:7px 2px; border-bottom:1px solid #eef1f6; font-size:13px; }
+  .dd-row .k { color:#888; flex:0 0 84px; }
+  .dd-row .v { color:#1F3864; font-weight:600; word-break:break-all; }
+  .dd-actions { display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 14px; }
+  .dd-sec { font-size:13px; font-weight:bold; color:#1F3864; margin:12px 0 7px; }
+  @media (max-width:620px) { .dd-grid { grid-template-columns:1fr; } }
   .conf-tag { font-size:11px; padding:1px 7px; border-radius:10px; }
   .conf-일반 { background:#e3efe3; color:#2e7d32; }
   .conf-대외비 { background:#fdf0d5; color:#b07d00; }
@@ -526,8 +555,9 @@
         <select id="typeFilter"><option value="">유형 전체</option></select>
       </div>
       <div class="count-info" id="countInfo"></div>
-      <div class="table-wrap">
-        <table class="doc-table">
+      <div id="docTopScroll"><div id="docTopScrollInner"></div></div>
+      <div class="table-wrap" id="docTableWrap">
+        <table class="doc-table" id="docTable">
           <colgroup>
             <col style="width:15%"><col style="width:19%"><col style="width:8%"><col style="width:6%">
             <col style="width:8%"><col style="width:7%"><col style="width:5%"><col style="width:8%">
@@ -576,6 +606,27 @@
         </table>
       </div>
       <div id="histEmpty" class="hist-empty" style="display:none">개정이력이 없습니다.</div>
+    </div>
+  </div>
+</div>
+
+<div id="docDetailModal">
+  <div class="dd-box">
+    <div class="dd-head">
+      <div class="t" id="ddTitle"></div>
+      <button id="ddClose">닫기 ✕</button>
+    </div>
+    <div class="dd-body">
+      <div class="dd-grid" id="ddGrid"></div>
+      <div class="dd-actions" id="ddActions"></div>
+      <div class="dd-sec">📝 개정 이력 (변경 내용)</div>
+      <div class="table-wrap" style="max-height:38vh;overflow:auto">
+        <table class="hist-table">
+          <thead><tr><th>버전</th><th>개정일</th><th>구분</th><th>변경내용</th><th>개정자</th></tr></thead>
+          <tbody id="ddHistBody"></tbody>
+        </table>
+      </div>
+      <div id="ddHistEmpty" class="hist-empty" style="display:none">개정이력이 없습니다.</div>
     </div>
   </div>
 </div>
@@ -975,6 +1026,27 @@
 
   const tbody = document.getElementById('docTbody');
 
+  // ── 가로 스크롤바 상단 배치(헤더 위) + 본문과 동기화 ──────
+  const docTableWrap = document.getElementById('docTableWrap');
+  const docTopScroll = document.getElementById('docTopScroll');
+  const docTopScrollInner = document.getElementById('docTopScrollInner');
+  function syncDocScrollWidth() {
+    const t = document.getElementById('docTable');
+    if (t && docTopScrollInner) docTopScrollInner.style.width = t.scrollWidth + 'px';
+  }
+  let _ddScrolling = false;
+  if (docTopScroll && docTableWrap) {
+    docTopScroll.addEventListener('scroll', () => {
+      if (_ddScrolling) return; _ddScrolling = true;
+      docTableWrap.scrollLeft = docTopScroll.scrollLeft; _ddScrolling = false;
+    });
+    docTableWrap.addEventListener('scroll', () => {
+      if (_ddScrolling) return; _ddScrolling = true;
+      docTopScroll.scrollLeft = docTableWrap.scrollLeft; _ddScrolling = false;
+    });
+    window.addEventListener('resize', syncDocScrollWidth);
+  }
+
   // ── 다운로드 승인제 ──────────────────────────────────────
   // 내 요청 목록 → document_id별 최신 1건 (실제 차단은 Storage RLS가 수행)
   const reqByDoc = {};
@@ -1170,6 +1242,56 @@
     </tr>`).join('');
   }
 
+  // ── 문서 상세 모달 (행 클릭) — 정보 + 개정내용 + 열람 ──────
+  const docDetailModal = document.getElementById('docDetailModal');
+  function closeDocDetail() { docDetailModal.classList.remove('open'); }
+  document.getElementById('ddClose').addEventListener('click', closeDocDetail);
+  docDetailModal.addEventListener('click', (e) => { if (e.target === docDetailModal) closeDocDetail(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDocDetail(); });
+
+  async function openDocDetail(docId) {
+    const d = docs.find(x => x.id === docId);
+    if (!d) return;
+    document.getElementById('ddTitle').innerHTML = `<small>${escHtml(d.doc_number)}</small> ${escHtml(d.title || '')}`;
+    const conf = d.confidentiality ? ` (${d.confidentiality})` : '';
+    const rows = [
+      ['문서번호', d.doc_number], ['제목', d.title || ''],
+      ['유형', d.doc_type || ''], ['시리즈', d.series || ''],
+      ['현재버전', d.current_version || ''], ['상태', d.status || ''],
+      ['보안등급', 'P' + d.security_level + conf], ['제정일', d.registered_at || ''],
+      ['담당팀', d.owner_dept || '—'],
+    ];
+    document.getElementById('ddGrid').innerHTML = rows.map(r =>
+      `<div class="dd-row"><span class="k">${r[0]}</span><span class="v">${escHtml(String(r[1]))}</span></div>`).join('');
+    const acts = document.getElementById('ddActions');
+    acts.innerHTML = `<button class="vw-btn" id="ddView">📖 열람</button>`
+      + (canRevise(d) ? ` <button class="rev-btn" id="ddRevise">✏️ 개정</button>` : '');
+    document.getElementById('ddView').addEventListener('click', (ev) =>
+      openViewer(d.doc_number, d.title, d.doc_type, ev.currentTarget));
+    const rv = document.getElementById('ddRevise');
+    if (rv) rv.addEventListener('click', () => { closeDocDetail(); openReviseForm(d.id); });
+    // 개정 이력(변경 내용)
+    const body = document.getElementById('ddHistBody');
+    const empty = document.getElementById('ddHistEmpty');
+    body.innerHTML = '<tr><td colspan="5" style="color:#888">불러오는 중...</td></tr>';
+    empty.style.display = 'none';
+    docDetailModal.classList.add('open');
+    const { data, error } = await edmsClient.from('edms_revisions')
+      .select('version, revision_date, revision_reason, changes_summary, revised_by')
+      .eq('document_id', docId)
+      .order('revision_date', { ascending: false })
+      .order('created_at', { ascending: false });
+    if (error) { body.innerHTML = `<tr><td colspan="5" style="color:#c0392b">조회 오류: ${escHtml(error.message)}</td></tr>`; return; }
+    if (!data.length) { body.innerHTML = ''; empty.style.display = ''; return; }
+    body.innerHTML = data.map(r => `<tr>
+      <td>${escHtml(r.version)}</td>
+      <td>${r.revision_date || ''}</td>
+      <td>${escHtml(r.revision_reason)}</td>
+      <td class="chg">${escHtml(r.changes_summary) || '—'}</td>
+      <td>${escHtml(r.revised_by)}</td>
+    </tr>`).join('');
+  }
+
   async function openViewer(num, title, docType, btn) {
     btn.disabled = true;
     try {
@@ -1303,6 +1425,11 @@
   refreshBell();
 
   tbody.addEventListener('click', async (e) => {
+    // 행(버튼 외 영역) 클릭 → 문서 상세 모달
+    if (!e.target.closest('button')) {
+      const drow = e.target.closest('tr[data-id]');
+      if (drow) { openDocDetail(drow.dataset.id); return; }
+    }
     const vbtn = e.target.closest('.vw-btn');
     if (vbtn) {
       openViewer(vbtn.dataset.num, vbtn.dataset.title, vbtn.dataset.type, vbtn);
@@ -2066,7 +2193,7 @@
     document.getElementById('countInfo').textContent =
       `전체 ${docs.length}건 중 ${list.length}건 표시`;
     tbody.innerHTML = list.map(d => `
-      <tr>
+      <tr data-id="${d.id}">
         <td>${d.doc_number}</td>
         <td class="title-cell">${d.title || ''}</td>
         <td>${d.doc_type || ''}</td>
@@ -2079,6 +2206,7 @@
         <td>${fileCell(d)}</td>
         <td>${reviseCell(d)}</td>
       </tr>`).join('');
+    syncDocScrollWidth();
   }
   document.getElementById('searchInput').addEventListener('input', render);
   seriesSel.addEventListener('change', render);
