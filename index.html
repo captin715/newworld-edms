@@ -867,6 +867,14 @@
   const myName = (profile && profile.name) || session.user.email;
   const myDept = (profile && profile.dept) || null;
   const isAdmin = myRole === 'admin';
+  // 과도기 super-originator(품질팀장 전권) 감지 — edms_transition (W-GL-G051000 Rev1.01 §6.12)
+  // enabled=true이고 super_originator_id가 본인이면 전 구분자 발번 등 전권 부여(회수=enabled=false).
+  let isSuperOrig = false;
+  try {
+    const { data: trans } = await edmsClient.from('edms_transition')
+      .select('enabled, super_originator_id').maybeSingle();
+    isSuperOrig = !!(trans && trans.enabled && trans.super_originator_id === session.user.id);
+  } catch (e) { /* 과도기 테이블 미적용/조회실패 시 평상시 권한 */ }
   const ROLE_LABEL = { admin: '관리자', approver: '승인자', reviewer: '검토자', general: '일반' };
   document.getElementById('userName').textContent = myName;
   const badge = document.getElementById('roleBadge');
@@ -1461,7 +1469,7 @@
   }
   // 담당 구분자 → 팀 매핑 (W1: D는 품질, 관리는 M·G·E·R·S, 공사는 C) — 서버 edms_series_dept와 동일
   const DISC_DEPT = { C: '공사', Q: '품질', D: '품질', M: '관리', G: '관리', E: '관리', R: '관리', S: '관리' };
-  const canUseDisc = (c) => isAdmin || DISC_DEPT[c] === myDept;
+  const canUseDisc = (c) => isAdmin || isSuperOrig || DISC_DEPT[c] === myDept;  // 과도기 super-originator=전 구분자
 
   // 폼 요소
   const formModal = document.getElementById('formModal');
@@ -1825,12 +1833,13 @@
     }
     const btn = $('fSubmit'); btn.disabled = true; fMsg.textContent = '처리 중...';
 
-    // 1) 초안 원본(docx 등) 업로드(선택) → draft/{문서번호}.{확장자}
+    // 1) 초안 원본(docx 등) 업로드(선택) → review/{문서번호}.{확장자}
+    //    ★제정·개정 공통으로 review/ 사용(품질팀장 권한 일치). draft/ 직접 업로드는 RLS로 막힘.
     let storagePath = null;
     const file = fFile.files[0];
     if (file) {
       const ext = file.name.slice(file.name.lastIndexOf('.'));
-      storagePath = `draft/${docNo}${ext}`;
+      storagePath = `review/${docNo}${ext}`;
       const { error: upErr } = await edmsClient.storage.from('documents')
         .upload(storagePath, file, { upsert: true, contentType: file.type });
       if (upErr) { fMsg.className = 'form-msg err'; fMsg.textContent = '파일 업로드 실패: ' + upErr.message; btn.disabled = false; return; }
@@ -2274,9 +2283,9 @@
           const reviewPath = `review/${t.n}_${t.rev}.pdf`;
           const u1 = await edmsClient.storage.from('documents').upload(reviewPath, rs.pdf, { contentType: 'application/pdf', upsert: true });
           if (u1.error) throw new Error('PDF 업로드: ' + u1.error.message);  // 업로드 실패면 상신 안 함
-          // docx는 선택(원본 보관용 draft/) — 실패해도 상신은 진행(PDF가 필수)
+          // docx는 선택(원본 보관용 review/) — 실패해도 상신은 진행(PDF가 필수). review/ 사용=품질팀장 권한 일치.
           if (rs.docx) {
-            const u2 = await edmsClient.storage.from('documents').upload(`draft/${t.n}.docx`, rs.docx, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', upsert: true });
+            const u2 = await edmsClient.storage.from('documents').upload(`review/${t.n}.docx`, rs.docx, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', upsert: true });
             if (u2.error) console.warn('docx 업로드 생략(' + t.n + '): ' + u2.error.message);
           }
           const { data: apvId, error: cErr } = await edmsClient.rpc('edms_apv_create', {
