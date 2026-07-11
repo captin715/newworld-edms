@@ -102,6 +102,9 @@
   .ga-form button { background:#1F3864; color:#fff; border:none; padding:7px 14px; border-radius:7px; font-size:13px; cursor:pointer; }
   #grantModal { display:none; position:fixed; inset:0; z-index:1300; background:rgba(15,25,45,.6); padding:6vh 4vw; }
   #grantModal.open { display:flex; align-items:flex-start; justify-content:center; }
+  /* [DR-080 CR] 공용 사유 입력 모달 */
+  #reasonModal { display:none; position:fixed; inset:0; z-index:1400; background:rgba(15,25,45,.6); padding:6vh 4vw; }
+  #reasonModal.open { display:flex; align-items:flex-start; justify-content:center; }
 
   /* 인앱 알림 종 */
   .bell-wrap { position:relative; }
@@ -577,7 +580,7 @@
         </table>
       </div>
       <div class="notice">
-        ※ 목록 열람은 로그인한 임원 전체에게 열려 있으며, 파일 다운로드는 대표(관리자)만 가능합니다.
+        ※ 목록 열람은 로그인 사용자의 권한 범위(역할·부서·보안등급) 내에서 표시되며, 파일 다운로드는 부대표(관리자) 승인 후 가능합니다.
         다운로드 차단은 화면 숨김이 아니라 서버 보안 정책(RLS)이 수행하므로,
         권한이 없는 계정은 어떤 방법으로도 파일을 받을 수 없습니다.
       </div>
@@ -725,6 +728,23 @@
   </div>
 </div>
 
+<!-- [DR-080 CR] 공용 사유 입력 모달 (다운로드 요청/반려·결재 반려 — 사유 필수) -->
+<div id="reasonModal">
+  <div class="pw-box">
+    <div class="pw-head">
+      <h3 id="reasonTitle">사유 입력</h3>
+      <button id="reasonCancel">닫기 ✕</button>
+    </div>
+    <div class="pw-body">
+      <div class="pw-note" id="reasonGuide" style="margin-top:0"></div>
+      <label>사유 <b style="color:#c0392b">(필수)</b></label>
+      <textarea id="reasonText" style="width:100%;min-height:70px;padding:10px 12px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px;font-family:inherit" placeholder="사유를 입력하세요 (미입력 시 처리되지 않습니다)"></textarea>
+      <button class="pw-submit" id="reasonOk">확인</button>
+      <div class="pw-msg" id="reasonMsg" style="color:#c0392b"></div>
+    </div>
+  </div>
+</div>
+
 <div id="pwModal">
   <div class="pw-box">
     <div class="pw-head">
@@ -864,8 +884,8 @@
       </div>
       <div class="num-note" style="margin-top:6px">‘개발·관리자 한정’ 문서는 <b>품질팀·부대표·대표</b>에게만 목록·열람이 보입니다(서버 차단). 그 외 임직원에게는 아예 표시되지 않습니다.</div>
 
-      <label>제정/개정 사유 · 변경 내용</label>
-      <textarea id="fChange" placeholder="이 문서를 만들거나 고치는 이유를 적어주세요."></textarea>
+      <label>제정/개정 사유 · 변경 내용 <b style="color:#c0392b">(필수)</b></label>
+      <textarea id="fChange" placeholder="제·개정 사유를 입력해야 상신됩니다(필수)."></textarea>
 
       <div class="grid2">
         <div>
@@ -1459,13 +1479,16 @@
     // 승인 요청
     const rbtn = e.target.closest('.rq-btn');
     if (rbtn) {
+      // [DR-080 CR] 요청 사유 필수 — 미입력 시 제출 차단(백엔드도 차단)
+      const reason = await askReason('다운로드 요청 사유', '요청 사유를 입력해야 요청이 제출됩니다(필수). 사유는 기록·알림에 포함됩니다.');
+      if (reason === null) return;
       rbtn.disabled = true;
       const { data, error } = await edmsClient.rpc('edms_request_download',
-        { p_doc: rbtn.dataset.doc, p_reason: null });
+        { p_doc: rbtn.dataset.doc, p_reason: reason });
       if (error) { alert('요청 실패: ' + error.message); rbtn.disabled = false; return; }
       reqByDoc[rbtn.dataset.doc] = { id: data, document_id: rbtn.dataset.doc, status: '요청' };
       render(); refreshBell();
-      alert('다운로드 승인을 요청했습니다. 대표 승인 후 \'확인\'을 누르면 다운로드할 수 있습니다.');
+      alert('다운로드 승인을 요청했습니다. 부대표(관리자) 승인 후 \'확인\'을 누르면 다운로드할 수 있습니다.');
       return;
     }
     // 확인(타이머 시작)
@@ -1545,14 +1568,37 @@
     const ok = e.target.closest('.ap-ok'), no = e.target.closest('.ap-no');
     const b = ok || no;
     if (!b) return;
+    // [DR-080 CR] 반려 사유 필수 — 미입력 시 반려 처리 불가(백엔드도 차단)
+    let rejectReason = null;
+    if (no) {
+      rejectReason = await askReason('다운로드 반려 사유', '반려 사유를 입력해야 반려됩니다(필수). 사유는 기록·알림에 포함됩니다.');
+      if (rejectReason === null) return;
+    }
     b.disabled = true;
     const { error } = await edmsClient.rpc('edms_decide_download',
-      { p_req: b.dataset.req, p_approve: !!ok, p_minutes: 10 });
+      { p_req: b.dataset.req, p_approve: !!ok, p_minutes: 10, p_reject_reason: rejectReason });
     if (error) alert('처리 실패: ' + error.message);
     await loadApprovals();
   });
   document.getElementById('apRefresh').addEventListener('click', loadApprovals);
   await loadApprovals();
+
+  // ── [DR-080 CR] 공용 사유 입력 (필수) — 다운로드 요청/반려·결재 반려에서 사용 ──
+  function askReason(title, guide) {
+    return new Promise((resolve) => {
+      const m = document.getElementById('reasonModal');
+      document.getElementById('reasonTitle').textContent = title;
+      document.getElementById('reasonGuide').textContent = guide;
+      const ta = document.getElementById('reasonText'), msg = document.getElementById('reasonMsg');
+      const ok = document.getElementById('reasonOk'), no = document.getElementById('reasonCancel');
+      ta.value = ''; msg.textContent = '';
+      m.classList.add('open'); ta.focus();
+      const done = (v) => { m.classList.remove('open'); ok.removeEventListener('click', onOk); no.removeEventListener('click', onNo); resolve(v); };
+      const onOk = () => { const v = ta.value.trim(); if (!v) { msg.textContent = '사유를 입력해야 합니다(필수).'; ta.focus(); return; } done(v); };
+      const onNo = () => done(null);
+      ok.addEventListener('click', onOk); no.addEventListener('click', onNo);
+    });
+  }
 
   // ══ 결재 워크플로우 (작성→검토→승인) ════════════════════
   const myId = session.user.id;
@@ -1967,6 +2013,13 @@
     if (!/\.pdf$/i.test(pdfFile.name)) {
       fMsg.className = 'form-msg err'; fMsg.textContent = '열람본은 PDF 파일이어야 합니다.'; return;
     }
+    // [DR-080 CR] 제·개정 사유 필수 — 미기재 시 상신 차단(백엔드 edms_apv_submit도 차단)
+    if (!fChange.value.trim()) {
+      fMsg.className = 'form-msg err';
+      fMsg.textContent = '제·개정 사유(변경 내용)를 입력해야 상신됩니다(필수).';
+      fChange.focus();
+      return;
+    }
     const btn = $('fSubmit'); btn.disabled = true; fMsg.textContent = '처리 중...';
 
     // 1) 초안 원본(docx 등) 업로드(선택) → review/{문서번호}.{확장자}
@@ -2099,7 +2152,9 @@
     if (act === 'review-ok' || act === 'approve-ok') {
       res = await edmsClient.rpc(act.startsWith('review') ? 'edms_apv_review' : 'edms_apv_approve', { p_id: id, p_approve: true, p_comment: null });
     } else if (act === 'review-no' || act === 'approve-no') {
-      const c = ask('반려 사유를 입력하세요:'); if (c === null) { btn.disabled = false; return; }
+      // [DR-080 CR] 반려 사유 필수 — 미입력 시 반려 불가(백엔드도 차단)
+      const c = await askReason('결재 반려 사유', '반려 사유를 입력해야 반려 처리됩니다(필수). 사유는 기록·알림에 포함됩니다.');
+      if (c === null) { btn.disabled = false; return; }
       res = await edmsClient.rpc(act.startsWith('review') ? 'edms_apv_review' : 'edms_apv_approve', { p_id: id, p_approve: false, p_comment: c });
     } else if (act === 'hold') {
       const c = ask('보류 사유를 입력하세요(선택):'); if (c === null) { btn.disabled = false; return; }
@@ -2437,6 +2492,7 @@
       for (const t of CFSPS_TARGETS) {
         const d = docByNum[t.n], rs = rowState[t.n];
         if (!rs.pdf) { setStatus(t.n, '<span style="color:#c0392b">⏭ PDF 없음 — 상신 차단</span>'); skipN++; continue; }
+        if (!t.s || !String(t.s).trim()) { setStatus(t.n, '<span style="color:#c0392b">⏭ 개정요약(사유) 없음 — 상신 차단</span>'); skipN++; continue; }
         setStatus(t.n, '업로드 중…');
         try {
           // 상신본 PDF는 review/ 격리 경로(현행 view/ 열람본은 승인 전 변경 안 함)
