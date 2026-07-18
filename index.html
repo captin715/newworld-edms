@@ -135,7 +135,7 @@
 
   main { max-width:1100px; margin:0 auto; padding:20px 16px 60px; }
 
-  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:20px; }  /* [기록보관소] 카드 4→5개 대응: auto-fit */
   .card {
     background:#fff; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(31,56,100,.08);
     border-top:4px solid #1F3864;
@@ -174,7 +174,9 @@
   .doc-table td.title-cell { white-space:nowrap; min-width:0; }
   .doc-table .vw-btn, .doc-table .dl-btn, .doc-table .rev-btn, .doc-table .greq-btn,
   .doc-table .rq-btn, .doc-table .wait-btn, .doc-table .cf-btn { padding:3px 7px; font-size:11px; }
-  @media (max-width:1000px) { .doc-table { min-width:1040px; } }  /* 좁은 화면은 가로 스크롤로 다운로드 열 접근 */
+  @media (max-width:1000px) { .doc-table { min-width:1130px; } }  /* 좁은 화면은 가로 스크롤로 다운로드 열 접근(개정일 1열 추가분 +90px) */
+  .doc-sort .arw { font-size:10px; opacity:.85; margin-left:2px; }
+  .date-new { font-size:9px; background:#e8b931; color:#1F3864; font-weight:bold; padding:0 4px; border-radius:6px; margin-left:3px; vertical-align:middle; }
   /* 표준문서 목록 — 제목행(헤더) 고정 + 가로 스크롤 상단 배치 */
   #docPanel .table-wrap { max-height:70vh; overflow:auto; border:1px solid #e3e8f0; border-radius:8px; }
   #docPanel .doc-table thead th { position:sticky; top:0; z-index:3; box-shadow:0 1px 0 #16294a; }
@@ -415,6 +417,97 @@
   .cards .card:active { transform:translateY(0); }
   .card-clear { margin-left:8px; background:#1F3864; color:#fff; border:none; border-radius:12px; font-size:11px; padding:2px 9px; cursor:pointer; vertical-align:middle; }
   .card-clear:hover { background:#16294a; }
+
+  /* ══════════ [기록보관소·배포] 신설 화면 스타일 (화면설계 V0.1) ══════════ */
+  /* 등급 배지 P1~P4 (색+텍스트 병행 — 색각이상 대응) */
+  .plv { font-size:11px; padding:1px 7px; border-radius:10px; font-weight:bold; white-space:nowrap; }
+  .plv-1 { background:#e8edf5; color:#5a6b86; }
+  .plv-2 { background:#e3efe3; color:#2e7d32; }
+  .plv-3 { background:#fde3c4; color:#b9560a; }
+  .plv-4 { background:#fbd5d1; color:#c0392b; }
+  /* 기록 상태/배포 상태 배지 */
+  .rst { font-size:11px; padding:1px 8px; border-radius:10px; white-space:nowrap; }
+  .rst-유효 { background:#e3efe3; color:#2e7d32; }
+  .rst-대체됨 { background:#e3eefc; color:#1F3864; }
+  .rst-폐기 { background:#e3e6ea; color:#777; }
+  .site-badge { font-size:10px; background:#eef1f6; color:#5a6b86; padding:1px 7px; border-radius:8px; white-space:nowrap; }
+  .rec-lock { font-size:11px; color:#999; white-space:nowrap; }
+  .rec-masked { color:#999; font-style:italic; }
+  tr.rec-void td { background:#f6f7f9; color:#999; }
+
+  /* 기록보관소 2단 레이아웃 */
+  #recordPanel { border-top:4px solid #2d7d6a; }
+  .rec-layout { display:flex; gap:16px; align-items:flex-start; }
+  #recTree { flex:0 0 260px; max-height:60vh; overflow:auto; border:1px solid #e3e8f0; border-radius:8px; padding:8px; background:#fafbfd; font-size:13px; }
+  #recListWrap { flex:1; min-width:0; }
+  .rt-node { padding:4px 7px; border-radius:6px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rt-node:hover { background:#eef3fb; }
+  .rt-node[aria-selected="true"] { background:#dbe7f7; font-weight:bold; }
+  .rt-dept { font-weight:bold; color:#1F3864; margin-top:6px; }
+  .rt-folder { margin-left:14px; color:#3a4a67; }
+  .rt-cnt { color:#8894a8; font-weight:normal; font-size:11px; }
+  .rec-filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .rec-filters input, .rec-filters select { padding:8px 10px; border:1.5px solid #d5dbe7; border-radius:8px; font-size:13px; outline:none; }
+  .rec-filters input:focus, .rec-filters select:focus { border-color:#1F3864; }
+  .rec-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .rec-toolbar label { font-size:12px; color:#555; display:flex; align-items:center; gap:5px; cursor:pointer; }
+  .rec-btn { background:#2d7d6a; color:#fff; border:none; padding:6px 13px; border-radius:7px; font-size:13px; cursor:pointer; }
+  .rec-btn:hover { background:#22604f; }
+  .rec-btn.ghost { background:#fff; color:#1F3864; border:1.5px solid #1F3864; }
+  .rec-btn.ghost:hover { background:#eef3fb; }
+  .rec-detail-btn { background:#fff; color:#1F3864; border:1.5px solid #1F3864; padding:3px 11px; border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .rec-detail-btn:hover { background:#eef3fb; }
+  .rec-empty { font-size:13px; color:#888; padding:16px 4px; }
+  #recTable th { position:sticky; top:0; }
+  #recTableWrap { max-height:56vh; overflow:auto; border:1px solid #e3e8f0; border-radius:8px; }
+
+  /* 배포 패널 공통 */
+  #distApprovalPanel { border-top:4px solid #b9560a; }
+  #distMinePanel { border-top:4px solid #2d4f8a; }
+  #distLedgerPanel { border-top:4px solid #5a6b86; }
+  .dist-sub { font-size:13px; color:#1F3864; font-weight:bold; margin:14px 0 6px; }
+  .dist-row { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:10px 4px; border-bottom:1px solid #eef1f6; flex-wrap:wrap; }
+  .dist-info { font-size:13px; line-height:1.55; flex:1; min-width:220px; }
+  .dist-info b { color:#1F3864; }
+  .dist-info small { color:#888; }
+  .dist-actions { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; }
+  .dist-ok { background:#2e7d32; color:#fff; border:none; padding:5px 13px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .dist-ok:disabled { background:#9aa7bd; cursor:not-allowed; }
+  .dist-no { background:#fff; color:#c0392b; border:1.5px solid #c0392b; padding:5px 13px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .dist-view { background:#fff; color:#1F3864; border:1.5px solid #1F3864; padding:5px 11px; border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .dist-empty { font-size:13px; color:#aaa; padding:6px 0; }
+  .dist-check { font-size:11px; color:#555; margin-top:4px; line-height:1.5; }
+  /* 배포 상태 배지 */
+  .dstat { font-size:11px; padding:1px 8px; border-radius:10px; white-space:nowrap; font-weight:bold; }
+  .dstat-gray { background:#eceff4; color:#666; }
+  .dstat-blue { background:#e3eefc; color:#1F3864; }
+  .dstat-green { background:#e3efe3; color:#2e7d32; }
+  .dstat-green2 { background:#c8e6c9; color:#1b5e20; }
+  .dstat-orange { background:#fdecc8; color:#9a6700; }
+  .dstat-red { background:#fbe2e0; color:#c0392b; }
+  .warn-banner { background:#fdf0d5; border:1px solid #e8b931; border-radius:8px; padding:9px 12px; font-size:12px; color:#8a5a00; line-height:1.5; margin:8px 0; }
+  .warn-banner.crit { background:#fbe2e0; border-color:#c0392b; color:#a02419; }
+  .info-banner { background:#eef3fb; border:1px solid #c3cfe2; border-radius:8px; padding:9px 12px; font-size:12px; color:#1F3864; line-height:1.5; margin:8px 0; }
+
+  /* 신설 폼/상세 모달 (기존 form-box·dd-box 패턴 재사용) */
+  #recDetailModal, #recRegModal, #recSupModal, #distReqModal, #distDetailModal {
+    display:none; position:fixed; inset:0; z-index:1200; background:rgba(15,25,45,.6); padding:4vh 3vw; overflow:auto;
+  }
+  #recDetailModal.open, #recRegModal.open, #recSupModal.open, #distReqModal.open, #distDetailModal.open {
+    display:flex; align-items:flex-start; justify-content:center;
+  }
+  .rec-inline-confirm { background:#fff8f6; border:1px solid #e8b931; border-radius:8px; padding:10px 12px; margin-top:10px; font-size:13px; color:#8a5a00; }
+  .chip-row { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0; }
+  .preset-chip { font-size:12px; background:#eef3fb; color:#1F3864; border:1px solid #c3cfe2; border-radius:14px; padding:3px 11px; cursor:pointer; }
+  .preset-chip.on { background:#1F3864; color:#fff; }
+
+  @media (max-width:900px) {
+    .rec-layout { flex-direction:column; }
+    #recTree { flex:0 0 auto; width:100%; max-height:none; }
+  }
+  @media (max-width:768px) {
+    .rec-btn, .dist-ok, .dist-no, .dist-view, .rec-detail-btn { padding:9px 14px; }
+  }
 </style>
 </head>
 <body>
@@ -469,6 +562,11 @@
         <div class="value" id="cardMonth">0</div>
         <div class="sub" id="cardMonthSub"></div>
       </div>
+      <div class="card" data-card="records" title="기록보관소 열기">
+        <div class="label">기록 건수</div>
+        <div class="value" id="cardRecords">0</div>
+        <div class="sub">부서별 관리함 · 클릭하면 기록보관소</div>
+      </div>
     </div>
 
     <div class="panel" id="approvalPanel" style="display:none">
@@ -476,6 +574,15 @@
         <button id="apRefresh" style="float:right;font-size:12px;padding:3px 10px;cursor:pointer">새로고침</button>
       </h2>
       <div id="apList"></div>
+    </div>
+
+    <!-- [배포] 배포 승인 대기 (관리자 1차 / 대표 2차) -->
+    <div class="panel" id="distApprovalPanel" style="display:none">
+      <h2>🚚 배포 승인 대기 <span id="distApCount"></span>
+        <button id="distApRefresh" style="float:right;font-size:12px;padding:3px 10px;cursor:pointer">새로고침</button>
+      </h2>
+      <div id="daPending1" style="display:none"><div class="dist-sub">관리자 승인 대기 <span id="daP1Cnt"></span></div><div id="daP1List"></div></div>
+      <div id="daPending2" style="display:none"><div class="dist-sub">대표 승인 대기 <span id="daP2Cnt"></span></div><div id="daP2List"></div></div>
     </div>
 
     <div class="panel" id="grantAdminPanel" style="display:none">
@@ -506,13 +613,13 @@
       </div>
       <div id="cfspsTabBulk" style="display:none">
       <div class="num-note">CFSPS 표준 18종 개정본을 한 번에 등재·상신합니다. 각 행에 <b>열람본 PDF(필수)</b>·docx(선택)를 첨부하거나,
-        아래 ‘한꺼번에 첨부’로 폴더 파일을 골라 파일명 자동 배정하세요. 결재선: <b>작성(나) → 검토(부대표) → 승인(대표)</b>.</div>
+        아래 ‘한꺼번에 첨부’로 폴더 파일을 골라 파일명 자동 배정하세요. 결재선: <b>작성(나) → 검토(관리자) → 승인(대표)</b>.</div>
       <div class="ga-form">
         <label>한꺼번에 첨부:</label><input type="file" id="cfspsMulti" multiple accept=".pdf,.docx">
         <span style="font-size:12px;color:#888">파일명이 ‘CFSPS-번호(장)’로 시작해야 자동 배정됩니다</span>
       </div>
       <div class="grid2">
-        <div><label>검토자 (부대표)</label><select id="cfspsReviewer"></select></div>
+        <div><label>검토자 (관리자)</label><select id="cfspsReviewer"></select></div>
         <div><label>승인자 (대표)</label><select id="cfspsApprover"></select></div>
       </div>
       <div class="table-wrap" style="max-height:52vh;overflow:auto;margin-top:10px">
@@ -551,9 +658,59 @@
       </div>
     </div>
 
+    <!-- [배포] 내 배포 신청 현황 (관리자 제외 전원) -->
+    <div class="panel" id="distMinePanel" style="display:none">
+      <h2>📦 내 배포 신청 현황
+        <button id="distMineRefresh" style="float:right;font-size:12px;padding:3px 10px;cursor:pointer">새로고침</button>
+      </h2>
+      <div class="table-wrap">
+        <table class="log-table">
+          <thead><tr>
+            <th>신청일시</th><th>대상</th><th>배포처</th><th>경로</th><th>부수</th><th>상태</th><th>처리일시</th><th>사유</th><th>작업</th>
+          </tr></thead>
+          <tbody id="distMineBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="panel">
       <h2>시리즈별 문서 분포</h2>
       <div class="chart-wrap"><canvas id="seriesChart"></canvas></div>
+    </div>
+
+    <!-- [기록보관소] 부서별 관리함 · 기록 목록 (로그인 전원) -->
+    <div class="panel" id="recordPanel" style="display:none">
+      <h2>🗄️ 기록보관소
+        <button id="recRegBtn" class="rec-btn" style="float:right;display:none">+ 기록 등재</button>
+        <button id="recRefresh" style="float:right;font-size:12px;padding:3px 10px;cursor:pointer;margin-right:8px">새로고침</button>
+      </h2>
+      <div class="rec-layout">
+        <details id="recTreeWrap" open>
+          <summary style="font-size:12px;color:#1F3864;cursor:pointer;margin-bottom:4px">부서별 관리함 선택</summary>
+          <div id="recTree" role="tree" aria-label="부서별 관리함"></div>
+        </details>
+        <div id="recListWrap">
+          <div class="rec-filters">
+            <input type="text" id="recSearch" placeholder="관리번호·제목 검색" style="flex:1;min-width:160px">
+            <select id="recDeptFilter"><option value="">부서 전체</option></select>
+            <select id="recLevelFilter"><option value="">등급 전체</option><option value="1">P1</option><option value="2">P2</option><option value="3">P3</option><option value="4">P4</option></select>
+            <select id="recStatusFilter"><option value="">상태 전체</option><option value="유효">유효</option><option value="대체됨">대체됨</option><option value="폐기">폐기</option></select>
+            <select id="recSiteFilter"><option value="">공사 전체</option></select>
+          </div>
+          <div class="rec-toolbar">
+            <span class="count-info" id="recCount"></span>
+            <label id="recVoidToggleWrap" style="display:none;margin-left:auto"><input type="checkbox" id="recVoidToggle"> 폐기 포함 보기</label>
+          </div>
+          <div class="table-wrap" id="recTableWrap">
+            <table id="recTable">
+              <thead><tr>
+                <th>관리번호</th><th>제목</th><th>문서철</th><th>부서</th><th>공사</th><th>등급</th><th>상태</th><th>등재일</th><th>작업</th>
+              </tr></thead>
+              <tbody id="recTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="panel" id="docPanel">
@@ -562,27 +719,54 @@
         <input type="text" id="searchInput" placeholder="문서번호·제목 검색">
         <select id="seriesFilter"><option value="">시리즈 전체</option></select>
         <select id="typeFilter"><option value="">유형 전체</option></select>
+        <button id="recentRevBtn" class="rec-btn ghost" title="개정일 내림차순 정렬(개정 없음은 최하단)">최근 개정순</button>
       </div>
       <div class="count-info" id="countInfo"></div>
       <div id="docTopScroll"><div id="docTopScrollInner"></div></div>
       <div class="table-wrap" id="docTableWrap">
         <table class="doc-table" id="docTable">
           <colgroup>
-            <col style="width:15%"><col style="width:19%"><col style="width:8%"><col style="width:6%">
-            <col style="width:8%"><col style="width:7%"><col style="width:5%"><col style="width:8%">
-            <col style="width:7%"><col style="width:9%"><col style="width:8%">
+            <col style="width:14%"><col style="width:17%"><col style="width:7%"><col style="width:6%">
+            <col style="width:6%"><col style="width:6%"><col style="width:5%"><col style="width:8%">
+            <col style="width:8%"><col style="width:7%"><col style="width:9%"><col style="width:7%">
           </colgroup>
           <thead><tr>
             <th>문서번호</th><th>제목</th><th>유형</th><th>시리즈</th>
-            <th>버전</th><th>상태</th><th>등급</th><th>제정일</th><th>열람</th><th>다운로드</th><th>개정/권한</th>
+            <th>버전</th><th>상태</th><th>등급</th>
+            <th class="doc-sort" data-sort="enacted" style="cursor:pointer" title="제정일 정렬">제정일</th>
+            <th class="doc-sort" data-sort="revised" style="cursor:pointer" title="개정일 정렬">개정일</th>
+            <th>열람</th><th>다운로드</th><th>개정/권한</th>
           </tr></thead>
           <tbody id="docTbody"></tbody>
         </table>
       </div>
       <div class="notice">
-        ※ 목록 열람은 로그인 사용자의 권한 범위(역할·부서·보안등급) 내에서 표시되며, 파일 다운로드는 부대표(관리자) 승인 후 가능합니다.
+        ※ 목록 열람은 로그인 사용자의 권한 범위(역할·부서·보안등급) 내에서 표시되며, 파일 다운로드는 관리자 승인 후 가능합니다.
         다운로드 차단은 화면 숨김이 아니라 서버 보안 정책(RLS)이 수행하므로,
         권한이 없는 계정은 어떤 방법으로도 파일을 받을 수 없습니다.
+      </div>
+    </div>
+
+    <!-- [배포] 배포대장 (관리자·대표) -->
+    <div class="panel" id="distLedgerPanel" style="display:none">
+      <h2>📒 배포대장
+        <button id="distLedgerRefresh" style="float:right;font-size:12px;padding:3px 10px;cursor:pointer">새로고침</button>
+      </h2>
+      <div class="rec-filters">
+        <input type="date" id="dlFrom" title="시작일">
+        <input type="date" id="dlTo" title="종료일">
+        <select id="dlKind"><option value="">대상 전체</option><option value="document">표준문서</option><option value="record">기록</option></select>
+        <select id="dlChannel"><option value="">경로 전체</option><option value="내부열람">내부열람</option><option value="내부발급">내부발급</option><option value="외부전달">외부전달</option></select>
+        <input type="text" id="dlDest" placeholder="배포처 검색" style="flex:1;min-width:140px">
+      </div>
+      <div class="count-info" id="dlSummary"></div>
+      <div class="table-wrap" style="max-height:60vh;overflow:auto">
+        <table class="log-table">
+          <thead><tr>
+            <th>배포번호</th><th>대상</th><th>제목</th><th>등급</th><th>배포처</th><th>경로</th><th>부수</th><th>신청자</th><th>승인</th><th>발급일시</th><th>회수일시</th><th>사유</th><th>작업</th>
+          </tr></thead>
+          <tbody id="dlBody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -882,7 +1066,7 @@
         <label><input type="radio" name="readScope" value="all" checked> 전체 (전 임직원 열람)</label>
         <label><input type="radio" name="readScope" value="dev"> 개발·관리자 한정</label>
       </div>
-      <div class="num-note" style="margin-top:6px">‘개발·관리자 한정’ 문서는 <b>품질팀·부대표·대표</b>에게만 목록·열람이 보입니다(서버 차단). 그 외 임직원에게는 아예 표시되지 않습니다.</div>
+      <div class="num-note" style="margin-top:6px">‘개발·관리자 한정’ 문서는 <b>품질팀·관리자·대표</b>에게만 목록·열람이 보입니다(서버 차단). 그 외 임직원에게는 아예 표시되지 않습니다.</div>
 
       <label>제정/개정 사유 · 변경 내용 <b style="color:#c0392b">(필수)</b></label>
       <textarea id="fChange" placeholder="제·개정 사유를 입력해야 상신됩니다(필수)."></textarea>
@@ -909,6 +1093,121 @@
 
       <button class="form-submit" id="fSubmit">검토 상신</button>
       <div class="form-msg" id="fMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ [기록보관소·배포] 신설 모달 5종 ══════════ -->
+<!-- (B) 기록 상세 · 참조본 열람 -->
+<div id="recDetailModal">
+  <div class="dd-box">
+    <div class="dd-head"><div class="t" id="rdTitle"></div><button id="rdClose">닫기 ✕</button></div>
+    <div class="dd-body">
+      <div id="rdBanner"></div>
+      <div class="dd-grid" id="rdGrid"></div>
+      <div class="dd-actions" id="rdActions"></div>
+      <div class="dd-sec">📜 열람·처리 이력</div>
+      <div class="table-wrap" style="max-height:34vh;overflow:auto">
+        <table class="hist-table"><thead><tr><th>일시</th><th>행위</th><th>행위자</th><th>상세</th></tr></thead><tbody id="rdAuditBody"></tbody></table>
+      </div>
+      <div id="rdAuditEmpty" class="hist-empty" style="display:none">이력이 없습니다.</div>
+    </div>
+  </div>
+</div>
+
+<!-- (C) 기록 등재 -->
+<div id="recRegModal">
+  <div class="form-box">
+    <div class="form-head"><h3>기록 등재</h3><button id="rrClose">닫기 ✕</button></div>
+    <div class="form-body">
+      <div class="warn-banner" id="rrP4Warn">⚠ <b>P4(극비) 기록에는 실제 값·실명·계약금액 등 원문 데이터를 입력하지 마십시오.</b> 본 화면 입력값은 메타데이터이며, 실값(기준값·배합·판정방법·고객 실데이터)은 원본 보관 위치에서만 취급합니다.</div>
+      <label>문서철(관리함) <b style="color:#c0392b">*</b></label>
+      <select id="rrFolder"><option value="">— 선택 —</option></select>
+      <label>관리번호(자동)</label>
+      <input type="text" id="rrNoPreview" readonly placeholder="문서철 선택 시 미리보기(등재 시 확정)">
+      <label>제목 <b style="color:#c0392b">*</b></label>
+      <input type="text" id="rrTitle" maxlength="200" placeholder="기록 제목 (200자 이내)">
+      <label>원본 보관 장소 <b style="color:#c0392b">*</b></label>
+      <input type="text" id="rrOrigin" placeholder="원본(종이/전자)의 실제 보관 위치">
+      <label>공사 <b style="color:#c0392b">*</b></label>
+      <input type="text" id="rrSite" list="rrSiteList" placeholder="예: SITE-DAEJEON-01 (공백·특수문자 불가)">
+      <datalist id="rrSiteList"></datalist>
+      <div class="radio-row" style="margin-top:4px"><label><input type="checkbox" id="rrNoSite"> 비현장 기록(공사 없음)</label></div>
+      <div class="grid2">
+        <div><label>보안등급 <b style="color:#c0392b">*</b></label><select id="rrLevel"><option value="1">P1 (일반)</option><option value="2" selected>P2 (일반)</option><option value="3">P3 (대외비)</option><option value="4">P4 (극비)</option></select></div>
+        <div><label>접근 구분 <b style="color:#c0392b">*</b></label><select id="rrAccess"><option value="all">전사</option><option value="need">need-to-know</option></select></div>
+      </div>
+      <div class="num-note" id="rrAccessNote" style="display:none;margin-top:4px">need-to-know: 목록에서 제목이 '(제한 기록)'으로 마스킹됩니다.</div>
+      <label>참조복사본 <b style="color:#c0392b">*</b> (PDF 권고)</label>
+      <input type="file" id="rrRefFile" accept=".pdf,application/pdf">
+      <label>비고</label>
+      <textarea id="rrNote"></textarea>
+      <button class="form-submit" id="rrSubmit">등재</button>
+      <div class="form-msg" id="rrMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- (D) 기록 대체(supersede) -->
+<div id="recSupModal">
+  <div class="form-box">
+    <div class="form-head"><h3>기록 대체</h3><button id="rsClose">닫기 ✕</button></div>
+    <div class="form-body">
+      <div class="info-banner" id="rsInfo"></div>
+      <label>대체 방식</label>
+      <div class="radio-row">
+        <label><input type="radio" name="rsMode" value="existing" checked> 이미 등재된 기록으로 대체</label>
+        <label style="color:#999"><input type="radio" name="rsMode" value="new" disabled> 새 기록 등재 후 대체(먼저 [+ 기록 등재])</label>
+      </div>
+      <div id="rsExistingWrap">
+        <label>대체본 (같은 관리함 · 유효 기록)</label>
+        <select id="rsTargetPick"><option value="">— 선택 —</option></select>
+      </div>
+      <label>대체 사유 <b style="color:#c0392b">(필수 · 10자 이상)</b></label>
+      <textarea id="rsReason" placeholder="대체 사유를 10자 이상 입력하세요"></textarea>
+      <div class="rec-inline-confirm" id="rsConfirm" style="display:none"></div>
+      <button class="form-submit" id="rsSubmit">대체 처리</button>
+      <div class="form-msg" id="rsMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- (E) 배포 신청 -->
+<div id="distReqModal">
+  <div class="form-box">
+    <div class="form-head"><h3>배포 신청</h3><button id="drClose">닫기 ✕</button></div>
+    <div class="form-body">
+      <label>대상</label>
+      <input type="text" id="drTarget" readonly>
+      <label>보안등급</label>
+      <div id="drLevel" style="margin-top:4px"></div>
+      <label>배포 이유 <b style="color:#c0392b">*</b></label>
+      <textarea id="drReason" placeholder="예: 대전 현장 착공 전 협력사 제출용 (10자 이상)"></textarea>
+      <label>배포처 <b style="color:#c0392b">*</b></label>
+      <input type="text" id="drDest" placeholder="예: 사내 개발팀 / 협력사(계약명) / 발주처">
+      <label>수신자(선택)</label>
+      <input type="text" id="drRecipient" placeholder="수신 담당자/부서(선택)">
+      <div class="grid2">
+        <div><label>배포 경로 <b style="color:#c0392b">*</b></label><select id="drChannel"><option value="내부열람">내부열람</option><option value="내부발급">내부발급</option><option value="외부전달">외부전달</option></select></div>
+        <div><label>부수</label><input type="number" id="drCount" value="1" min="1"></div>
+      </div>
+      <label>필요 시점(선택)</label>
+      <input type="date" id="drDue">
+      <div class="warn-banner" id="drExecNote" style="display:none">이 신청은 <b>관리자 승인 후 대표 승인</b>이 추가로 필요합니다. 승인까지 시간이 더 걸릴 수 있습니다.</div>
+      <button class="form-submit" id="drSubmit">배포 신청</button>
+      <div class="form-msg" id="drMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- (F-2) 배포 건 상세·이력 -->
+<div id="distDetailModal">
+  <div class="dd-box">
+    <div class="dd-head"><div class="t" id="dtTitle">배포 상세</div><button id="dtClose">닫기 ✕</button></div>
+    <div class="dd-body">
+      <div class="dd-grid" id="dtGrid"></div>
+      <div class="dd-sec">📜 처리 이력</div>
+      <div id="dtHist" style="font-size:13px;color:#333;line-height:1.6"></div>
     </div>
   </div>
 </div>
@@ -996,6 +1295,23 @@
 
   // 3) 문서 로드 + 요약카드 (F2: 함수화 — 등록/진입/복귀 때마다 최신 재계산, 캐시 없음)
   let docs = [], bySeries = {}, seriesNames = [], seriesChart = null;
+  // [C. 표준문서 목록 날짜] 제정일=min(revision_date)=enacted_on, 개정일=max(revision_date)=revised_on
+  //  · registered_at(시스템 등록일)은 상세에 '시스템 등록'으로 보존(정정 전 제정일 칸이 이 값을 잘못 표기했음)
+  let docDates = {};  // doc_number → { enacted_on, revised_on, system_registered_on }
+  async function loadDocDates() {
+    docDates = {};
+    try {
+      const { data, error } = await edmsClient.from('edms_document_dates')
+        .select('doc_number, enacted_on, revised_on, system_registered_on').limit(3000);
+      if (error) { console.warn('제정/개정일 조회 실패:', error.message); return; }
+      (data || []).forEach(r => { docDates[r.doc_number] = r; });
+    } catch (e) { console.warn('제정/개정일 조회 예외:', e && e.message); }
+  }
+  // 제정일: enacted_on 우선(뷰 미제공 시 registered_at 폴백 — 하위호환)
+  const enactedOf = (d) => { const x = docDates[d.doc_number]; return (x && x.enacted_on) || (d.registered_at ? String(d.registered_at).slice(0, 10) : ''); };
+  // 개정일: revised_on. 제정일과 같거나 없으면 '개정 이력 없음(제정본)'
+  const revisedOf = (d) => { const x = docDates[d.doc_number]; return (x && x.revised_on) || ''; };
+  const isRecentRev = (iso) => { if (!iso) return false; const t = new Date(iso).getTime(); return !isNaN(t) && (Date.now() - t) <= 30 * 24 * 3600 * 1000; };
   async function loadDocs() {
     const { data, error } = await edmsClient.from('edms_documents')
       .select('id, doc_number, title, doc_type, series, current_version, status, confidentiality, security_level, registered_at, storage_path, owner_dept')
@@ -1005,6 +1321,7 @@
     bySeries = {};
     docs.forEach(d => { bySeries[d.series] = (bySeries[d.series] || 0) + 1; });
     seriesNames = Object.keys(bySeries).sort((a, b) => bySeries[b] - bySeries[a]);
+    await loadDocDates();
     return true;
   }
   let cardFilter = null;        // null | 'done' | 'month'
@@ -1283,22 +1600,29 @@
     if (!d) return;
     document.getElementById('ddTitle').innerHTML = `<small>${escHtml(d.doc_number)}</small> ${escHtml(d.title || '')}`;
     const conf = d.confidentiality ? ` (${d.confidentiality})` : '';
+    const _rev = revisedOf(d);
     const rows = [
       ['문서번호', d.doc_number], ['제목', d.title || ''],
       ['유형', d.doc_type || ''], ['시리즈', d.series || ''],
       ['현재버전', d.current_version || ''], ['상태', d.status || ''],
-      ['보안등급', 'P' + d.security_level + conf], ['제정일', d.registered_at || ''],
+      ['보안등급', 'P' + d.security_level + conf],
+      ['제정일', enactedOf(d) || '—'],
+      ['개정일', (_rev && _rev !== enactedOf(d)) ? _rev : '개정 이력 없음'],
+      ['시스템 등록', d.registered_at || '—'],
       ['담당팀', d.owner_dept || '—'],
     ];
     document.getElementById('ddGrid').innerHTML = rows.map(r =>
       `<div class="dd-row"><span class="k">${r[0]}</span><span class="v">${escHtml(String(r[1]))}</span></div>`).join('');
     const acts = document.getElementById('ddActions');
     acts.innerHTML = `<button class="vw-btn" id="ddView">📖 열람</button>`
-      + (canRevise(d) ? ` <button class="rev-btn" id="ddRevise">✏️ 개정</button>` : '');
+      + (canRevise(d) ? ` <button class="rev-btn" id="ddRevise">✏️ 개정</button>` : '')
+      + (!isAdmin ? ` <button class="rq-btn" id="ddDistReq">🚚 배포 신청</button>` : '');  // [배포] 관리자 제외
     document.getElementById('ddView').addEventListener('click', (ev) =>
       openViewer(d.doc_number, d.title, d.doc_type, ev.currentTarget));
     const rv = document.getElementById('ddRevise');
     if (rv) rv.addEventListener('click', () => { closeDocDetail(); openReviseForm(d.id); });
+    const dq = document.getElementById('ddDistReq');
+    if (dq) dq.addEventListener('click', () => { closeDocDetail(); openDistReq('document', d.doc_number, d.title, d.security_level); });
     // 개정 이력(변경 내용)
     const body = document.getElementById('ddHistBody');
     const empty = document.getElementById('ddHistEmpty');
@@ -1488,7 +1812,7 @@
       if (error) { alert('요청 실패: ' + error.message); rbtn.disabled = false; return; }
       reqByDoc[rbtn.dataset.doc] = { id: data, document_id: rbtn.dataset.doc, status: '요청' };
       render(); refreshBell();
-      alert('다운로드 승인을 요청했습니다. 부대표(관리자) 승인 후 \'확인\'을 누르면 다운로드할 수 있습니다.');
+      alert('다운로드 승인을 요청했습니다. 관리자 승인 후 \'확인\'을 누르면 다운로드할 수 있습니다.');
       return;
     }
     // 확인(타이머 시작)
@@ -1680,7 +2004,7 @@
   function pickReviewer(docType, series) {
     let t;
     if (docType === 'W-M') t = roleAccts('reviewer')[0];           // 매뉴얼 → 품질팀장(검토자)
-    else if (series === 'Q' || series === 'D' || series === 'DS') t = roleAccts('admin')[0]; // 품질·개발·디지털시스템 → 부대표(직무분리)
+    else if (series === 'Q' || series === 'D' || series === 'DS') t = roleAccts('admin')[0]; // 품질·개발·디지털시스템 → 관리자(직무분리)
     else t = roleAccts('reviewer')[0];                            // 그 외 → 품질팀장
     return t || roleAccts('admin')[0] || allProfiles[0];
   }
@@ -1765,7 +2089,7 @@
     myReqPending.add(grantReqDocId);
     grantModal.classList.remove('open');
     render();
-    alert('권한을 요청했습니다. 관리자(부대표) 승인 후 개정할 수 있습니다.');
+    alert('권한을 요청했습니다. 관리자 승인 후 개정할 수 있습니다.');
   });
 
   // ── 권한 관리함 (G2, 관리자 전용) ───────────────────────
@@ -2246,39 +2570,84 @@
     $(id).addEventListener(id === 'logSearch' ? 'input' : 'change', renderActivity));
   await loadWorkflow();
 
+  // [C] 목록 정렬 상태 — enacted(제정일)·revised(개정일) 헤더 토글 + '최근 개정순' 버튼
+  let docSort = null;  // null | { key:'enacted'|'revised', dir:'asc'|'desc' }
+  function sortForList(list) {
+    if (!docSort) return list;
+    const key = docSort.key, dir = docSort.dir === 'asc' ? 1 : -1;
+    const val = (d) => key === 'enacted' ? enactedOf(d) : revisedOf(d);
+    return list.slice().sort((a, b) => {
+      const va = val(a), vb = val(b);
+      // 개정 없음(빈값)은 항상 최하단
+      if (!va && !vb) return 0;
+      if (!va) return 1;
+      if (!vb) return -1;
+      return va < vb ? -dir : va > vb ? dir : 0;
+    });
+  }
   function render() {
     const q = document.getElementById('searchInput').value.trim().toLowerCase();
     const fs = seriesSel.value, ft = typeSel.value;
-    const list = docs.filter(d =>
+    let list = docs.filter(d =>
       (!q || d.doc_number.toLowerCase().includes(q) || (d.title || '').toLowerCase().includes(q)) &&
       (!fs || d.series === fs) &&
       (!ft || d.doc_type === ft) &&
       (cardFilter !== 'done' || d.status === '등록완료') &&
       (cardFilter !== 'month' || monthDocIds.has(d.id))
     );
+    list = sortForList(list);
+    // 헤더 정렬 아이콘·aria-sort 동기화
+    document.querySelectorAll('#docTable th.doc-sort').forEach(th => {
+      const on = docSort && docSort.key === th.dataset.sort;
+      th.setAttribute('aria-sort', on ? (docSort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      const base = th.dataset.sort === 'enacted' ? '제정일' : '개정일';
+      th.innerHTML = base + (on ? `<span class="arw">${docSort.dir === 'asc' ? '▲' : '▼'}</span>` : '');
+    });
     const _chip = { done: '등록완료', month: '이달 등재·개정' }[cardFilter];
     document.getElementById('countInfo').innerHTML =
       `전체 ${docs.length}건 중 ${list.length}건 표시`
       + (_chip ? ` <button id="cardFilterClear" class="card-clear">${_chip}만 표시 ✕ 해제</button>` : '');
-    tbody.innerHTML = list.map(d => `
+    tbody.innerHTML = list.map(d => {
+      const enacted = enactedOf(d);
+      const revised = revisedOf(d);
+      const revCell = (revised && revised !== enacted)
+        ? `${revised}${isRecentRev(revised) ? '<span class="date-new">NEW</span>' : ''}`
+        : `<span title="개정 이력 없음(제정본)" style="color:#aaa">—</span>`;
+      return `
       <tr data-id="${d.id}">
         <td>${d.doc_number}</td>
-        <td class="title-cell">${d.title || ''}</td>
+        <td class="title-cell">${escHtml(d.title || '')}</td>
         <td>${d.doc_type || ''}</td>
         <td>${d.series}</td>
         <td><button class="ver-link hist-trigger" data-id="${d.id}" data-num="${d.doc_number}" data-title="${(d.title || '').replace(/"/g, '&quot;')}">${d.current_version}</button><button class="hist-btn hist-trigger" data-id="${d.id}" data-num="${d.doc_number}" data-title="${(d.title || '').replace(/"/g, '&quot;')}">이력</button></td>
         <td>${d.status}</td>
         <td><span class="conf-tag conf-${d.confidentiality}">P${d.security_level}</span></td>
-        <td>${d.registered_at || ''}</td>
+        <td>${enacted || ''}</td>
+        <td>${revCell}</td>
         <td><button class="vw-btn" data-num="${d.doc_number}" data-type="${d.doc_type || ''}" data-title="${(d.title || '').replace(/"/g, '&quot;')}">📖 열람</button></td>
         <td>${fileCell(d)}</td>
         <td>${reviseCell(d)}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
     syncDocScrollWidth();
   }
   document.getElementById('searchInput').addEventListener('input', () => { cardFilter = null; render(); });
   seriesSel.addEventListener('change', render);
   typeSel.addEventListener('change', render);
+  // [C] 제정일/개정일 헤더 클릭 정렬 토글
+  document.querySelectorAll('#docTable th.doc-sort').forEach(th => th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    if (docSort && docSort.key === key) docSort.dir = docSort.dir === 'asc' ? 'desc' : 'asc';
+    else docSort = { key, dir: 'desc' };
+    render();
+  }));
+  // [C] '최근 개정순' 빠른 정렬 토글(개정일 내림차순, 개정 없음은 최하단)
+  document.getElementById('recentRevBtn').addEventListener('click', (e) => {
+    const on = docSort && docSort.key === 'revised' && docSort.dir === 'desc';
+    docSort = on ? null : { key: 'revised', dir: 'desc' };
+    e.currentTarget.classList.toggle('on', !on);
+    render();
+  });
   // 카드필터 해제 버튼
   document.getElementById('countInfo').addEventListener('click', (e) => {
     if (e.target.closest('#cardFilterClear')) { cardFilter = null; render(); }
@@ -2290,6 +2659,11 @@
     const k = card.dataset.card;
     if (k === 'series') {
       document.getElementById('seriesChart').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (k === 'records') {  // [기록보관소] 카드 → 기록보관소 패널로 이동
+      const rp = document.getElementById('recordPanel');
+      if (rp && rp.style.display !== 'none') rp.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     document.getElementById('searchInput').value = '';
@@ -2397,7 +2771,7 @@
   await loadNotices();
 
   // ── CFSPS 일괄 개정 등재·상신 (★품질팀장 전용) ───────────
-  //  관리자(부대표)·승인자(대표)·일반에는 노출 안 함 — 그들은 결재함에서만 처리
+  //  관리자·승인자(대표)·일반에는 노출 안 함 — 그들은 결재함에서만 처리
   if (myRole === 'reviewer' && myDept === '품질') {
     const CFSPS_TARGETS = [
       { n: 'CFSPS-3.0', rev: 'Rev1.03', s: '정합 정정·결재선·표지·보류항목·위계마커' },
@@ -2436,7 +2810,7 @@
     const opts = allProfiles.map(p => `<option value="${p.id}">${escHtml(p.name || p.email)} (${ROLE_LABEL[p.role] || p.role})</option>`).join('');
     cRv.innerHTML = opts; cAp.innerHTML = opts;
     const idByEmail = (e) => (allProfiles.find(p => p.email === e) || {}).id;
-    if (idByEmail('mws@newworldkr.com')) cRv.value = idByEmail('mws@newworldkr.com');  // 부대표
+    if (idByEmail('mws@newworldkr.com')) cRv.value = idByEmail('mws@newworldkr.com');  // 관리자
     if (idByEmail('nw@newworldkr.com')) cAp.value = idByEmail('nw@newworldkr.com');     // 대표
 
     const docByNum = {}; docs.forEach(d => { docByNum[d.doc_number] = d; });
@@ -2521,7 +2895,7 @@
       }
       btn.disabled = false;
       msg.className = 'form-msg ' + (failN ? 'err' : 'ok');
-      msg.textContent = `완료: 상신 ${okN}건 / 실패 ${failN}건 / PDF없음 ${skipN}건. 부대표 결재함에서 검토하세요.`;
+      msg.textContent = `완료: 상신 ${okN}건 / 실패 ${failN}건 / PDF없음 ${skipN}건. 관리자 결재함에서 검토하세요.`;
       await loadWorkflow(); refreshBell();
     });
     // 기존 CFSPS 상신 취소 — 내가 작성한 진행 중 CFSPS 결재 건을 일괄 취소
@@ -2545,6 +2919,696 @@
     });
   }
 
+  // ══════════════════════════════════════════════════════════════════════
+  // ── [기록보관소·배포] 신설 화면 로직 (화면설계 V0.1 · DB 계약 준수) ──────
+  //  · 조회는 뷰 select, 변경은 전부 edmsClient.rpc(...) 경유 (테이블 직접쓰기 없음)
+  //  · 서버 오류 원문은 console.warn 에만 남기고, 화면은 매핑된 사용자 문구로 치환
+  // ══════════════════════════════════════════════════════════════════════
+  {
+    // 역할 플래그 (approver=대표/임원, reviewer=품질팀장, admin=관리자)
+    const isExec = myRole === 'approver';
+    const isQmLead = myRole === 'reviewer';
+    const canRegisterRec = isAdmin || isQmLead;          // 기록 등재·대체
+    const canVoidRec = isAdmin || isQmLead;              // 기록 폐기
+    const canSeeVoidToggle = isAdmin || isQmLead || isExec;  // '폐기 포함 보기' 토글 노출
+
+    // XSS 방지: & < > " ' 전량 치환 (신규 렌더 경로 전용 · 자유 입력값 보간에 적용)
+    const esc = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const pick = (o, keys, dflt) => { for (const k of keys) { if (o && o[k] != null && o[k] !== '') return o[k]; } return dflt === undefined ? '' : dflt; };
+    const dOnly = (t) => t ? String(t).slice(0, 10) : '';
+    const fmtDT = (t) => t ? new Date(t).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    // 서버 오류 → 사용자 문구 (원문 유출 금지)
+    function friendlyErr(error, fallback) {
+      if (!error) return fallback;
+      const raw = String(error.message || error);
+      console.warn('[서버오류]', raw);
+      if (/permission|denied|not allowed|권한|policy|rls/i.test(raw)) return '권한이 없습니다.';
+      if (/duplicate|conflict|채번|이미/i.test(raw)) return '이미 처리되었거나 충돌이 발생했습니다. 잠시 후 다시 시도해 주세요.';
+      if (/network|timeout|fetch/i.test(raw)) return '네트워크 상태를 확인한 뒤 다시 시도해 주세요.';
+      if (/jwt|expired|401/i.test(raw)) return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
+      return fallback;
+    }
+    const toast = (m) => {  // 3초 상단 토스트
+      let t = document.getElementById('recToast');
+      if (!t) { t = document.createElement('div'); t.id = 'recToast'; t.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#1F3864;color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;z-index:2000;box-shadow:0 6px 20px rgba(0,0,0,.3)'; document.body.appendChild(t); }
+      t.textContent = m; t.style.display = '';
+      clearTimeout(t._h); t._h = setTimeout(() => { t.style.display = 'none'; }, 3000);
+    };
+
+    // 배지 헬퍼
+    const plvBadge = (lv) => `<span class="plv plv-${lv || 2}">P${lv || 2}</span>`;
+    const statusBadge = (status, isVoid) => { const s = isVoid ? '폐기' : (status || '유효'); return `<span class="rst rst-${s}">${s}</span>`; };
+    const siteBadge = (label) => { const s = label || '비현장 기록'; return `<span class="site-badge">${esc(s)}</span>`; };
+    const accessLabel = (a) => (a === 'need' || a === 'need-to-know') ? 'need-to-know' : '전사';
+
+    // ── 배포 상태 표기 매핑 (★결재선 외 직책 금지 — 역할 명칭만) ──
+    //   내부 상태값(신청→관리자승인→대표승인대기→대표승인→승인완료→발급→회수/반려)을 화면 문구로 치환
+    const DIST_STATUS = {
+      '신청': { t: '관리자 승인 대기', c: 'dstat-gray' },
+      '관리자승인': { t: '대표 승인 대기', c: 'dstat-blue' },
+      '대표승인대기': { t: '대표 승인 대기', c: 'dstat-blue' },
+      '대표승인': { t: '승인 완료 — 발급 대기', c: 'dstat-green' },
+      '승인완료': { t: '승인 완료 — 발급 대기', c: 'dstat-green' },
+      '발급': { t: '다운로드 가능', c: 'dstat-green2' },
+      '만료': { t: '발급 기한 만료 — 재신청 필요', c: 'dstat-orange' },
+      '반려': { t: '반려됨', c: 'dstat-red' },
+      '회수': { t: '회수됨 — 보유 사본 폐기 요망', c: 'dstat-red' },
+    };
+    const distStatusBadge = (st) => { const m = DIST_STATUS[st] || { t: st || '—', c: 'dstat-gray' }; return `<span class="dstat ${m.c}">${esc(m.t)}</span>`; };
+
+    // ══════════ 기록보관소 (A) ══════════
+    let recRows = [], recFolders = [], recSelDept = '', recSelFolder = '', showVoid = false;
+    const recTbody = document.getElementById('recTbody');
+
+    async function loadFolders() {
+      try {
+        const { data, error } = await edmsClient.from('edms_record_folders').select('*').limit(500);
+        if (error) { console.warn('관리함 조회 실패:', error.message); recFolders = []; return; }
+        recFolders = data || [];
+      } catch (e) { console.warn('관리함 조회 예외:', e && e.message); recFolders = []; }
+    }
+    const folderLabel = (f) => `${pick(f, ['folder_no', 'no'], '')} ${pick(f, ['form_name', 'form', 'name'], '')}`.trim();
+    const folderDept = (f) => pick(f, ['owner_dept', 'dept'], '');
+
+    async function loadRecords() {
+      const { data, error } = await edmsClient.from('edms_record_list')
+        .select('*').order('registered_on', { ascending: false }).limit(2000);
+      if (error) {
+        recTbody.innerHTML = `<tr><td colspan="9" class="rec-empty">기록 목록을 불러오지 못했습니다. 새로고침 후에도 같은 문제가 반복되면 관리자에게 알려 주세요.</td></tr>`;
+        console.warn('기록목록 조회 실패:', error.message); return;
+      }
+      recRows = (data || []).filter(r => r.visible_to_me !== false);  // 기본: 가시행만
+      const cr = document.getElementById('cardRecords');
+      if (cr) cr.textContent = recRows.filter(r => !r.is_void).length;
+      buildRecTree(); populateRecFilters(); renderRecList();
+    }
+
+    function buildRecTree() {
+      const tree = document.getElementById('recTree');
+      if (!tree) return;
+      // 부서 → 문서철 그룹 (전사 공개 기준 건수 = 마스킹 포함)
+      const byDept = {};
+      recRows.forEach(r => {
+        const dept = r.owner_dept || '(부서없음)';
+        byDept[dept] = byDept[dept] || { total: 0, view: 0, folders: {} };
+        byDept[dept].total++; if (!r.masked) byDept[dept].view++;
+        const fk = r.folder_no || '(미분류)';
+        byDept[dept].folders[fk] = byDept[dept].folders[fk] || { total: 0, view: 0 };
+        byDept[dept].folders[fk].total++; if (!r.masked) byDept[dept].folders[fk].view++;
+      });
+      const total = recRows.length, totView = recRows.filter(r => !r.masked).length;
+      let html = `<div class="rt-node${recSelDept === '' && recSelFolder === '' ? '' : ''}" data-dept="" data-folder="" aria-selected="${recSelDept === '' && recSelFolder === '' ? 'true' : 'false'}" title="열람 가능 ${totView}건 / 전체 ${total}건">전체 기록 <span class="rt-cnt">(${total})</span></div>`;
+      Object.keys(byDept).sort().forEach(dept => {
+        const g = byDept[dept];
+        html += `<div class="rt-node rt-dept" data-dept="${esc(dept)}" data-folder="" aria-selected="${recSelDept === dept && !recSelFolder ? 'true' : 'false'}" title="열람 가능 ${g.view}건 / 전체 ${g.total}건">[부서] ${esc(dept)} <span class="rt-cnt">(${g.total})</span></div>`;
+        Object.keys(g.folders).sort().forEach(fk => {
+          const fg = g.folders[fk];
+          html += `<div class="rt-node rt-folder" data-dept="${esc(dept)}" data-folder="${esc(fk)}" aria-selected="${recSelFolder === fk ? 'true' : 'false'}" title="열람 가능 ${fg.view}건 / 전체 ${fg.total}건">[문서철] ${esc(fk)} <span class="rt-cnt">(${fg.total})</span></div>`;
+        });
+      });
+      tree.innerHTML = html;
+    }
+    document.getElementById('recTree') && document.getElementById('recTree').addEventListener('click', (e) => {
+      const node = e.target.closest('.rt-node'); if (!node) return;
+      recSelDept = node.dataset.dept || ''; recSelFolder = node.dataset.folder || '';
+      buildRecTree(); renderRecList();
+    });
+
+    function populateRecFilters() {
+      const dsel = document.getElementById('recDeptFilter'), ssel = document.getElementById('recSiteFilter');
+      const depts = [...new Set(recRows.map(r => r.owner_dept).filter(Boolean))].sort();
+      const cur = dsel.value;
+      dsel.innerHTML = '<option value="">부서 전체</option>' + depts.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+      dsel.value = cur;
+      const sites = [...new Set(recRows.map(r => r.site_label || '비현장 기록'))].sort();
+      const curS = ssel.value;
+      ssel.innerHTML = '<option value="">공사 전체</option>' + sites.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+      ssel.value = curS;
+    }
+
+    function renderRecList() {
+      const q = document.getElementById('recSearch').value.trim().toLowerCase();
+      const fd = document.getElementById('recDeptFilter').value;
+      const fl = document.getElementById('recLevelFilter').value;
+      const fst = document.getElementById('recStatusFilter').value;
+      const fsi = document.getElementById('recSiteFilter').value;
+      const dept = recSelDept || fd;
+      let list = recRows.filter(r => {
+        if (dept && r.owner_dept !== dept) return false;
+        if (recSelFolder && r.folder_no !== recSelFolder) return false;
+        // 마스킹된 제목은 검색 대상 제외(관리번호는 항상 검색 가능)
+        if (q && !((r.record_no || '').toLowerCase().includes(q) || (!r.masked && (r.title || '').toLowerCase().includes(q)))) return false;
+        if (fl && String(r.security_level) !== fl) return false;
+        const st = r.is_void ? '폐기' : (r.status || '유효');
+        if (fst && st !== fst) return false;
+        if (fsi && (r.site_label || '비현장 기록') !== fsi) return false;
+        if (r.is_void && !showVoid) return false;  // 폐기 건 기본 숨김
+        return true;
+      });
+      document.getElementById('recCount').textContent = `${list.length}건 표시`;
+      if (!list.length) {
+        recTbody.innerHTML = `<tr><td colspan="9" class="rec-empty">${recRows.length ? '조건에 맞는 기록이 없습니다. 검색어나 필터를 조정해 주세요.' : '아직 등재된 기록이 없습니다. 기록은 품질팀장 또는 관리자가 등재합니다.'}</td></tr>`;
+        return;
+      }
+      recTbody.innerHTML = list.map(r => {
+        const titleHtml = r.masked ? `<span class="rec-masked">${esc(r.title || '(제한 기록)')}</span>` : esc(r.title || '');
+        const siteCell = r.masked ? '—' : siteBadge(r.site_label);
+        const act = r.masked
+          ? '<span class="rec-lock">🔒 열람 권한 없음</span>'
+          : `<button class="rec-detail-btn" data-no="${esc(r.record_no)}">상세</button>`;
+        const voidInfo = r.is_void ? `<br><small style="color:#c0392b">폐기: ${esc(r.void_reason || '')} · ${dOnly(r.voided_at)}</small>` : '';
+        return `<tr class="${r.is_void ? 'rec-void' : ''}">
+          <td>${esc(r.record_no)}</td>
+          <td class="title-cell">${titleHtml}${voidInfo}</td>
+          <td>${esc(r.folder_no || '')}</td>
+          <td>${esc(r.owner_dept || '')}</td>
+          <td>${siteCell}</td>
+          <td>${plvBadge(r.security_level)}</td>
+          <td>${statusBadge(r.status, r.is_void)}</td>
+          <td>${dOnly(r.registered_on)}</td>
+          <td>${act}</td>
+        </tr>`;
+      }).join('');
+    }
+    ['recSearch', 'recDeptFilter', 'recLevelFilter', 'recStatusFilter', 'recSiteFilter'].forEach(id => {
+      const el = document.getElementById(id);
+      el && el.addEventListener(id === 'recSearch' ? 'input' : 'change', () => { if (id === 'recDeptFilter') { recSelDept = ''; recSelFolder = ''; } renderRecList(); });
+    });
+    document.getElementById('recVoidToggle') && document.getElementById('recVoidToggle').addEventListener('change', (e) => { showVoid = e.target.checked; renderRecList(); });
+    document.getElementById('recRefresh') && document.getElementById('recRefresh').addEventListener('click', loadRecords);
+    recTbody.addEventListener('click', (e) => {
+      const b = e.target.closest('.rec-detail-btn'); if (b) openRecDetail(b.dataset.no);
+    });
+
+    // ── (B) 기록 상세 · 참조본 열람 ──
+    const recDetailModal = document.getElementById('recDetailModal');
+    const closeRecDetail = () => recDetailModal.classList.remove('open');
+    document.getElementById('rdClose').addEventListener('click', closeRecDetail);
+    recDetailModal.addEventListener('click', (e) => { if (e.target === recDetailModal) closeRecDetail(); });
+    let curDetail = null;
+
+    async function openRecDetail(recordNo) {
+      document.getElementById('rdTitle').innerHTML = `<small>${esc(recordNo)}</small> 상세`;
+      document.getElementById('rdBanner').innerHTML = '';
+      document.getElementById('rdGrid').innerHTML = '<div class="dd-row"><span class="k">상태</span><span class="v">불러오는 중…</span></div>';
+      document.getElementById('rdActions').innerHTML = '';
+      document.getElementById('rdAuditBody').innerHTML = '';
+      document.getElementById('rdAuditEmpty').style.display = 'none';
+      recDetailModal.classList.add('open');
+      let data, error;
+      try { ({ data, error } = await edmsClient.rpc('edms_record_open', { p_record_no: recordNo })); }
+      catch (e) { error = e; }
+      if (error) {
+        const raw = String(error.message || error);
+        const perm = /permission|denied|권한|rls|policy/i.test(raw);
+        document.getElementById('rdGrid').innerHTML = `<div class="dd-row"><span class="k">안내</span><span class="v">${perm ? '이 기록을 열람할 권한이 없습니다. 필요 시 배포 신청을 이용해 주세요.' : '기록 상세를 불러오지 못했습니다.'}</span></div>`;
+        console.warn('기록 상세 실패:', raw);
+        return;
+      }
+      const d = Array.isArray(data) ? data[0] : data;
+      if (!d) { document.getElementById('rdGrid').innerHTML = '<div class="dd-row"><span class="k">안내</span><span class="v">기록을 찾을 수 없습니다.</span></div>'; return; }
+      curDetail = d;
+      const lv = pick(d, ['security_level'], 2);
+      const status = pick(d, ['status'], '유효');
+      const isVoid = !!pick(d, ['is_void'], false);
+      const site = pick(d, ['site_ref', 'site_label'], '');
+      const rows = [
+        ['관리번호', pick(d, ['record_no'], recordNo)],
+        ['제목', pick(d, ['title'], '')],
+        ['문서철', pick(d, ['folder_no'], '')],
+        ['작성 부서', pick(d, ['owner_dept', 'dept'], '')],
+        ['작성자', pick(d, ['registered_by', 'author', 'created_by'], '—')],
+        ['보안등급', 'P' + lv + (pick(d, ['confidentiality'], '') ? ' (' + pick(d, ['confidentiality'], '') + ')' : '')],
+        ['접근 구분', accessLabel(pick(d, ['access_class', 'read_scope', 'access'], 'all'))],
+        ['상태', isVoid ? '폐기' : status],
+        ['공사', site || '비현장 기록'],
+        ['원본 위치', pick(d, ['origin_location', 'origin'], '—')],
+        ['참조본', pick(d, ['ref_name', 'ref_path', 'ref_storage_path'], '(없음)')],
+        ['등재일', dOnly(pick(d, ['registered_on', 'registered_at'], ''))],
+      ];
+      const sup = pick(d, ['superseded_by'], ''), supBy = pick(d, ['supersedes'], '');
+      if (sup) rows.push(['대체 관계', '→ 대체 기록 ' + sup]);
+      if (supBy) rows.push(['대체 관계', '← 이전 기록 ' + supBy]);
+      document.getElementById('rdGrid').innerHTML = rows.map(r =>
+        `<div class="dd-row"><span class="k">${r[0]}</span><span class="v">${esc(String(r[1]))}</span></div>`).join('');
+      // 배너
+      let banner = '';
+      if (lv >= 3) banner += `<div class="warn-banner crit">⚠ 대외비 이상 기록입니다. 화면 촬영·사본 유출이 금지되며, 열람 사실이 기록됩니다.</div>`;
+      if (isVoid) banner += `<div class="info-banner">이 기록은 폐기되었습니다. 사유: ${esc(pick(d, ['void_reason'], ''))}</div>`;
+      else if (status === '대체됨') banner += `<div class="info-banner">이 기록은 대체되었습니다.${sup ? ' 최신본은 ' + esc(sup) + ' 입니다.' : ''}</div>`;
+      if (isExec) banner += `<div class="info-banner">임원 권한으로 열람합니다. 이 열람은 감사 이력에 남습니다.</div>`;
+      document.getElementById('rdBanner').innerHTML = banner;
+      // 액션
+      const acts = [];
+      acts.push(`<button class="rec-detail-btn" id="rdView">📖 참조본 열람</button>`);
+      if (isAdmin) acts.push(`<button class="dl-btn" id="rdDownload">다운로드</button>`);
+      if (!isAdmin && !isVoid && status !== '대체됨') acts.push(`<button class="rq-btn" id="rdDistReq">🚚 배포 신청</button>`);
+      if (canRegisterRec && status === '유효' && !isVoid) acts.push(`<button class="rev-btn" id="rdSup">✏️ 대체</button>`);
+      if (canVoidRec && status === '유효' && !isVoid) acts.push(`<button class="dist-no" id="rdVoid">🗑 폐기</button>`);
+      acts.push(`<button class="rec-detail-btn" id="rdCloseBtn">닫기</button>`);
+      document.getElementById('rdActions').innerHTML = acts.join(' ');
+      const on = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+      on('rdView', () => openRefView(d));
+      on('rdDownload', () => openRefView(d));
+      on('rdDistReq', () => { closeRecDetail(); openDistReq('record', pick(d, ['record_no'], recordNo), pick(d, ['title'], ''), lv); });
+      on('rdSup', () => openSupModal(d));
+      on('rdVoid', () => doVoidRecord(pick(d, ['record_no'], recordNo)));
+      on('rdCloseBtn', closeRecDetail);
+      // 이력 (RPC가 감사 1행 자동 기록 — 별도 로그 호출 없음)
+      const audit = pick(d, ['audit', 'audit_log', 'history'], null);
+      const abody = document.getElementById('rdAuditBody');
+      if (Array.isArray(audit) && audit.length) {
+        abody.innerHTML = audit.map(a => `<tr>
+          <td>${fmtDT(pick(a, ['at', 'created_at', 'ts'], ''))}</td>
+          <td>${esc(pick(a, ['action', 'act'], ''))}</td>
+          <td>${esc(pick(a, ['actor', 'by', 'user'], ''))}</td>
+          <td>${esc(pick(a, ['detail', 'note'], ''))}</td></tr>`).join('');
+      } else { document.getElementById('rdAuditEmpty').style.display = ''; }
+    }
+
+    async function openRefView(d) {
+      const path = pick(d, ['ref_storage_path', 'ref_path', 'ref'], '');
+      const no = pick(d, ['record_no'], ''), title = pick(d, ['title'], '');
+      if (!path) { alert('참조복사본이 없습니다. 원본 위치를 확인해 주세요: ' + (pick(d, ['origin_location', 'origin'], '') || '(원본 위치 미기재)')); return; }
+      try {
+        const { data, error } = await edmsClient.storage.from('documents').createSignedUrl(path, 600);
+        if (error || !data || !data.signedUrl) { alert('참조복사본을 여는 데 실패했습니다. 파일이 이동되었을 수 있습니다. 관리자에게 알려 주세요.'); console.warn('참조본 URL 실패:', error && error.message); return; }
+        openPdfModal(no, title, data.signedUrl);  // 기존 뷰어 재사용
+      } catch (e) { alert('참조복사본을 여는 데 실패했습니다.'); console.warn(e && e.message); }
+    }
+
+    // ── (C) 기록 등재 ──
+    const recRegModal = document.getElementById('recRegModal');
+    const closeReg = () => recRegModal.classList.remove('open');
+    document.getElementById('rrClose').addEventListener('click', closeReg);
+    recRegModal.addEventListener('click', (e) => { if (e.target === recRegModal) closeReg(); });
+    if (canRegisterRec) { const rb = document.getElementById('recRegBtn'); rb.style.display = ''; rb.addEventListener('click', openRegModal); }
+
+    function openRegModal() {
+      const fsel = document.getElementById('rrFolder');
+      fsel.innerHTML = '<option value="">— 선택 —</option>' + recFolders.map(f => `<option value="${esc(pick(f, ['id'], ''))}" data-no="${esc(pick(f, ['folder_no', 'no'], ''))}">${esc(folderLabel(f) || '(이름없음)')}${folderDept(f) ? ' · ' + esc(folderDept(f)) : ''}</option>`).join('');
+      if (!recFolders.length) { document.getElementById('rrMsg').className = 'form-msg err'; document.getElementById('rrMsg').textContent = '등재 가능한 관리함(문서철)이 없습니다. 먼저 관리함을 생성해야 합니다.'; }
+      else document.getElementById('rrMsg').textContent = '';
+      // 공사 datalist
+      const dl = document.getElementById('rrSiteList');
+      const sites = [...new Set(recRows.map(r => r.site_label).filter(s => s && s !== '비현장 기록'))].sort();
+      dl.innerHTML = sites.map(s => `<option value="${esc(s)}">`).join('');
+      ['rrTitle', 'rrOrigin', 'rrSite', 'rrNote'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('rrNoPreview').value = '';
+      document.getElementById('rrLevel').value = '2';
+      document.getElementById('rrAccess').value = 'all';
+      document.getElementById('rrNoSite').checked = false;
+      document.getElementById('rrRefFile').value = '';
+      updateP4Warn(); updateAccessNote();
+      recRegModal.classList.add('open');
+    }
+    function updateP4Warn() { const w = document.getElementById('rrP4Warn'); w.classList.toggle('crit', document.getElementById('rrLevel').value === '4'); }
+    function updateAccessNote() { document.getElementById('rrAccessNote').style.display = document.getElementById('rrAccess').value === 'need' ? '' : 'none'; }
+    document.getElementById('rrLevel').addEventListener('change', updateP4Warn);
+    document.getElementById('rrAccess').addEventListener('change', updateAccessNote);
+    document.getElementById('rrFolder').addEventListener('change', (e) => {
+      const opt = e.target.selectedOptions[0];
+      const no = opt ? (opt.dataset.no || '') : '';
+      document.getElementById('rrNoPreview').value = no ? `${no}-NNN (등재 시 확정)` : '';
+    });
+    document.getElementById('rrNoSite').addEventListener('change', (e) => { document.getElementById('rrSite').disabled = e.target.checked; });
+
+    document.getElementById('rrSubmit').addEventListener('click', async () => {
+      const msg = document.getElementById('rrMsg'); msg.className = 'form-msg';
+      const folder = document.getElementById('rrFolder').value;
+      const title = document.getElementById('rrTitle').value.trim();
+      const origin = document.getElementById('rrOrigin').value.trim();
+      const noSite = document.getElementById('rrNoSite').checked;
+      const site = noSite ? null : document.getElementById('rrSite').value.trim();
+      const level = parseInt(document.getElementById('rrLevel').value, 10);
+      const access = document.getElementById('rrAccess').value;
+      const refFile = document.getElementById('rrRefFile').files[0];
+      if (!folder) { msg.className = 'form-msg err'; msg.textContent = '문서철(관리함)을 선택해 주세요.'; return; }
+      if (!title || !origin || (!noSite && !site) || !refFile) {
+        msg.className = 'form-msg err'; msg.textContent = '필수 항목을 입력해 주세요: 제목 / 원본 위치 / 공사 / 참조복사본'; return;
+      }
+      if (!noSite && !/^[A-Za-z0-9_-]+$/.test(site)) {
+        msg.className = 'form-msg err'; msg.textContent = '공사 값에는 공백과 특수문자를 사용할 수 없습니다. 예: SITE-DAEJEON-01'; return;
+      }
+      const btn = document.getElementById('rrSubmit'); btn.disabled = true; const lbl = btn.textContent; btn.textContent = '등재 중…';
+      try {
+        // 참조본 업로드 → ref_path
+        const safe = refFile.name.replace(/[^\w.\-]/g, '_');
+        const refPath = `records/${folder}/${Date.now()}_${safe}`;
+        const up = await edmsClient.storage.from('documents').upload(refPath, refFile, { upsert: true, contentType: refFile.type || 'application/pdf' });
+        if (up.error) { msg.className = 'form-msg err'; msg.textContent = '참조복사본 업로드에 실패했습니다. 파일 크기와 형식을 확인해 주세요.'; console.warn(up.error.message); return; }
+        const { data, error } = await edmsClient.rpc('edms_record_register', {
+          p_folder: folder, p_title: title, p_origin: origin, p_ref_path: refPath,
+          p_security: level, p_read_scope: access, p_access: access, p_approver: null,
+          p_meta: { note: document.getElementById('rrNote').value.trim() || null }, p_site_ref: site,
+        });
+        if (error) {
+          const raw = String(error.message || error);
+          msg.className = 'form-msg err';
+          msg.textContent = /permission|권한/i.test(raw) ? '기록 등재 권한이 없습니다.'
+            : /채번|conflict|duplicate/i.test(raw) ? '관리번호 채번이 충돌했습니다. 잠시 후 다시 시도해 주세요.'
+            : '기록 등재에 실패했습니다.';
+          console.warn('등재 실패:', raw); return;
+        }
+        closeReg(); toast('기록을 등재했습니다: ' + (data || ''));
+        await loadRecords();
+      } finally { btn.disabled = false; btn.textContent = lbl; }
+    });
+
+    // ── (D) 기록 대체 ──
+    const recSupModal = document.getElementById('recSupModal');
+    const closeSup = () => recSupModal.classList.remove('open');
+    document.getElementById('rsClose').addEventListener('click', closeSup);
+    recSupModal.addEventListener('click', (e) => { if (e.target === recSupModal) closeSup(); });
+    let supOldNo = null;
+    function openSupModal(d) {
+      supOldNo = pick(d, ['record_no'], '');
+      const lv = pick(d, ['security_level'], 2);
+      document.getElementById('rsInfo').innerHTML = `대체 대상: <b>${esc(supOldNo)}</b> · ${esc(pick(d, ['title'], ''))} · ${plvBadge(lv)} · 등재 ${dOnly(pick(d, ['registered_on', 'registered_at'], ''))}`;
+      // 같은 문서철의 유효 기록(자기 자신 제외)
+      const folder = pick(d, ['folder_no'], '');
+      const cands = recRows.filter(r => r.folder_no === folder && !r.is_void && (r.status || '유효') === '유효' && r.record_no !== supOldNo);
+      const sel = document.getElementById('rsTargetPick');
+      sel.innerHTML = '<option value="">— 선택 —</option>' + cands.map(r => `<option value="${esc(r.record_no)}">${esc(r.record_no)} · ${esc(r.masked ? '(제한 기록)' : (r.title || ''))}</option>`).join('');
+      document.getElementById('rsReason').value = '';
+      document.getElementById('rsConfirm').style.display = 'none';
+      document.getElementById('rsMsg').textContent = '';
+      if (!cands.length) { document.getElementById('rsMsg').className = 'form-msg'; document.getElementById('rsMsg').textContent = '같은 관리함에 대체본으로 지정할 수 있는 유효 기록이 없습니다. 먼저 [+ 기록 등재]로 새 기록을 등재해 주세요.'; }
+      recSupModal.classList.add('open');
+      closeRecDetail();
+    }
+    let supConfirmed = false;
+    document.getElementById('rsSubmit').addEventListener('click', async () => {
+      const msg = document.getElementById('rsMsg'); msg.className = 'form-msg';
+      const newNo = document.getElementById('rsTargetPick').value;
+      const reason = document.getElementById('rsReason').value.trim();
+      if (!newNo) { msg.className = 'form-msg err'; msg.textContent = '대체본으로 지정할 기록을 선택해 주세요.'; return; }
+      if (newNo === supOldNo) { msg.className = 'form-msg err'; msg.textContent = '같은 기록을 대체본으로 지정할 수 없습니다.'; return; }
+      if (reason.length < 10) { msg.className = 'form-msg err'; msg.textContent = '대체 사유를 10자 이상 입력해 주세요.'; return; }
+      // 인라인 확인 (window.confirm 금지)
+      const cf = document.getElementById('rsConfirm');
+      if (!supConfirmed) {
+        cf.style.display = ''; supConfirmed = true;
+        cf.innerHTML = `구본 <b>${esc(supOldNo)}</b> 는 '대체됨'으로 전환됩니다. 진행하시겠습니까? <button class="dist-ok" id="rsYes">예, 대체합니다</button> <button class="dist-no" id="rsNo">아니요</button>`;
+        document.getElementById('rsYes').addEventListener('click', () => { supConfirmed = false; cf.style.display = 'none'; doSupersede(newNo, reason, msg); });
+        document.getElementById('rsNo').addEventListener('click', () => { supConfirmed = false; cf.style.display = 'none'; });
+        return;
+      }
+    });
+    async function doSupersede(newNo, reason, msg) {
+      const btn = document.getElementById('rsSubmit'); btn.disabled = true; const lbl = btn.textContent; btn.textContent = '대체 중…';
+      try {
+        const { error } = await edmsClient.rpc('edms_record_supersede', { p_old: supOldNo, p_new: newNo, p_reason: reason });
+        if (error) {
+          const raw = String(error.message || error);
+          msg.className = 'form-msg err';
+          msg.textContent = /이미|already/i.test(raw) ? '이 기록은 이미 대체되었습니다. 목록을 새로고침해 주세요.'
+            : /순환|cycle/i.test(raw) ? '순환 대체는 허용되지 않습니다.'
+            : /권한|permission/i.test(raw) ? '대체 권한이 없습니다.' : '대체 처리에 실패했습니다.';
+          console.warn('대체 실패:', raw); return;
+        }
+        closeSup(); toast('대체 처리했습니다.'); await loadRecords();
+      } finally { btn.disabled = false; btn.textContent = lbl; }
+    }
+
+    // ── 기록 폐기 (사유 필수 — 기존 askReason 재사용) ──
+    async function doVoidRecord(recordNo) {
+      const reason = await askReason('기록 폐기 사유', '폐기 사유를 입력해야 처리됩니다(필수). 폐기 건은 삭제되지 않고 추적 가능하게 남습니다.');
+      if (reason === null) return;
+      const { error } = await edmsClient.rpc('edms_record_void', { p_record_no: recordNo, p_reason: reason });
+      if (error) { alert(friendlyErr(error, '폐기 처리에 실패했습니다.')); return; }
+      closeRecDetail(); toast('기록을 폐기했습니다.'); await loadRecords();
+    }
+
+    // ══════════ 배포 (E·F) ══════════
+    // ── (E) 배포 신청 ──
+    const distReqModal = document.getElementById('distReqModal');
+    const closeDistReq = () => distReqModal.classList.remove('open');
+    document.getElementById('drClose').addEventListener('click', closeDistReq);
+    distReqModal.addEventListener('click', (e) => { if (e.target === distReqModal) closeDistReq(); });
+    let distReqCtx = null;
+    function openDistReq(kind, no, title, level) {
+      if (isAdmin) { alert('관리자 계정은 배포 신청 대상이 아닙니다. 직접 다운로드를 이용해 주세요.'); return; }
+      distReqCtx = { kind, no, title, level: level || 2 };
+      document.getElementById('drTarget').value = `[${kind === 'record' ? '기록' : '표준문서'}] ${no} — ${title || ''}`;
+      document.getElementById('drLevel').innerHTML = plvBadge(level) + (level >= 3 ? ' <span style="color:#c0392b;font-size:12px">대외비 이상 — 대표 승인 대상</span>' : '');
+      ['drReason', 'drDest', 'drRecipient', 'drDue'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('drChannel').value = '내부열람';
+      document.getElementById('drCount').value = '1';
+      document.getElementById('drMsg').textContent = '';
+      updateExecNote();
+      distReqModal.classList.add('open');
+    }
+    function updateExecNote() {
+      const ch = document.getElementById('drChannel').value;
+      const need = ch === '외부전달' || (distReqCtx && distReqCtx.level >= 3);
+      document.getElementById('drExecNote').style.display = need ? '' : 'none';
+    }
+    document.getElementById('drChannel').addEventListener('change', updateExecNote);
+    document.getElementById('drSubmit').addEventListener('click', async () => {
+      const msg = document.getElementById('drMsg'); msg.className = 'form-msg';
+      if (isAdmin) { msg.className = 'form-msg err'; msg.textContent = '관리자 계정은 배포 신청 대상이 아닙니다. 직접 다운로드를 이용해 주세요.'; return; }
+      const reason = document.getElementById('drReason').value.trim();
+      const dest = document.getElementById('drDest').value.trim();
+      const recipient = document.getElementById('drRecipient').value.trim() || dest;
+      const channel = document.getElementById('drChannel').value;
+      if (!reason || !dest) { msg.className = 'form-msg err'; msg.textContent = '배포 이유와 배포처는 반드시 입력해야 합니다.'; return; }
+      if (reason.length < 10) { msg.className = 'form-msg err'; msg.textContent = '배포 이유를 10자 이상 구체적으로 작성해 주세요.'; return; }
+      const btn = document.getElementById('drSubmit'); btn.disabled = true; const lbl = btn.textContent; btn.textContent = '신청 중…';
+      try {
+        const { data, error } = await edmsClient.rpc('edms_dist_request', {
+          p_kind: distReqCtx.kind, p_no: distReqCtx.no, p_recipient: recipient,
+          p_channel: channel, p_reason: reason, p_dest: dest,
+        });
+        if (error) {
+          const raw = String(error.message || error);
+          msg.className = 'form-msg err';
+          msg.textContent = /중복|duplicate|이미/i.test(raw) ? '같은 대상에 대해 처리 중인 배포 신청이 이미 있습니다. \'내 배포 신청 현황\'에서 확인해 주세요.'
+            : /관리자|admin/i.test(raw) ? '관리자 계정은 배포 신청 대상이 아닙니다. 직접 다운로드를 이용해 주세요.'
+            : /정책|policy|차단/i.test(raw) ? '현재 이 대상은 해당 경로로 배포할 수 없습니다.'
+            : '배포 신청에 실패했습니다.';
+          console.warn('배포 신청 실패:', raw); return;
+        }
+        closeDistReq(); toast('배포를 신청했습니다.'); await loadDistMine();
+      } finally { btn.disabled = false; btn.textContent = lbl; }
+    });
+
+    // ── (E-2) 내 배포 신청 현황 ──
+    async function loadDistMine() {
+      if (isAdmin) return;  // 관리자는 직접 다운로드 경로 사용
+      const panel = document.getElementById('distMinePanel'); panel.style.display = '';
+      const body = document.getElementById('distMineBody');
+      const { data, error } = await edmsClient.from('edms_distributions').select('*').order('requested_at', { ascending: false }).limit(500);
+      if (error) { body.innerHTML = `<tr><td colspan="9" class="dist-empty">배포 신청 현황을 불러오지 못했습니다.</td></tr>`; console.warn(error.message); return; }
+      const rows = data || [];
+      if (!rows.length) { body.innerHTML = `<tr><td colspan="9" class="dist-empty">신청한 배포 건이 없습니다. 표준문서 목록이나 기록 상세에서 [배포 신청]을 눌러 신청할 수 있습니다.</td></tr>`; return; }
+      body.innerHTML = rows.map(r => {
+        const no = pick(r, ['target_no', 'doc_number', 'record_no', 'no'], '');
+        const st = pick(r, ['status'], '');
+        let actn = '—';
+        if (st === '신청') actn = `<button class="dist-no" data-cancel="${esc(pick(r, ['id'], ''))}">신청 취소</button>`;
+        else if (st === '반려') actn = `<button class="dist-view" data-reapply="${esc(no)}">재신청</button>`;
+        else if (st === '발급') actn = `<button class="dl-btn" data-issue-dl="${esc(pick(r, ['id'], ''))}">다운로드</button>`;
+        return `<tr>
+          <td>${fmtDT(pick(r, ['requested_at', 'created_at'], ''))}</td>
+          <td>${esc(no)} ${esc(pick(r, ['title'], ''))}</td>
+          <td>${esc(pick(r, ['dest', 'destination'], ''))}</td>
+          <td>${esc(pick(r, ['channel'], ''))}</td>
+          <td>${esc(pick(r, ['copies', 'count'], 1))}</td>
+          <td>${distStatusBadge(st)}</td>
+          <td>${fmtDT(pick(r, ['decided_at', 'updated_at'], ''))}</td>
+          <td>${st === '반려' ? esc(pick(r, ['reject_reason', 'reason_reject'], '')) : ''}</td>
+          <td>${actn}</td></tr>`;
+      }).join('');
+    }
+    document.getElementById('distMineRefresh').addEventListener('click', loadDistMine);
+    document.getElementById('distMineBody').addEventListener('click', async (e) => {
+      const c = e.target.closest('[data-cancel]');
+      if (c) {
+        const reason = await askReason('배포 신청 취소 사유', '취소 사유를 입력해 주세요(필수).');
+        if (reason === null) return;
+        const { error } = await edmsClient.rpc('edms_dist_revoke', { p_id: c.dataset.cancel, p_reason: reason });
+        if (error) { alert(friendlyErr(error, '이미 처리된 건은 취소할 수 없습니다.')); return; }
+        toast('신청을 취소했습니다.'); await loadDistMine(); return;
+      }
+    });
+
+    // ── (F-1) 배포 승인 대기 ──
+    async function loadDistApprovals() {
+      if (!(isAdmin || isExec)) return;
+      const panel = document.getElementById('distApprovalPanel'); panel.style.display = '';
+      const { data, error } = await edmsClient.from('edms_distributions').select('*').limit(500);
+      if (error) { console.warn('배포 승인 대기 조회 실패:', error.message); return; }
+      const rows = data || [];
+      const card = (r, mode) => {
+        const no = pick(r, ['target_no', 'doc_number', 'record_no', 'no'], '');
+        const lv = pick(r, ['security_level', 'level'], 2);
+        const id = pick(r, ['id'], '');
+        const ch = pick(r, ['channel'], '');
+        const needExec = ch === '외부전달' || lv >= 3;
+        const checks = `<div class="dist-check">확인: 등급 ${plvBadge(lv)} · 경로 ${esc(ch)} · ${needExec ? '외부전달·P3↑ → 대표 2차 승인 대상' : '내부 배포'}</div>`;
+        let btns = '';
+        if (mode === 'p1') btns = `<button class="dist-ok" data-approve1="${esc(id)}">승인</button><button class="dist-no" data-reject1="${esc(id)}">반려</button>`;
+        else if (mode === 'p2') btns = `<button class="dist-ok" data-approve2="${esc(id)}">승인</button><button class="dist-no" data-reject2="${esc(id)}">반려</button>`;
+        else if (mode === 'issue') btns = `<button class="dist-ok" data-issue="${esc(id)}">발급</button>`;
+        btns += `<button class="dist-view" data-detail="${esc(id)}">상세</button>`;
+        return `<div class="dist-row"><div class="dist-info">
+          <b>${esc(no)}</b> ${esc(pick(r, ['title'], ''))} ${plvBadge(lv)} · 경로 ${esc(ch)}<br>
+          <small>신청자 ${esc(pick(r, ['requester_name', 'requester'], ''))} · 배포처 ${esc(pick(r, ['dest', 'destination'], ''))} · ${fmtDT(pick(r, ['requested_at', 'created_at'], ''))}</small><br>
+          <small>배포 이유: ${esc(pick(r, ['reason'], ''))}</small>${checks}
+          </div><div class="dist-actions">${btns}</div></div>`;
+      };
+      if (isAdmin) {
+        const p1 = rows.filter(r => pick(r, ['status'], '') === '신청');
+        const toIssue = rows.filter(r => ['승인완료', '대표승인'].includes(pick(r, ['status'], '')));
+        const sec = document.getElementById('daPending1'); sec.style.display = '';
+        document.getElementById('daP1Cnt').textContent = `(${p1.length + toIssue.length})`;
+        document.getElementById('daP1List').innerHTML =
+          (p1.map(r => card(r, 'p1')).join('') + toIssue.map(r => card(r, 'issue')).join(''))
+          || '<div class="dist-empty">처리 대기 중인 배포 신청이 없습니다.</div>';
+      }
+      if (isExec) {
+        const p2 = rows.filter(r => ['대표승인대기', '관리자승인'].includes(pick(r, ['status'], '')));
+        const sec = document.getElementById('daPending2'); sec.style.display = '';
+        document.getElementById('daP2Cnt').textContent = `(${p2.length})`;
+        document.getElementById('daP2List').innerHTML = p2.map(r => card(r, 'p2')).join('') || '<div class="dist-empty">처리 대기 중인 배포 신청이 없습니다.</div>';
+      }
+    }
+    document.getElementById('distApRefresh').addEventListener('click', loadDistApprovals);
+    document.getElementById('distApprovalPanel').addEventListener('click', async (e) => {
+      const detail = e.target.closest('[data-detail]'); if (detail) { openDistDetail(detail.dataset.detail); return; }
+      const a1 = e.target.closest('[data-approve1]'); const r1 = e.target.closest('[data-reject1]');
+      const a2 = e.target.closest('[data-approve2]'); const r2 = e.target.closest('[data-reject2]');
+      const iss = e.target.closest('[data-issue]');
+      if (a1) return distDecide('edms_dist_approve', a1.dataset.approve1, true, null, e.target);
+      if (r1) { const rz = await askReason('배포 반려 사유', '반려 사유를 입력해야 반려됩니다(필수).'); if (rz === null) return; return distDecide('edms_dist_approve', r1.dataset.reject1, false, rz, e.target); }
+      if (a2) return distDecide('edms_dist_exec_approve', a2.dataset.approve2, true, null, e.target);
+      if (r2) { const rz = await askReason('배포 반려 사유', '반려 사유를 입력해야 반려됩니다(필수).'); if (rz === null) return; return distDecide('edms_dist_exec_approve', r2.dataset.reject2, false, rz, e.target); }
+      if (iss) {
+        iss.disabled = true;
+        const { error } = await edmsClient.rpc('edms_dist_issue', { p_id: iss.dataset.issue, p_minutes: 10 });
+        if (error) { alert(friendlyErr(error, '발급 처리에 실패했습니다. 관리자에게 알려 주세요.')); iss.disabled = false; return; }
+        toast('발급했습니다.'); await loadDistApprovals(); await loadDistLedger();
+      }
+    });
+    async function distDecide(rpc, id, approve, reason, btn) {
+      if (btn) btn.disabled = true;
+      const { error } = await edmsClient.rpc(rpc, { p_id: id, p_approve: approve, p_reject_reason: reason });
+      if (error) {
+        const raw = String(error.message || error);
+        if (/이미|already/i.test(raw)) { toast('다른 승인자가 먼저 처리한 건이 있어 목록을 갱신했습니다.'); await loadDistApprovals(); return; }
+        alert(friendlyErr(error, '처리에 실패했습니다.')); if (btn) btn.disabled = false; return;
+      }
+      toast(approve ? '승인했습니다.' : '반려했습니다.');
+      await loadDistApprovals(); await loadDistLedger();
+    }
+
+    // ── (F-2) 배포대장 ──
+    let ledgerRows = [];
+    async function loadDistLedger() {
+      if (!(isAdmin || isExec)) return;
+      document.getElementById('distLedgerPanel').style.display = '';
+      const { data, error } = await edmsClient.from('edms_distributions').select('*').order('requested_at', { ascending: false }).limit(1000);
+      if (error) { document.getElementById('dlBody').innerHTML = `<tr><td colspan="13" class="dist-empty">배포대장을 불러오지 못했습니다.</td></tr>`; console.warn(error.message); return; }
+      ledgerRows = data || [];
+      renderLedger();
+    }
+    function renderLedger() {
+      const from = document.getElementById('dlFrom').value, to = document.getElementById('dlTo').value;
+      const kind = document.getElementById('dlKind').value, ch = document.getElementById('dlChannel').value;
+      const dest = document.getElementById('dlDest').value.trim().toLowerCase();
+      const rows = ledgerRows.filter(r => {
+        const d = dOnly(pick(r, ['requested_at', 'created_at'], ''));
+        if (from && d && d < from) return false;
+        if (to && d && d > to) return false;
+        if (kind && pick(r, ['target_kind', 'kind'], '') !== kind) return false;
+        if (ch && pick(r, ['channel'], '') !== ch) return false;
+        if (dest && !String(pick(r, ['dest', 'destination'], '')).toLowerCase().includes(dest)) return false;
+        return true;
+      });
+      const body = document.getElementById('dlBody');
+      if (!rows.length) { body.innerHTML = `<tr><td colspan="13" class="dist-empty">${ledgerRows.length ? '조건에 맞는 배포 건이 없습니다.' : '배포 이력이 없습니다.'}</td></tr>`; }
+      else body.innerHTML = rows.map(r => {
+        const st = pick(r, ['status'], ''); const id = pick(r, ['id'], '');
+        const issued = pick(r, ['issued_at'], ''); const revoked = pick(r, ['revoked_at'], '');
+        const act = (isAdmin && st === '발급') ? `<button class="dist-no" data-revoke="${esc(id)}">회수</button> ` : '';
+        return `<tr>
+          <td>${esc(pick(r, ['dist_no', 'dist_seq', 'id'], ''))}</td>
+          <td>${esc(pick(r, ['target_no', 'doc_number', 'record_no', 'no'], ''))}</td>
+          <td>${esc(pick(r, ['title'], ''))}</td>
+          <td>${plvBadge(pick(r, ['security_level', 'level'], 2))}</td>
+          <td>${esc(pick(r, ['dest', 'destination'], ''))}</td>
+          <td>${esc(pick(r, ['channel'], ''))}</td>
+          <td>${esc(pick(r, ['copies', 'count'], 1))}</td>
+          <td>${esc(pick(r, ['requester_name', 'requester'], ''))}</td>
+          <td>${distStatusBadge(st)}</td>
+          <td>${fmtDT(issued)}</td>
+          <td>${revoked ? fmtDT(revoked) : '유효'}</td>
+          <td title="${esc(pick(r, ['reason'], ''))}">${esc(String(pick(r, ['reason'], '')).slice(0, 14))}</td>
+          <td>${act}<button class="dist-view" data-detail="${esc(id)}">상세</button></td></tr>`;
+      }).join('');
+      const issuedN = ledgerRows.filter(r => pick(r, ['status'], '') === '발급').length;
+      const revokedN = ledgerRows.filter(r => pick(r, ['status'], '') === '회수').length;
+      const extN = ledgerRows.filter(r => pick(r, ['channel'], '') === '외부전달').length;
+      document.getElementById('dlSummary').textContent = `총 ${ledgerRows.length}건 · 유효 발급 ${issuedN}건 · 회수 ${revokedN}건 · 외부전달 ${extN}건`;
+    }
+    ['dlFrom', 'dlTo', 'dlKind', 'dlChannel', 'dlDest'].forEach(id => { const el = document.getElementById(id); el && el.addEventListener(id === 'dlDest' ? 'input' : 'change', renderLedger); });
+    document.getElementById('distLedgerRefresh').addEventListener('click', loadDistLedger);
+    document.getElementById('dlBody').addEventListener('click', async (e) => {
+      const rv = e.target.closest('[data-revoke]');
+      if (rv) {
+        const reason = await askReason('배포 회수 사유', '회수 사유를 입력해야 처리됩니다(필수). 수신처에 "구본 회수 — 보유 사본 폐기 확인 회신 요망" 통지가 발송됩니다.');
+        if (reason === null) return;
+        const { error } = await edmsClient.rpc('edms_dist_revoke', { p_id: rv.dataset.revoke, p_reason: reason });
+        if (error) { alert(friendlyErr(error, '이미 회수된 건입니다.')); return; }
+        toast('회수했습니다.'); await loadDistLedger(); return;
+      }
+      const dt = e.target.closest('[data-detail]'); if (dt) openDistDetail(dt.dataset.detail);
+    });
+
+    // ── (F-2) 배포 건 상세 ──
+    const distDetailModal = document.getElementById('distDetailModal');
+    document.getElementById('dtClose').addEventListener('click', () => distDetailModal.classList.remove('open'));
+    distDetailModal.addEventListener('click', (e) => { if (e.target === distDetailModal) distDetailModal.classList.remove('open'); });
+    function openDistDetail(id) {
+      const r = (ledgerRows.concat(recRows.length ? [] : [])).find(x => String(pick(x, ['id'], '')) === String(id))
+        || ledgerRows.find(x => String(pick(x, ['id'], '')) === String(id));
+      if (!r) { toast('배포 건을 찾을 수 없습니다. 새로고침 후 다시 시도해 주세요.'); return; }
+      const rows = [
+        ['배포번호', pick(r, ['dist_no', 'dist_seq', 'id'], '')],
+        ['대상', pick(r, ['target_no', 'doc_number', 'record_no', 'no'], '')],
+        ['제목', pick(r, ['title'], '')],
+        ['등급', 'P' + pick(r, ['security_level', 'level'], 2)],
+        ['배포처', pick(r, ['dest', 'destination'], '')],
+        ['경로', pick(r, ['channel'], '')],
+        ['부수', pick(r, ['copies', 'count'], 1)],
+        ['신청자', pick(r, ['requester_name', 'requester'], '')],
+        ['상태', (DIST_STATUS[pick(r, ['status'], '')] || {}).t || pick(r, ['status'], '')],
+        ['배포 이유', pick(r, ['reason'], '')],
+      ];
+      document.getElementById('dtGrid').innerHTML = rows.map(x => `<div class="dd-row"><span class="k">${x[0]}</span><span class="v">${esc(String(x[1]))}</span></div>`).join('');
+      document.getElementById('dtHist').innerHTML =
+        `신청 ${fmtDT(pick(r, ['requested_at', 'created_at'], ''))}<br>` +
+        (pick(r, ['approved_at'], '') ? `관리자 승인 ${fmtDT(pick(r, ['approved_at'], ''))}<br>` : '') +
+        (pick(r, ['exec_approved_at'], '') ? `대표 승인 ${fmtDT(pick(r, ['exec_approved_at'], ''))}<br>` : '') +
+        (pick(r, ['issued_at'], '') ? `발급 ${fmtDT(pick(r, ['issued_at'], ''))}<br>` : '') +
+        (pick(r, ['revoked_at'], '') ? `회수 ${fmtDT(pick(r, ['revoked_at'], ''))}<br>` : '');
+      distDetailModal.classList.add('open');
+    }
+
+    // ── 초기 로드 (로그인 전원: 기록보관소 항상 표시) ──
+    document.getElementById('recordPanel').style.display = '';
+    if (canSeeVoidToggle) document.getElementById('recVoidToggleWrap').style.display = '';
+    // 노출 헬퍼를 폴링에서 재사용하도록 상위 스코프에 등록
+    window.__recRefresh = async () => { await loadRecords(); if (!isAdmin) await loadDistMine(); if (isAdmin || isExec) { await loadDistApprovals(); await loadDistLedger(); } };
+    await loadFolders();
+    await loadRecords();
+    if (!isAdmin) await loadDistMine();
+    if (isAdmin || isExec) { await loadDistApprovals(); await loadDistLedger(); }
+  }
+
   // ── 자동갱신(15초 폴링) — 화면이 보일 때만 ───────────────
   //  · 관리자: 승인 대기 목록 자동 갱신(새 요청이 바로 뜸)
   //  · 일반:   내 요청 상태 변화 시 자동 반영(승인되면 '확인'으로 전환, 반려 안내)
@@ -2562,6 +3626,7 @@
     }
     loadWorkflow();  // 결재함 대기·현황 자동 갱신 (전체 사용자)
     loadNotices();   // 공지 자동 갱신
+    if (typeof window.__recRefresh === 'function') window.__recRefresh();  // 기록보관소·배포 자동 갱신
   }, 15000);
 
   // ── 자동 로그아웃 (60분 미사용) — 로그인 후에만 동작 ─────
