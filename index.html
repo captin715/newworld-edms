@@ -3400,7 +3400,7 @@
       if (isAdmin) return;  // 관리자는 직접 다운로드 경로 사용
       const panel = document.getElementById('distMinePanel'); panel.style.display = '';
       const body = document.getElementById('distMineBody');
-      const { data, error } = await edmsClient.from('edms_distributions').select('*').order('requested_at', { ascending: false }).limit(500);
+      const { data, error } = await edmsClient.from('edms_distributions').select('*').order('created_at', { ascending: false }).limit(500);
       if (error) { body.innerHTML = `<tr><td colspan="9" class="dist-empty">배포 신청 현황을 불러오지 못했습니다.</td></tr>`; console.warn(error.message); return; }
       const rows = data || [];
       if (!rows.length) { body.innerHTML = `<tr><td colspan="9" class="dist-empty">신청한 배포 건이 없습니다. 표준문서 목록이나 기록 상세에서 [배포 신청]을 눌러 신청할 수 있습니다.</td></tr>`; return; }
@@ -3412,7 +3412,7 @@
         else if (st === '반려') actn = `<button class="dist-view" data-reapply="${esc(no)}">재신청</button>`;
         else if (st === '발급') actn = `<button class="dl-btn" data-issue-dl="${esc(pick(r, ['id'], ''))}">다운로드</button>`;
         return `<tr>
-          <td>${fmtDT(pick(r, ['requested_at', 'created_at'], ''))}</td>
+          <td>${fmtDT(pick(r, ['created_at'], ''))}</td>
           <td>${esc(no)} ${esc(pick(r, ['title'], ''))}</td>
           <td>${esc(pick(r, ['dest', 'destination'], ''))}</td>
           <td>${esc(pick(r, ['channel'], ''))}</td>
@@ -3456,7 +3456,7 @@
         btns += `<button class="dist-view" data-detail="${esc(id)}">상세</button>`;
         return `<div class="dist-row"><div class="dist-info">
           <b>${esc(no)}</b> ${esc(pick(r, ['title'], ''))} ${plvBadge(lv)} · 경로 ${esc(ch)}<br>
-          <small>신청자 ${esc(pick(r, ['requester_name', 'requester'], ''))} · 배포처 ${esc(pick(r, ['dest', 'destination'], ''))} · ${fmtDT(pick(r, ['requested_at', 'created_at'], ''))}</small><br>
+          <small>신청자 ${esc(pick(r, ['requester_name', 'requester'], ''))} · 배포처 ${esc(pick(r, ['dest', 'destination'], ''))} · ${fmtDT(pick(r, ['created_at'], ''))}</small><br>
           <small>배포 이유: ${esc(pick(r, ['reason'], ''))}</small>${checks}
           </div><div class="dist-actions">${btns}</div></div>`;
       };
@@ -3510,7 +3510,7 @@
     async function loadDistLedger() {
       if (!(isAdmin || isExec)) return;
       document.getElementById('distLedgerPanel').style.display = '';
-      const { data, error } = await edmsClient.from('edms_distributions').select('*').order('requested_at', { ascending: false }).limit(1000);
+      const { data, error } = await edmsClient.from('edms_distributions').select('*').order('created_at', { ascending: false }).limit(1000);
       if (error) { document.getElementById('dlBody').innerHTML = `<tr><td colspan="13" class="dist-empty">배포대장을 불러오지 못했습니다.</td></tr>`; console.warn(error.message); return; }
       ledgerRows = data || [];
       renderLedger();
@@ -3520,7 +3520,7 @@
       const kind = document.getElementById('dlKind').value, ch = document.getElementById('dlChannel').value;
       const dest = document.getElementById('dlDest').value.trim().toLowerCase();
       const rows = ledgerRows.filter(r => {
-        const d = dOnly(pick(r, ['requested_at', 'created_at'], ''));
+        const d = dOnly(pick(r, ['created_at'], ''));
         if (from && d && d < from) return false;
         if (to && d && d > to) return false;
         if (kind && pick(r, ['target_kind', 'kind'], '') !== kind) return false;
@@ -3590,7 +3590,7 @@
       ];
       document.getElementById('dtGrid').innerHTML = rows.map(x => `<div class="dd-row"><span class="k">${x[0]}</span><span class="v">${esc(String(x[1]))}</span></div>`).join('');
       document.getElementById('dtHist').innerHTML =
-        `신청 ${fmtDT(pick(r, ['requested_at', 'created_at'], ''))}<br>` +
+        `신청 ${fmtDT(pick(r, ['created_at'], ''))}<br>` +
         (pick(r, ['approved_at'], '') ? `관리자 승인 ${fmtDT(pick(r, ['approved_at'], ''))}<br>` : '') +
         (pick(r, ['exec_approved_at'], '') ? `대표 승인 ${fmtDT(pick(r, ['exec_approved_at'], ''))}<br>` : '') +
         (pick(r, ['issued_at'], '') ? `발급 ${fmtDT(pick(r, ['issued_at'], ''))}<br>` : '') +
