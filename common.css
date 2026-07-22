@@ -605,7 +605,7 @@ header.edms-nav.docs { background:var(--docs); } header.edms-nav.recs { backgrou
 .step .lbl { font-size:12px; color:#555; } .step.on .lbl { color:var(--est); font-weight:bold; } .step-arrow .ico { width:16px; height:16px; color:#c3b0bf; }
 .est-actions { display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 14px; }
 .est-btn { border:none; border-radius:7px; padding:7px 13px; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
-.est-btn.primary { background:var(--est); color:#fff; } .est-btn.ghost { background:#fff; border:1.5px solid #d9c6d2; color:#5c2247; } .est-btn .ico { width:13px; height:13px; }
+.est-btn.primary { background:var(--est); color:#fff; } .est-btn.ghost { background:#fff; border:1.5px solid #d9c6d2; color:#5c2247; } .est-btn.temp { background:#8a5a2b; color:#fff; } .est-btn .ico { width:13px; height:13px; }
 .est-lock { font-size:11px; color:#999; display:inline-flex; align-items:center; gap:4px; }
 .form-preview { border:1px solid #e0d3db; border-radius:8px; background:#fdfbfd; padding:14px; font-size:12px; color:#5c2247; line-height:1.7; }
 .form-preview .doc-title { font-size:14px; font-weight:bold; text-align:center; margin-bottom:8px; color:#3a1a2f; }
