@@ -582,11 +582,21 @@ EDMS.ready.then(async function (ctx) {
     if (!confirm(`[${d.doc_number}]를 폐기합니다. 폐기 후에는 목록에서 제외되고 열람·다운로드·개정이 차단됩니다(이력 조회는 가능). 계속할까요?`)) return;
     const { error } = await edmsClient.rpc('edms_doc_void', { p_doc_number: d.doc_number, p_reason: reason });
     if (error) {
+      const msg = error.message || '';
+      // [보강] 대상이 이미 목록에서 제외된 경우(문서 없음): 유령행이 남지 않도록
+      //  모달을 닫고 목록을 재조회한 뒤 안내한다. (다른 세션에서 이미 폐기/삭제된 상황)
+      const alreadyGone = /문서\s*없음|not\s*found|no\s*rows|존재하지\s*않/i.test(msg);
+      if (alreadyGone) {
+        closeDocDetail();
+        await refreshDocs();
+        alert('해당 문서는 이미 목록에서 제외되어 있습니다(다른 세션에서 폐기/삭제됨). 목록을 갱신했습니다.');
+        return;
+      }
       // 함수 미존재 등 서버 계약 부재 — 정직 안내(무단 마이그레이션 금지)
-      const notImpl = /PGRST202|does not exist|not find|function .* does not|무.*함수/i.test(error.message || '');
+      const notImpl = /PGRST202|does not exist|not find|function .* does not|무.*함수/i.test(msg);
       alert(notImpl
         ? '문서 폐기 서버 기능(RPC edms_doc_void)이 아직 배포되지 않았습니다.\nUI·호출은 구현되어 있으며, 서버 함수 배포(별도 승인) 후 동작합니다. (임의 마이그레이션 금지)'
-        : '폐기 실패: ' + error.message);
+        : '폐기 실패: ' + msg);
       return;
     }
     closeDocDetail();
