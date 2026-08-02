@@ -144,6 +144,30 @@
           <div class="form-msg" id="ndMsg" style="font-size:12px;margin-top:10px;min-height:16px"></div>
         </div>
       </div>
+
+<div class="panel" id="recFormRegPanel" style="display:none">
+      <h2><svg class="rec-ico" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>양식 대장 (등재 현황)</h2>
+      <div class="info-banner">기록작성시스템에 <b>등재된 양식(W-FR)</b> 목록입니다. 문서철번호는 <b>[부서]-[양식순번]-[연도]</b> 로 DB가 자동 발번합니다. 조회 전용 화면입니다.</div>
+      <div class="rec-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0">
+        <input type="text" id="frSearch" placeholder="문서번호·양식명 검색" style="flex:1;min-width:180px">
+        <select id="frDeptFilter"><option value="">부서 전체</option></select>
+        <label style="font-size:13px"><input type="checkbox" id="frActiveOnly" checked> 사용중만 보기</label>
+        <button id="frRefresh" style="font-size:12px;padding:3px 10px;cursor:pointer">새로고침</button>
+        <span class="count-info" id="frCount"></span>
+      </div>
+      <div id="frBanner"></div>
+      <div id="frTableWrap">
+        <table class="rec-std" id="frTable">
+          <thead><tr>
+            <th style="width:70px">부서</th><th style="width:70px">순번</th>
+            <th style="width:210px">문서번호</th><th>양식명</th>
+            <th style="width:150px">문서철번호</th><th style="width:110px">등재일</th><th style="width:80px">사용여부</th>
+          </tr></thead>
+          <tbody id="frTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     </div>
   </div>
 </main>
@@ -327,6 +351,9 @@ EDMS.ready.then(async function (ctx) {
 
     // 문서철 → 양식명 맵 (edms_record_folders / edms_record_form_registry 기준, 없으면 폴백)
     let folderFormMap = {};
+    let folderTitleMap = {};      // [DEF-24 정정] 문서철 이름 맵 (folders.title)
+    let folderJoinMiss = [];      // [판정 20260801_12 §1-3] 조인 실패 folder_no 수집
+    let folderDeptMap = {};       // [DEF-24 정정 366] folder_no → 부서 표시명
 
     // ── 배포 상태 표기 매핑 (결재선 외 직책 금지 — 역할 명칭만) ──
     //   내부 상태값(신청→관리자승인→대표승인대기→대표승인→승인완료→발급→회수/반려)을 화면 문구로 치환
@@ -349,21 +376,53 @@ EDMS.ready.then(async function (ctx) {
 
     async function loadFolders() {
       folderFormMap = {};
+      folderTitleMap = {}; folderJoinMiss = []; folderDeptMap = {};
       try {
         const { data, error } = await edmsClient.from('edms_record_folders').select('*').limit(500);
         if (error) { console.warn('관리함 조회 실패:', error.message); recFolders = []; }
         else recFolders = data || [];
       } catch (e) { console.warn('관리함 조회 예외:', e && e.message); recFolders = []; }
-      recFolders.forEach(f => { const no = pick(f, ['folder_no', 'no'], ''); const fm = pick(f, ['form_name', 'form', 'name'], ''); if (no && fm) folderFormMap[no] = fm; });
-      // 양식 레지스트리로 보강(있으면)
+      // [DEF-24 정정 357] 문서철 이름 = folders.title — 양식명 아님(판정 20260801_12 §2-1)
+      recFolders.forEach(f => { const no = pick(f, ['folder_no', 'no'], ''); const t = pick(f, ['title'], ''); if (no && t) folderTitleMap[no] = t; });
+      // [DEF-24 정정 361] 양식명 = registry.form_title / 조인 = dept_code + form_seq (판정 20260801_12 §1-3 ㉮)
+      //   조인 실패 시 빈 값 유지 — folders.title 로 대체하지 않는다(SHALL NOT)
       try {
         const { data } = await edmsClient.from('edms_record_form_registry').select('*').limit(500);
-        (data || []).forEach(fr => { const no = pick(fr, ['folder_no', 'no'], ''); const fm = pick(fr, ['form_name', 'form', 'name'], ''); if (no && fm && !folderFormMap[no]) folderFormMap[no] = fm; });
+        const reg = {};
+        (data || []).forEach(fr => {
+          const k = `${pick(fr, ['dept_code'], '')}|${pick(fr, ['form_seq'], '')}`;
+          if (k === '|') return;
+          reg[k] = { title: pick(fr, ['form_title'], ''), dept: pick(fr, ['dept_name'], '') };
+        });
+        recFolders.forEach(f => {
+          const no = pick(f, ['folder_no', 'no'], '');
+          if (!no) return;
+          const code = pick(f, ['dept_code'], '');
+          const k = `${code}|${pick(f, ['form_seq'], '')}`;
+          const hit = reg[k];
+          if (hit && hit.title) {
+            folderFormMap[no] = hit.title;
+            // [판정 20260802_01 §2-2] 부서명 1순위 registry.dept_name → 2순위 dept_code → 3순위 빈 값
+            //   DB 값 그대로 표시 — 「팀」 등 문자열 보정 금지(DEF-25 은폐 방지)
+            folderDeptMap[no] = hit.dept || code || '';
+          } else {
+            // [판정 20260802_01 §3 조건6] 조인 실패 시 거동 명시:
+            //   양식명은 빈 값 유지(folders.title 대체 금지 — 20260801_12 §1-3 SHALL NOT)
+            //   부서는 dept_code 폴백 허용(같은 것의 다른 표기이므로)
+            //   화면 오류 없음 · 건수만 수집해 보고
+            folderJoinMiss.push(no);
+            folderDeptMap[no] = code || '';
+          }
+        });
+        if (folderJoinMiss.length) console.warn('[DEF-24] 양식 조인 실패', folderJoinMiss.length, '건:', folderJoinMiss.join(', '));
       } catch (e) { /* 레지스트리 미제공 시 폴백 */ }
     }
     const formOf = (folderNo) => folderFormMap[folderNo] || '—';
-    const folderLabel = (f) => `${pick(f, ['folder_no', 'no'], '')} ${pick(f, ['form_name', 'form', 'name'], '')}`.trim();
-    const folderDept = (f) => pick(f, ['owner_dept', 'dept'], '');
+    // [DEF-24 정정 365] 문서철 라벨 = folder_no + 문서철 이름(title)
+    const folderLabel = (f) => `${pick(f, ['folder_no', 'no'], '')} ${pick(f, ['title'], '')}`.trim();
+    // [DEF-24 정정 366] 부서 표시명 — registry.dept_name 우선 · dept_code 폴백 (판정 20260802_01 §2-2)
+    //   edms_record_list(뷰) owner_dept 미사용 — 조회 축 혼입 금지
+    const folderDept = (f) => folderDeptMap[pick(f, ['folder_no', 'no'], '')] || pick(f, ['dept_code'], '');
 
     async function loadRecords() {
       const { data, error } = await edmsClient.from('edms_record_list')
@@ -393,17 +452,100 @@ EDMS.ready.then(async function (ctx) {
         { ico: 'dist', title: '배포 신청', desc: '기록 상세에서 사본을 정식 경로로 신청', nav: 'distMinePanel', on: !isAdmin, lock: '관리자는 직접 다운로드' },
         { ico: 'approve', title: '배포 승인', desc: (isExec ? '대표 2차 승인 대기 처리' : '관리자 1차 승인 대기 처리'), nav: 'distApprovalPanel', on: (isAdmin || isExec), lock: '승인권자 전용' },
         { ico: 'dept', title: '부서(관리함) 추가', desc: '부서·문서철 신설(코드 C/Q/D/M/G/E/R/S)', nav: 'recDeptPanel', on: isAdmin, lock: '관리자 전용' },
+        { ico: 'list', title: '양식 대장', desc: '등재된 양식(W-FR)·문서철번호 조회', nav: 'recFormRegPanel', on: true },
       ];
       box.innerHTML = tiles.map(t => {
         if (!t.on) return `<div class="rec-tile disabled"><div class="tt">${ico(t.ico)}${esc(t.title)}</div><div class="td">${esc(t.desc)}</div><div class="tlock">${ico('lock', 'lock')} ${esc(t.lock)}</div></div>`;
         return `<button class="rec-tile" data-nav="${t.nav || ''}" data-act="${t.act || ''}"><div class="tt">${ico(t.ico)}${esc(t.title)}</div><div class="td">${esc(t.desc)}</div></button>`;
       }).join('');
     }
+
+    /* ── 양식 대장 조회 (조회 전용 · DB 쓰기 없음) ─────────────────────
+       판정 20260801_12 §1-3 ㉮ — 조인 dept_code+form_seq · 값 registry.form_title
+       기존 SELECT 경로 사용(정책 recform_select / recfolder_select) — 신설 정책 없음 */
+    let frRows = [];
+    async function loadFormRegistry() {
+      const banner = document.getElementById('frBanner');
+      try {
+        const [{ data: regs, error: e1 }, { data: fols, error: e2 }] = await Promise.all([
+          edmsClient.from('edms_record_form_registry').select('*').limit(1000),
+          edmsClient.from('edms_record_folders').select('*').limit(1000)
+        ]);
+        if (e1) throw new Error(e1.message);
+        if (e2) console.warn('문서철 조회 실패:', e2.message);
+        const folMap = {};
+        (fols || []).forEach(f => {
+          const k = `${pick(f, ['dept_code'], '')}|${pick(f, ['form_seq'], '')}`;
+          const no = pick(f, ['folder_no', 'no'], '');
+          if (k !== '|' && no) folMap[k] = no;
+        });
+        frRows = (regs || []).map(r => {
+          const dc = pick(r, ['dept_code'], ''), fs = pick(r, ['form_seq'], '');
+          return {
+            dept_code: dc, dept_name: pick(r, ['dept_name'], ''), form_seq: fs,
+            form_doc_number: pick(r, ['form_doc_number'], ''),
+            form_title: pick(r, ['form_title'], ''),
+            folder_no: folMap[`${dc}|${fs}`] || '',   // 조인 실패 시 빈 값 — title 대체 금지
+            created_at: pick(r, ['created_at'], ''),
+            active: r && r.active !== false
+          };
+        }).sort((a, b) => (a.dept_code + a.form_seq).localeCompare(b.dept_code + b.form_seq));
+        if (banner) banner.innerHTML = '';
+      } catch (err) {
+        frRows = [];
+        if (banner) banner.innerHTML = `<div class="info-banner" style="background:#fdecea;color:#943126">양식 대장을 불러오지 못했습니다. 새로고침 후에도 같은 문제가 반복되면 관리자에게 알려 주세요.</div>`;
+        console.warn('양식 대장 조회 실패:', err && err.message);
+      }
+      fillFrDeptFilter(); renderFormRegistry();
+    }
+    function fillFrDeptFilter() {
+      const sel = document.getElementById('frDeptFilter'); if (!sel) return;
+      const cur = sel.value;
+      const depts = [...new Set(frRows.map(r => r.dept_code).filter(Boolean))].sort();
+      sel.innerHTML = '<option value="">부서 전체</option>' + depts.map(d => {
+        const nm = (frRows.find(r => r.dept_code === d) || {}).dept_name || '';
+        return `<option value="${esc(d)}">${esc(d)}${nm ? ' (' + nm + ')' : ''}</option>`;
+      }).join('');
+      sel.value = cur;
+    }
+    function renderFormRegistry() {
+      const tb = document.getElementById('frTbody'); if (!tb) return;
+      const q = (document.getElementById('frSearch') || {}).value || '';
+      const dq = (document.getElementById('frDeptFilter') || {}).value || '';
+      const actOnly = !!(document.getElementById('frActiveOnly') || {}).checked;
+      const rows = frRows.filter(r =>
+        (!dq || r.dept_code === dq) && (!actOnly || r.active) &&
+        (!q || (r.form_doc_number + ' ' + r.form_title).toLowerCase().includes(q.toLowerCase())));
+      const cnt = document.getElementById('frCount');
+      if (cnt) cnt.textContent = `${rows.length}건 / 전체 ${frRows.length}건`;
+      if (!rows.length) { tb.innerHTML = `<tr><td colspan="7" class="rec-empty">등재된 양식이 없습니다.</td></tr>`; return; }
+      tb.innerHTML = rows.map(r => `<tr>
+        <td>${esc(r.dept_code)}${r.dept_name ? '<br><span style="font-size:11px;color:#777">' + esc(r.dept_name) + '</span>' : ''}</td>
+        <td>${esc(r.form_seq)}</td>
+        <td style="font-family:monospace;font-size:12px">${esc(r.form_doc_number)}</td>
+        <td>${esc(r.form_title)}</td>
+        <td style="font-family:monospace;font-size:12px">${r.folder_no ? esc(r.folder_no) : '<span style="color:#c0392b">미개설</span>'}</td>
+        <td>${esc((r.created_at || '').slice(0, 10))}</td>
+        <td>${r.active ? '사용중' : '<span style="color:#999">중지</span>'}</td>
+      </tr>`).join('');
+    }
+    ['frSearch', 'frDeptFilter', 'frActiveOnly'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener(id === 'frSearch' ? 'input' : 'change', renderFormRegistry);
+    });
+    { const b = document.getElementById('frRefresh'); if (b) b.addEventListener('click', loadFormRegistry); }
+
     const gateBox = document.getElementById('recGateTiles');
     if (gateBox) gateBox.addEventListener('click', (e) => {
       const t = e.target.closest('.rec-tile'); if (!t) return;
       if (t.dataset.act === 'reg') { if (canRegisterRec) openRegModal(); return; }
-      const nav = t.dataset.nav; if (nav) { const el = document.getElementById(nav); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      const nav = t.dataset.nav; if (nav) { const el = document.getElementById(nav);
+        // [정정] 양식 대장은 로그인 사용자 전원 조회 — 관리자 분기와 분리(지시 20260801_10 §2-2)
+        if (el) {
+          // 대상 패널과 그 조상 중 숨겨진 요소를 함께 해제 — 비관리자 경로에서 상위 컨테이너가 닫혀 있음
+          for (let n = el; n && n !== document.body; n = n.parentElement) { if (n.style && n.style.display === 'none') n.style.display = ''; }
+          if (nav === 'recFormRegPanel' && typeof loadFormRegistry === 'function') loadFormRegistry();
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }
     });
 
     // ── (지적 d) 기록 목록 상·하단 가로 스크롤바 3자 동기화 ──
@@ -1037,7 +1179,9 @@ EDMS.ready.then(async function (ctx) {
       if (!keys.length) html += '<div class="dist-empty">등록된 관리함이 없습니다.</div>';
       keys.forEach(d => {
         html += `<div class="rt-node rt-dept">${ico('dept')} ${esc(d)}</div>`;
-        byDept[d].forEach(f => { html += `<div class="rt-node rt-folder">${esc(pick(f, ['folder_no', 'no'], ''))} <span class="rt-cnt">${esc(pick(f, ['form_name', 'form', 'name'], ''))}</span></div>`; });
+        // [DEF-24 정정 1040] 문서철 노드 → folders.title (판정 20260802_02 §1-2)
+        //   양식명(form_title) 금지 · 없으면 빈 값
+        byDept[d].forEach(f => { html += `<div class="rt-node rt-folder">${esc(pick(f, ['folder_no', 'no'], ''))} <span class="rt-cnt">${esc(folderTitleMap[pick(f, ['folder_no', 'no'], '')] || '')}</span></div>`; });
       });
       box.innerHTML = html;
     }
