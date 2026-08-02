@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뉴월드 EDMS — 기록관리</title>
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<!-- data-system="gate" — 사유는 docs-gate.html 주석과 동일(common.js 무수정) -->
+<header id="edmsHeader" data-system="gate"></header>
+<main>
+  <div id="loading" style="text-align:center;padding:60px 0;color:#26324a">불러오는 중...</div>
+  <div id="gate" style="display:none">
+    <div class="crumbs"><b><a href="index.html" style="color:inherit">뉴월드 EDMS</a></b><span class="sep">›</span>기록관리</div>
+    <div class="gate-hero">
+      <div class="top">RECORD MANAGEMENT</div>
+      <h1>기록관리</h1>
+      <p>승인된 <b>양식(W-FR)</b>으로 남기는 기록을 다룹니다. 기록은 부서별 <b>문서철</b>에 편철되며, 한 번 등재된 기록은 <b>수정할 수 없습니다</b>(대체·폐기로만 처리).</p>
+    </div>
+    <div class="gate-tiles" id="tiles"></div>
+    <div class="gate-info" id="info"></div>
+  </div>
+</main>
+<footer style="text-align:center;padding:18px;font-size:11px;color:#aaa">뉴월드 EDMS · 기록관리 · <a href="index.html" style="color:#aaa">대문으로</a></footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="common.js"></script>
+<script>
+  // 기록관리 서브 대문(지시 20260802_05 §3)
+  //   기록작성시스템은 미개발 — 타일은 노출하되 링크 없음(<div>), 가짜 진입 경로·alert 금지(§3-1 SHALL NOT)
+  EDMS.ready.then(function (ctx) {
+    if (!ctx) return;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('gate').style.display = '';
+    var ico = EDMS.ico, SYS = EDMS.SYS;
+
+    function tile(key, desc) {
+      var m = SYS[key];
+      return '<a class="gate-tile ' + m.cls + '" href="' + m.file + '"><span class="t-ico">' + ico(m.icon) + '</span>'
+        + '<div class="t-title">' + m.name + '</div><div class="t-desc">' + desc + '</div>'
+        + '<div class="t-go">' + ico('arrowR') + ' 들어가기</div></a>';
+    }
+    // 미개발 시스템 — 클릭 대상이 아니므로 <a>·onclick 을 두지 않는다
+    var writeTile =
+      '<div class="gate-tile recs locked" id="tileRecordWrite"><span class="t-lock">' + ico('lock') + ' 준비 중 — 개발 예정</span>'
+      + '<span class="t-ico">' + ico('doc') + '</span>'
+      + '<div class="t-title">기록작성시스템</div>'
+      + '<div class="t-desc">등재된 양식으로 기록을 작성·출력합니다. 양식이 문서관리시스템에 등재되어야 작성할 수 있습니다.</div>'
+      + '<div class="t-go">' + ico('lock') + ' 준비 중 — 개발 예정</div></div>';
+
+    document.getElementById('tiles').innerHTML =
+      tile('records', '부서별 관리함 기록 등재·열람·배포 — 기록보관소·배포대장·양식 대장') + writeTile;
+
+    document.getElementById('info').innerHTML =
+      '<div class="gate-card recs"><div class="label">기록관리시스템 · 접속</div><div class="value">전원</div></div>'
+      + '<div class="gate-card recs"><div class="label">기록작성시스템</div><div class="value">준비 중</div></div>';
+  });
+</script>
+</body>
+</html>

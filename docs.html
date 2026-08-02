@@ -62,6 +62,10 @@
       <div class="ga-form">
         <select id="gaDoc"><option value="">문서 선택…</option></select>
         <select id="gaUser"></select>
+        <select id="gaAction" style="padding:8px 10px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:13px">
+          <option value="개정">개정 권한</option>
+          <option value="열람">열람 권한</option>
+        </select>
         <select id="gaMode"><option value="allow">허용(개정 가능)</option><option value="deny">차단(개정 불가)</option></select>
         <select id="gaTerm"><option value="perm">영구</option><option value="1">1일</option><option value="7">7일</option><option value="30">30일</option></select>
         <button id="gaSet">적용</button>
@@ -96,6 +100,8 @@
         <button id="recentRevBtn" class="rec-btn ghost" title="개정일 내림차순 정렬(개정 없음은 최하단)">최근 개정순</button>
         <button id="voidViewBtn" class="rec-btn ghost" style="display:none" title="폐기된 문서 이력 조회(관리자)">폐기 문서 보기</button>
       </div>
+      <!-- 상시 안내(조건부 아님) — 목록에 안 보이는 문서가 있다는 사실을 항상 알린다 -->
+      <div id="listNotice" style="font-size:12px;color:#6b4e00;background:#fdf6e3;border:1px solid #eccf95;border-radius:6px;padding:7px 11px;margin:6px 0 4px;line-height:1.5">타부서의 제한(P3) 문서는 목록에 표시되지 않습니다. 열람이 필요하면 관리자에게 요청하십시오.</div>
       <div class="count-info" id="countInfo"></div>
       <div id="docTopScroll"><div id="docTopScrollInner"></div></div>
       <div class="table-wrap" id="docTableWrap">
@@ -228,11 +234,18 @@
 <div id="grantModal">
   <div class="pw-box">
     <div class="pw-head">
-      <h3>문서 개정 권한 요청</h3>
+      <h3 id="grantTitle">문서 권한 요청</h3>
       <button id="grantClose">닫기 </button>
     </div>
     <div class="pw-body">
       <div class="pw-note" id="grantDocInfo" style="margin-top:0"></div>
+      <label>권한 종류</label>
+      <select id="grantAction" style="width:100%;padding:10px 12px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px">
+        <option value="개정">개정 권한 — 이 문서를 개정할 수 있습니다</option>
+        <!-- 나안(문서번호 직접 입력 신청) 도입 시 복원 — 2026-07-30 마스터 판정
+             현재는 도달 경로가 없어 렌더하지 않는다(죽은 UI 금지).
+        <option value="열람">열람 권한 — 타부서 제한(P3) 문서를 볼 수 있습니다</option> -->
+      </select>
       <label>요청 기간</label>
       <select id="grantTerm" style="width:100%;padding:10px 12px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px">
         <option value="1">1일</option>
@@ -884,10 +897,20 @@ EDMS.ready.then(async function (ctx) {
   let grantReqDocId = null;
   function openGrantRequest(docId, num, title, dept) {
     grantReqDocId = docId;
-    $('grantDocInfo').innerHTML = `<b>${escHtml(num)}</b> ${escHtml(title)}<br>이 문서는 <b>${escHtml(dept || '미지정')}</b>팀 담당입니다. 개정하려면 권한을 요청하세요.`;
+    $('grantDocInfo').innerHTML = `<b>${escHtml(num)}</b> ${escHtml(title)}<br>이 문서는 <b>${escHtml(dept || '미지정')}</b>팀 담당입니다. 필요한 권한 종류를 선택해 요청하세요.`;
+    if ($('grantAction')) $('grantAction').value = '개정';
+    syncGrantActionText();
     $('grantTerm').value = '1'; $('grantReason').value = ''; $('grantMsg').textContent = '';
     grantModal.classList.add('open');
   }
+  // 선택한 권한 종류에 따라 제목·사유 안내를 바꾼다 — 무엇을 요청하는지 화면에서 드러나게
+  function syncGrantActionText() {
+    const act = $('grantAction') ? $('grantAction').value : '개정';
+    if ($('grantTitle')) $('grantTitle').textContent = act === '열람' ? '문서 열람 권한 요청' : '문서 개정 권한 요청';
+    if ($('grantReason')) $('grantReason').placeholder =
+      act === '열람' ? '이 문서를 열람해야 하는 이유' : '이 문서를 개정해야 하는 이유';
+  }
+  if ($('grantAction')) $('grantAction').addEventListener('change', syncGrantActionText);
   $('grantClose').addEventListener('click', () => grantModal.classList.remove('open'));
   grantModal.addEventListener('click', (e) => { if (e.target === grantModal) grantModal.classList.remove('open'); });
   $('grantSubmit').addEventListener('click', async () => {
@@ -895,27 +918,39 @@ EDMS.ready.then(async function (ctx) {
     const minutes = term === 'perm' ? null : (term === '7' ? 10080 : 1440);
     const msg = $('grantMsg'); msg.className = 'pw-msg';
     const btn = $('grantSubmit'); btn.disabled = true; msg.textContent = '요청 중...';
+    const grantAct = $('grantAction') ? $('grantAction').value : '개정';
     const { error } = await edmsClient.rpc('edms_grant_request',
-      { p_document_id: grantReqDocId, p_action: '개정', p_minutes: minutes, p_reason: $('grantReason').value.trim() || null });
+      { p_document_id: grantReqDocId, p_action: grantAct, p_minutes: minutes, p_reason: $('grantReason').value.trim() || null });
     btn.disabled = false;
     if (error) { msg.className = 'pw-msg err'; msg.textContent = '요청 실패: ' + error.message; return; }
     myReqPending.add(grantReqDocId);
     grantModal.classList.remove('open');
     render();
-    alert('권한을 요청했습니다. 관리자 승인 후 개정할 수 있습니다.');
+    alert(grantAct === '열람'
+      ? '열람 권한을 요청했습니다. 관리자(부대표) 승인 후 열람할 수 있습니다.'
+      : '개정 권한을 요청했습니다. 관리자(부대표) 승인 후 개정할 수 있습니다.');
   });
+
+  // 권한 종류 배지 — 개정/열람을 관리자가 구별하지 못한 채 승인하는 것을 막는다
+  function grantActionBadge(a) {
+    const act = a || '개정';
+    const style = act === '열람'
+      ? 'background:#e8f0fe;color:#1a4fa0;border:1px solid #b6cdf3'
+      : 'background:#fdf3e0;color:#8a5a00;border:1px solid #eccf95';
+    return `<span style="font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px;${style}">${escHtml(act)}</span>`;
+  }
 
   // ── 권한 관리함 (G2, 관리자 전용) ───────────────────────
   async function loadGrantAdmin() {
     if (!isAdmin) return;
     $('grantAdminPanel').style.display = '';
     const { data: reqs } = await edmsClient.from('edms_doc_grants')
-      .select('id, doc_number, reason, requested_by, created_at')
+      .select('id, doc_number, action, reason, requested_by, created_at')
       .eq('status', '요청').order('created_at', { ascending: true });
     lastGrantReqs = reqs || [];
     $('gaReqList').innerHTML = lastGrantReqs.length
       ? lastGrantReqs.map(g => `<div class="apv-row">
-          <div class="apv-info"><b>${escHtml(g.doc_number || '')}</b> · 요청자 ${escHtml(profNameById[g.requested_by] || '?')}
+          <div class="apv-info"><b>${escHtml(g.doc_number || '')}</b> ${grantActionBadge(g.action)} · 요청자 ${escHtml(profNameById[g.requested_by] || '?')}
             ${g.reason ? '<br><small>사유: ' + escHtml(g.reason) + '</small>' : ''}</div>
           <div class="apv-actions">
             <button class="apv-ok" data-g="${g.id}" data-act="temp">임시승인</button>
@@ -924,13 +959,13 @@ EDMS.ready.then(async function (ctx) {
           </div></div>`).join('')
       : '<div class="apv-empty">대기 중인 권한 요청이 없습니다.</div>';
     const { data: act } = await edmsClient.from('edms_doc_grants')
-      .select('id, doc_number, grantee_id, mode, permanent, expires_at')
+      .select('id, doc_number, action, grantee_id, mode, permanent, expires_at')
       .eq('status', '승인').order('created_at', { ascending: false });
     const now = Date.now();
     const active = (act || []).filter(g => g.permanent || (g.expires_at && new Date(g.expires_at).getTime() > now));
     $('gaActiveList').innerHTML = active.length
       ? active.map(g => `<div class="apv-row">
-          <div class="apv-info"><b>${escHtml(g.doc_number || '')}</b> · ${escHtml(profNameById[g.grantee_id] || '?')}
+          <div class="apv-info"><b>${escHtml(g.doc_number || '')}</b> ${grantActionBadge(g.action)} · ${escHtml(profNameById[g.grantee_id] || '?')}
             · ${g.mode === 'deny' ? ' 차단' : ' 허용'} · ${g.permanent ? '영구' : '~' + new Date(g.expires_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
           <div class="apv-actions"><button class="apv-no" data-rv="${g.id}">회수</button></div>
         </div>`).join('')
@@ -971,7 +1006,8 @@ EDMS.ready.then(async function (ctx) {
       const permanent = term === 'perm';
       const minutes = permanent ? null : parseInt(term, 10) * 1440;
       const { error } = await edmsClient.rpc('edms_grant_admin_set',
-        { p_document_id: doc, p_grantee_id: user, p_mode: mode, p_permanent: permanent, p_minutes: minutes, p_action: '개정', p_reason: '관리자 직접 설정' });
+        { p_document_id: doc, p_grantee_id: user, p_mode: mode, p_permanent: permanent, p_minutes: minutes,
+          p_action: ($('gaAction') ? $('gaAction').value : '개정'), p_reason: '관리자 직접 설정' });
       if (error) { alert('적용 실패: ' + error.message); return; }
       alert('적용되었습니다.');
       await loadGrantAdmin();

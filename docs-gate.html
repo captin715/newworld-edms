@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뉴월드 EDMS — 문서관리</title>
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<!-- data-system="gate" — common.js 헤더는 SYS[key] 를 찾으므로 미등록 키를 쓰면 예외가 난다.
+     서브 대문은 시스템이 아니라 관문이므로 gate 헤더가 맞다. common.js 무수정(지시 §5-1). -->
+<header id="edmsHeader" data-system="gate"></header>
+<main>
+  <div id="loading" style="text-align:center;padding:60px 0;color:#26324a">불러오는 중...</div>
+  <div id="gate" style="display:none">
+    <div class="crumbs"><b><a href="index.html" style="color:inherit">뉴월드 EDMS</a></b><span class="sep">›</span>문서관리</div>
+    <div class="gate-hero">
+      <div class="top">DOCUMENT MANAGEMENT</div>
+      <h1>문서관리</h1>
+      <p>표준문서를 <b>제정하고, 개정하고, 열람·배포</b>하는 영역입니다. 제정은 이관이 아니라 <b>상태 전이</b>이며, 등록완료된 문서는 문서관리시스템에서 다룹니다.</p>
+    </div>
+    <div class="gate-tiles" id="tiles"></div>
+    <div class="gate-info" id="info"></div>
+  </div>
+</main>
+<footer style="text-align:center;padding:18px;font-size:11px;color:#aaa">뉴월드 EDMS · 문서관리 · <a href="index.html" style="color:#aaa">대문으로</a></footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="common.js"></script>
+<script>
+  // 문서관리 서브 대문(지시 20260802_05 §2) — 타일 문구·아이콘·색상은 종전 index.html 것을 그대로 재사용
+  EDMS.ready.then(function (ctx) {
+    if (!ctx) return;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('gate').style.display = '';
+    var ico = EDMS.ico, SYS = EDMS.SYS;
+    var canEst = ctx.myRole !== 'general';  // 제정: 작성·검토 권한자만(일반 제외) — 종전 대문 분기를 여기로 이동
+
+    function tile(key, desc) {
+      var m = SYS[key];
+      return '<a class="gate-tile ' + m.cls + '" href="' + m.file + '"><span class="t-ico">' + ico(m.icon) + '</span>'
+        + '<div class="t-title">' + m.name + '</div><div class="t-desc">' + desc + '</div>'
+        + '<div class="t-go">' + ico('arrowR') + ' 들어가기</div></a>';
+    }
+    var estTile = canEst
+      ? tile('establish', '초안 작성~검토~발번~제정, 표준양식(FR) 생성 — 초안·검토중·승인대기 문서')
+      : '<div class="gate-tile est locked"><span class="t-lock">' + ico('lock') + ' 권한 필요</span><span class="t-ico">' + ico('stamp') + '</span>'
+        + '<div class="t-title">문서양식 제정시스템</div><div class="t-desc">미승인 초안을 다루므로 <b>작성·검토 권한자</b>만 진입할 수 있습니다. (타일은 노출, 진입만 제한)</div>'
+        + '<div class="t-go">' + ico('lock') + ' 진입 권한 없음</div></div>';
+
+    document.getElementById('tiles').innerHTML =
+      tile('docs', '제정 문서 열람·다운로드·배포·개정 — 등록완료 문서(·폐기 조회)') + estTile;
+
+    document.getElementById('info').innerHTML =
+      '<div class="gate-card docs"><div class="label">문서관리시스템 · 접속</div><div class="value">전원</div></div>'
+      + '<div class="gate-card est"><div class="label">문서양식 제정 · 접속</div><div class="value">' + (canEst ? '가능' : '권한 필요') + '</div></div>';
+  });
+</script>
+</body>
+</html>
