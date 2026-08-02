@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>뉴월드 EDMS — 기록관리</title>
 <link rel="stylesheet" href="common.css">
+<style>
+  /* 2타일 레이아웃 — .gate-tiles 기본값이 3열(common.css 581행)이라 우측 1칸이 빈다.
+     common.css 수정 금지(지시 20260802_05 §5-2)이므로 페이지 지역 CSS로 덮는다.
+     인라인 style 이 아니라 <style> 블록이어야 @media(max-width:480px) 1열 규칙이 그대로 이긴다. */
+  #tiles.gate-tiles { grid-template-columns:repeat(2,1fr); }
+  @media (max-width:480px) { #tiles.gate-tiles { grid-template-columns:1fr; } }
+</style>
 </head>
 <body>
 <!-- data-system="gate" — 사유는 docs-gate.html 주석과 동일(common.js 무수정) -->
