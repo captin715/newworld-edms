@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>문서양식 제정시스템 — 뉴월드 EDMS</title>
+<title>문서 제·개정 시스템 — 뉴월드 EDMS</title>
 <link rel="stylesheet" href="common.css">
 </head>
 <body>
@@ -16,7 +16,7 @@
   <div id="loading" style="text-align:center;padding:60px 0;color:#5c2247">불러오는 중...</div>
   <div id="body" style="display:none"></div>
 </main>
-<footer style="text-align:center;padding:18px;font-size:11px;color:#aaa">문서양식 제정시스템 · 작성·상신·결재·임시저장·개정착수 · 데이터는 하나(edms_documents), 제정은 상태 전이</footer>
+<footer style="text-align:center;padding:18px;font-size:11px;color:#aaa">문서 제·개정 시스템 · 작성·상신·결재·임시저장·개정착수 · 데이터는 하나(edms_documents), 제정은 상태 전이</footer>
 
 <!-- ══ 새 문서 결재 작성 폼 (docs에서 이관) ══ -->
 <div id="formModal">
@@ -179,7 +179,7 @@ EDMS.ready.then(async function (ctx) {
   loading.style.display = 'none'; body.style.display = '';
 
   if (!canEst) {
-    body.innerHTML = '<div class="panel est"><div class="est-empty">' + ico('lock', '') + '<br>문서양식 제정시스템은 <b>작성·검토·승인 권한자</b>만 진입할 수 있습니다.<br>미승인 초안을 다루므로 일반 부서원에게는 진입이 제한됩니다. (대문 타일은 노출)</div></div>';
+    body.innerHTML = '<div class="panel est"><div class="est-empty">' + ico('lock', '') + '<br>문서 제·개정 시스템은 <b>작성·검토·승인 권한자</b>만 진입할 수 있습니다.<br>미승인 초안을 다루므로 일반 부서원에게는 진입이 제한됩니다. (대문 타일은 노출)</div></div>';
     // 폼/모달 노드 제거(비권한자 노출 방지)
     ['formModal', 'archiveModal', 'tempModal'].forEach(function (id) { var e = $(id); if (e) e.remove(); });
     return;
@@ -692,7 +692,7 @@ EDMS.ready.then(async function (ctx) {
       <td><button class="est-btn ghost" data-goto="apv">결재함</button></td></tr>`).join('');
     const rows = draftRows + apvRows;
     body.innerHTML =
-      '<div class="crumbs"><a href="index.html">뉴월드 EDMS</a><span class="sep">›</span><b>문서양식 제정시스템</b></div>'
+      '<div class="crumbs"><a href="index.html">뉴월드 EDMS</a><span class="sep">›</span><b>문서 제·개정 시스템</b></div>'
       + '<div class="est-hint">제정 결재선: <b>작성 = 작성 권한자(품질팀장)</b> · <b>검토 = 관리자</b> · <b>승인 = 대표이사</b>. 각 단계 권한자만 전이 버튼이 활성화됩니다. 데이터는 하나이며 상태 전이(초안 → 검토중 → 승인대기 → 등록완료)로만 진행됩니다.</div>'
       + '<div class="est-actions">'
       + (myRole === 'reviewer' || isAdmin ? '<button class="est-btn primary" id="btnNew">' + ico('doc') + '문서 작성</button> ' : '')

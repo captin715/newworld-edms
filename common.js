@@ -26,7 +26,7 @@
   var SYS = {
     docs: { name: '문서관리 시스템', file: 'docs.html', cls: 'docs', icon: 'doc' },
     records: { name: '기록관리 시스템', file: 'records.html', cls: 'recs', icon: 'archive' },
-    establish: { name: '문서양식 제정시스템', file: 'establish.html', cls: 'est', icon: 'stamp' }
+    establish: { name: '문서 제·개정 시스템', file: 'establish.html', cls: 'est', icon: 'stamp' }
   };
   // 역할 라벨/배지 — 원문 보존(회귀 방지). 임원=approver, 작성 권한자=reviewer 로 매핑.
   var ROLE_LABEL = { admin: '관리자', approver: '승인자', reviewer: '검토자', general: '일반' };
