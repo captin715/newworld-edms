@@ -225,24 +225,33 @@ EDMS.ready.then(async function (ctx) {
   }
 
   // ══ 결재선 자동 라우팅 (docs에서 이관) ══
+  // [DEF-39 v2 · 2026-08-04 시뮬 자체 검출]
+  //   v1 은 pickReviewer 에서만 본인을 피했고 폴백(admins[0])이 다시 본인으로 돌아왔다.
+  //   관리자가 부대표 1명뿐이라 ★부대표가 직접 작성하면 검토자 기본값이 또 자기 자신이 됐다.
+  //   → 후보 목록 자체에서 본인을 뺀다. 고를 수조차 없게 하는 것이 확실하다.
   function reviewerCandidates() {
-    return allProfiles.filter(p => p.role === 'reviewer' || p.role === 'admin').sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+    return allProfiles.filter(p => (p.role === 'reviewer' || p.role === 'admin') && p.id !== myId)
+                      .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
   }
-  function approverCandidates() { const a = roleAccts('approver'); return a.length ? a : roleAccts('admin'); }
+  function approverCandidates() {
+    const a = roleAccts('approver').filter(p => p.id !== myId);
+    return a.length ? a : roleAccts('admin').filter(p => p.id !== myId);
+  }
   // [DEF-39 / C-41] 표준 결재선: 작성 품질팀장 → 검토 부대표(관리자) → 승인 대표이사.
   //   종전 라우팅은 계열에 따라 검토자를 reviewer(품질팀장)로 골랐고,
   //   작성자도 품질팀장이라 ★기본값이 「작성자 = 검토자」로 떠서 절차서 §5.2(작성·검토 분리 SHALL)를
   //   위반한 채 상신되게 두었습니다(2026-08-04 운영창 실측).
   //   → 검토자 기본값을 관리자로 고정합니다. 사용자가 바꾸는 것은 여전히 가능합니다(§3-3).
+  // [DEF-39 / C-41] 표준 결재선: 작성 품질팀장 → 검토 부대표(관리자) → 승인 대표이사.
+  //   ★본인으로 되돌아가는 폴백을 두지 않는다(v1 의 결함). 후보가 없으면 미선택으로 둔다 —
+  //   그러면 상신 시 SoD/미지정 차단이 걸려 위반 상태로 진행되지 않는다.
   function pickReviewer(docType, series) {
-    const admins = roleAccts('admin');
-    const me = myId;
-    // 관리자 중 본인이 아닌 사람을 우선(작성자=검토자 기본값 방지)
-    return admins.find(p => p.id !== me) || admins[0]
-        || roleAccts('reviewer').find(p => p.id !== me)
-        || allProfiles.find(p => p.id !== me) || allProfiles[0];
+    const cands = reviewerCandidates();
+    return cands.find(p => p.role === 'admin') || cands[0] || null;
   }
   function fillSel(sel, list, selectedId) {
+    // [DEF-39 v2] 후보가 없으면 빈 선택지를 둔다. 본인이 자동 선택되는 일이 없어야 한다.
+    if (!list.length) { sel.innerHTML = '<option value="">— 지정 가능한 대상 없음 —</option>'; return; }
     sel.innerHTML = list.map(p => `<option value="${p.id}">${escHtml(p.name || p.email)} · ${ROLE_LABEL[p.role] || p.role}</option>`).join('');
     if (selectedId) sel.value = selectedId;
   }
