@@ -229,12 +229,18 @@ EDMS.ready.then(async function (ctx) {
     return allProfiles.filter(p => p.role === 'reviewer' || p.role === 'admin').sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
   }
   function approverCandidates() { const a = roleAccts('approver'); return a.length ? a : roleAccts('admin'); }
+  // [DEF-39 / C-41] 표준 결재선: 작성 품질팀장 → 검토 부대표(관리자) → 승인 대표이사.
+  //   종전 라우팅은 계열에 따라 검토자를 reviewer(품질팀장)로 골랐고,
+  //   작성자도 품질팀장이라 ★기본값이 「작성자 = 검토자」로 떠서 절차서 §5.2(작성·검토 분리 SHALL)를
+  //   위반한 채 상신되게 두었습니다(2026-08-04 운영창 실측).
+  //   → 검토자 기본값을 관리자로 고정합니다. 사용자가 바꾸는 것은 여전히 가능합니다(§3-3).
   function pickReviewer(docType, series) {
-    let t;
-    if (docType === 'W-M') t = roleAccts('reviewer')[0];
-    else if (series === 'Q' || series === 'D' || series === 'DS') t = roleAccts('admin')[0];
-    else t = roleAccts('reviewer')[0];
-    return t || roleAccts('admin')[0] || allProfiles[0];
+    const admins = roleAccts('admin');
+    const me = myId;
+    // 관리자 중 본인이 아닌 사람을 우선(작성자=검토자 기본값 방지)
+    return admins.find(p => p.id !== me) || admins[0]
+        || roleAccts('reviewer').find(p => p.id !== me)
+        || allProfiles.find(p => p.id !== me) || allProfiles[0];
   }
   function fillSel(sel, list, selectedId) {
     sel.innerHTML = list.map(p => `<option value="${p.id}">${escHtml(p.name || p.email)} · ${ROLE_LABEL[p.role] || p.role}</option>`).join('');
@@ -485,6 +491,18 @@ EDMS.ready.then(async function (ctx) {
     }
     const readScope = document.querySelector('input[name="readScope"]:checked').value;
     const reviewer = $('fReviewer').value || myId, approver = $('fApprover').value || myId;
+    // [DEF-39 §3-2] SoD — 작성자와 검토자가 같으면 ★차단(경고 아님).
+    //   기본값만 고치면 사람이 바꿨을 때 다시 뚫립니다. 절차서 §5.2 SHALL.
+    if (reviewer === myId || approver === myId) {
+      btn.disabled = false; fMsg.className = 'form-msg err';
+      fMsg.textContent = '작성자는 검토자·승인자를 겸할 수 없습니다(문서관리절차서 §5.2). 결재선을 다시 지정해 주세요.';
+      return;
+    }
+    if (reviewer === approver) {
+      btn.disabled = false; fMsg.className = 'form-msg err';
+      fMsg.textContent = '검토자와 승인자가 같습니다. 결재선을 다시 지정해 주세요.';
+      return;
+    }
     const { data: apvId, error: cErr } = await edmsClient.rpc('edms_apv_create', {
       p_type: type, p_doc_number: docNo, p_title: title, p_series: $('fSeries').value.trim(),
       p_doc_type: $('fDocType').value.trim(), p_security: security, p_version: targetRev,
@@ -693,7 +711,7 @@ EDMS.ready.then(async function (ctx) {
     const rows = draftRows + apvRows;
     body.innerHTML =
       '<div class="crumbs"><a href="index.html">뉴월드 EDMS</a><span class="sep">›</span><b>문서 제·개정 시스템</b></div>'
-      + '<div class="est-hint">제정 결재선: <b>작성 = 작성 권한자(품질팀장)</b> · <b>검토 = 관리자</b> · <b>승인 = 대표이사</b>. 각 단계 권한자만 전이 버튼이 활성화됩니다. 데이터는 하나이며 상태 전이(초안 → 검토중 → 승인대기 → 등록완료)로만 진행됩니다.</div>'
+      + '<div class="est-hint">제정 결재선(C-41): <b>작성 = 품질팀장</b> → <b>검토 = 부대표(관리자)</b> → <b>승인 = 대표이사</b>. <b style="color:#c0392b">작성자는 검토·승인을 겸할 수 없습니다(§5.2).</b> 각 단계 권한자만 전이 버튼이 활성화됩니다. 데이터는 하나이며 상태 전이(초안 → 검토중 → 승인대기 → 등록완료)로만 진행됩니다.</div>'
       + '<div class="est-actions">'
       + (myRole === 'reviewer' || isAdmin ? '<button class="est-btn primary" id="btnNew">' + ico('doc') + '문서 작성</button> ' : '')
       + '<button class="est-btn temp" id="btnTemp">' + ico('doc') + '임시저장 목록</button> '
@@ -817,6 +835,11 @@ EDMS.ready.then(async function (ctx) {
     $('cfspsSubmit').addEventListener('click', async () => {
       const reviewer = $('cfspsReviewer').value, approver = $('cfspsApprover').value;
       if (!reviewer || !approver) { alert('검토자·승인자를 지정하세요.'); return; }
+      // [DEF-39 §3-2] 일괄 상신에도 같은 SoD 차단을 건다(개별만 막으면 이 경로로 뚫린다)
+      if (reviewer === myId || approver === myId) {
+        alert('작성자는 검토자·승인자를 겸할 수 없습니다(문서관리절차서 §5.2). 결재선을 다시 지정해 주세요.'); return;
+      }
+      if (reviewer === approver) { alert('검토자와 승인자가 같습니다. 결재선을 다시 지정해 주세요.'); return; }
       const btn = $('cfspsSubmit'); btn.disabled = true; const msg = $('cfspsMsg'); msg.className = 'form-msg'; msg.textContent = '처리 중...';
       let okN = 0, failN = 0, skipN = 0;
       for (const t of CFSPS_TARGETS) {
