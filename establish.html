@@ -688,7 +688,7 @@ EDMS.ready.then(async function (ctx) {
     const apvRows = inProg.map(a => `<tr>
       <td><span class="st-tag st-${a.status}">${a.status}</span></td>
       <td>${escHtml(a.doc_number || '(발번 전)')}</td><td>${escHtml(a.title || '')}</td>
-      <td>${escHtml(a.version || '')}</td><td>${escHtml(a.approval_type || '')}</td>
+      <td>${escHtml(a.target_version || '')}</td><td>${escHtml(a.approval_type || '')}</td>
       <td><button class="est-btn ghost" data-goto="apv">결재함</button></td></tr>`).join('');
     const rows = draftRows + apvRows;
     body.innerHTML =

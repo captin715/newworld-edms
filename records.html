@@ -513,6 +513,9 @@ EDMS.ready.then(async function (ctx) {
     }
     function renderFormRegistry() {
       const tb = document.getElementById('frTbody'); if (!tb) return;
+      // [P7 보강] 기본 정렬 dept_code → form_seq. 종전에는 DB 반환 순서라 새로고침마다 달라질 수 있었다.
+      frRows.sort((a, b) => String(a.dept_code || '').localeCompare(String(b.dept_code || ''))
+                         || String(a.form_seq  || '').localeCompare(String(b.form_seq  || '')));
       const q = (document.getElementById('frSearch') || {}).value || '';
       const dq = (document.getElementById('frDeptFilter') || {}).value || '';
       const actOnly = !!(document.getElementById('frActiveOnly') || {}).checked;
@@ -766,8 +769,12 @@ EDMS.ready.then(async function (ctx) {
     function openRegModal() {
       const fsel = document.getElementById('rrFolder');
       // 부서(관리함) → 문서철 구조를 optgroup으로 반영 (부서 접두 D=개발부서 기준)
+      // [DEF-38] 등재 대상은 status='active' 문서철뿐이다.
+      //   edms_record_register 가 `where id=p_folder and status='active'` 로 거르므로,
+      //   closed 문서철을 목록에 넣으면 고른 뒤 「유효한 문서철이 아닙니다」로 거절당한다(실측 2026-08-04).
+      const openFolders = recFolders.filter(f => pick(f, ['status'], 'active') !== 'closed');
       const byDept = {};
-      recFolders.forEach(f => { const d = folderDept(f) || '(부서없음)'; (byDept[d] = byDept[d] || []).push(f); });
+      openFolders.forEach(f => { const d = folderDept(f) || '(부서없음)'; (byDept[d] = byDept[d] || []).push(f); });
       let opts = '<option value="">— 선택 —</option>';
       Object.keys(byDept).sort().forEach(d => {
         opts += `<optgroup label="[부서] ${esc(d)}">`;
@@ -775,7 +782,7 @@ EDMS.ready.then(async function (ctx) {
         opts += '</optgroup>';
       });
       fsel.innerHTML = opts;
-      if (!recFolders.length) { document.getElementById('rrMsg').className = 'form-msg err'; document.getElementById('rrMsg').textContent = '등재 가능한 관리함(문서철)이 없습니다. 먼저 관리함을 생성해야 합니다.'; }
+      if (!openFolders.length) { document.getElementById('rrMsg').className = 'form-msg err'; document.getElementById('rrMsg').textContent = '등재 가능한 관리함(문서철)이 없습니다. 먼저 관리함을 생성하거나 마감된 문서철을 다시 열어야 합니다.'; }
       else document.getElementById('rrMsg').textContent = '';
       // 공사 datalist
       const dl = document.getElementById('rrSiteList');
@@ -842,7 +849,11 @@ EDMS.ready.then(async function (ctx) {
           const raw = String(error.message || error);
           msg.className = 'form-msg err';
           msg.textContent = /permission|권한/i.test(raw) ? '기록 등재 권한이 없습니다.'
-            : /채번|conflict|duplicate/i.test(raw) ? '관리번호 채번이 충돌했습니다. 잠시 후 다시 시도해 주세요.'
+            // [DEF-37] record_no 는 낱장 3자리(lpad 3)라 1000번째부터 자릿수가 잘려
+            //   기존 번호와 UNIQUE 충돌한다(lpad('1000',3,'0')='100'). 재시도해도 영구 실패이므로
+            //   「잠시 후 다시」로 안내하면 안 된다. 두 경우를 문구로 구분한다.
+            : /낱장|999|1000|record_no|edms_records_record_no_key/i.test(raw) ? '이 문서철의 낱장 번호가 상한(999)에 도달했습니다. 재시도해도 해결되지 않습니다. 새 문서철(연도·차수) 개설이 필요합니다.'
+            : /채번|conflict|duplicate/i.test(raw) ? '관리번호 채번이 충돌했습니다. 잠시 후 다시 시도해 주세요(동시 등재 충돌).'
             : '기록 등재에 실패했습니다.';
           console.warn('등재 실패:', raw); return;
         }
