@@ -207,7 +207,7 @@
       <div class="radio-row" style="margin-top:4px"><label><input type="checkbox" id="rrNoSite"> 비현장 기록(공사 없음)</label></div>
       <div class="grid2">
         <div><label>보안등급 <b style="color:#c0392b">*</b></label><select id="rrLevel"><option value="1">P1 (일반)</option><option value="2" selected>P2 (일반)</option><option value="3">P3 (대외비)</option><option value="4">P4 (극비)</option></select></div>
-        <div><label>접근 구분 <b style="color:#c0392b">*</b></label><select id="rrAccess"><option value="all">전사</option><option value="need">need-to-know</option></select></div>
+        <div><label>접근 구분 <b style="color:#c0392b">*</b></label><select id="rrAccess"><option value="dept">부서 기준(기본)</option><option value="need_to_know">need-to-know</option></select></div>
       </div>
       <div class="num-note" id="rrAccessNote" style="display:none;margin-top:4px">need-to-know: 목록에서 제목이 '(제한 기록)'으로 마스킹됩니다.</div>
       <label>참조복사본 <b style="color:#c0392b">*</b> (PDF 권고)</label>
@@ -329,7 +329,10 @@ EDMS.ready.then(async function (ctx) {
     const plvBadge = (lv) => `<span class="plv plv-${lv || 2}">P${lv || 2}</span>`;
     const statusBadge = (status, isVoid) => { const s = isVoid ? '폐기' : (status || '유효'); return `<span class="rst rst-${s}">${s}</span>`; };
     const siteBadge = (label) => { const s = label || '비현장 기록'; return `<span class="site-badge">${esc(s)}</span>`; };
-    const accessLabel = (a) => (a === 'need' || a === 'need-to-know') ? 'need-to-know' : '전사';
+    // [DEF-35] DB CHECK 허용값은 'dept' | 'need_to_know' 두 가지뿐이다.
+    // 구 화면이 보내던 'need'·'all' 은 어느 쪽도 CHECK 를 통과하지 못했다(등재 실패).
+    // 구 값은 표시에서만 관용 수용하고, 저장은 새 값으로만 한다.
+    const accessLabel = (a) => (a === 'need_to_know' || a === 'need' || a === 'need-to-know') ? 'need-to-know' : '부서 기준';
 
     // ── SVG 단색 아이콘 (이모지 대체 · 청록 계열) ── 승인조건 b (SHALL)
     const ICO = {
@@ -695,7 +698,7 @@ EDMS.ready.then(async function (ctx) {
         ['작성 부서', pick(d, ['owner_dept', 'dept'], '')],
         ['작성자', pick(d, ['registered_by', 'author', 'created_by'], '—')],
         ['보안등급', 'P' + lv + (pick(d, ['confidentiality'], '') ? ' (' + pick(d, ['confidentiality'], '') + ')' : '')],
-        ['접근 구분', accessLabel(pick(d, ['access_class', 'read_scope', 'access'], 'all'))],
+        ['접근 구분', accessLabel(pick(d, ['access_class', 'access'], 'dept'))],   // [DEF-35] read_scope 폴백 제거 — 다른 축
         ['상태', isVoid ? '폐기' : status],
         ['공사', site || '비현장 기록'],
         ['원본 위치', pick(d, ['origin_location', 'origin'], '—')],
@@ -781,14 +784,14 @@ EDMS.ready.then(async function (ctx) {
       ['rrTitle', 'rrOrigin', 'rrSite', 'rrNote'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('rrNoPreview').value = '';
       document.getElementById('rrLevel').value = '2';
-      document.getElementById('rrAccess').value = 'all';
+      document.getElementById('rrAccess').value = 'dept';
       document.getElementById('rrNoSite').checked = false;
       document.getElementById('rrRefFile').value = '';
       updateP4Warn(); updateAccessNote();
       recRegModal.classList.add('open');
     }
     function updateP4Warn() { const w = document.getElementById('rrP4Warn'); w.classList.toggle('crit', document.getElementById('rrLevel').value === '4'); }
-    function updateAccessNote() { document.getElementById('rrAccessNote').style.display = document.getElementById('rrAccess').value === 'need' ? '' : 'none'; }
+    function updateAccessNote() { document.getElementById('rrAccessNote').style.display = document.getElementById('rrAccess').value === 'need_to_know' ? '' : 'none'; }
     document.getElementById('rrLevel').addEventListener('change', updateP4Warn);
     document.getElementById('rrAccess').addEventListener('change', updateAccessNote);
     document.getElementById('rrFolder').addEventListener('change', (e) => {
@@ -807,6 +810,13 @@ EDMS.ready.then(async function (ctx) {
       const site = noSite ? null : document.getElementById('rrSite').value.trim();
       const level = parseInt(document.getElementById('rrLevel').value, 10);
       const access = document.getElementById('rrAccess').value;
+      // [DEF-35 판정 20260803_10 §1-1 4번] read_scope 는 P4 구획 축이며 문서철 단위 정책이다.
+      // 화면에서 고르게 하지 않고 선택한 문서철에서 상속한다.
+      // (기록마다 작성자가 고르면 같은 문서철 안에서 구획이 갈린다 — 판정 §1-2)
+      const SCOPE_OK = ['all', 'p4_customer', 'p4_inspect', 'p4_cost'];
+      const folderRow = recFolders.find(f => String(pick(f, ['id'], '')) === String(folder));
+      let folderScope = pick(folderRow || {}, ['read_scope'], '') || '';
+      if (SCOPE_OK.indexOf(folderScope) < 0) folderScope = 'all';   // 미상속·미허용값이면 DB 기본값과 동일하게
       const refFile = document.getElementById('rrRefFile').files[0];
       if (!folder) { msg.className = 'form-msg err'; msg.textContent = '문서철(관리함)을 선택해 주세요.'; return; }
       if (!title || !origin || (!noSite && !site) || !refFile) {
@@ -824,7 +834,8 @@ EDMS.ready.then(async function (ctx) {
         if (up.error) { msg.className = 'form-msg err'; msg.textContent = '참조복사본 업로드에 실패했습니다. 파일 크기와 형식을 확인해 주세요.'; console.warn(up.error.message); return; }
         const { data, error } = await edmsClient.rpc('edms_record_register', {
           p_folder: folder, p_title: title, p_origin: origin, p_ref_path: refPath,
-          p_security: level, p_read_scope: access, p_access: access, p_approver: null,
+          // [DEF-35] 두 축 분리 — p_read_scope 는 문서철 상속분, p_access 는 화면 선택분
+          p_security: level, p_read_scope: folderScope, p_access: access, p_approver: null,
           p_meta: { note: document.getElementById('rrNote').value.trim() || null }, p_site_ref: site,
         });
         if (error) {
