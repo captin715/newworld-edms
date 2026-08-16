@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기록작성 시스템 — 뉴월드 EDMS</title>
+<link rel="stylesheet" href="common.css">
+<!-- ═══════════════════════════════════════════════════════════════════
+     ★임시 블록 — .rec-write-* 7종
+     배포 common.css 에 아직 이 계열이 없어 화면이 풀리는 것을 막으려고
+     CC 산출 `_추가블록.css`(20260816_recwrite7종_V1.0)를 ★그대로 붙였습니다.
+     ★신본 common.css(md5 5072dce3c21176a8ef72048819f7e647)가 배포되면
+       이 <style id="recwriteFallback"> 블록 ★하나만 지우면 됩니다. 다른 수정 불요.
+     ★내용을 고치지 않았습니다 — 고치면 틀과 화면이 갈라집니다.
+     ═══════════════════════════════════════════════════════════════════ -->
+<style id="recwriteFallback">
+.rec-write-sec { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  margin:24px 0 10px; padding:0 0 0 11px; border-left:4px solid var(--recs); }
+.rec-write-sec > h3 { font-size:15px; font-weight:bold; color:var(--recs); margin:0; }
+.rec-write-sec > span { font-size:11px; color:#4a5568; }
+.rec-write-sec > em { font-size:11px; font-style:normal; background:var(--recs); color:#fff;
+  border-radius:10px; padding:2px 9px; }
+.rec-write-kv { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:2px 18px; background:#fff; border:1px solid #dde3ee; border-radius:10px;
+  padding:8px 14px 14px; margin:0; }
+.rec-write-kv > div { min-width:0; padding:5px 0; }
+.rec-write-kv dt { font-size:12px; color:#4a5568; margin:0 0 4px; }
+.rec-write-kv dt[data-required]::after { content:" *"; color:var(--recs); font-weight:bold; }
+.rec-write-kv dd { font-size:13.5px; color:#2A2824; margin:0; word-break:break-word; }
+.rec-write-kv dd > input, .rec-write-kv dd > select, .rec-write-kv dd > textarea {
+  width:100%; padding:8px 10px; border:1.5px solid #d5dbe7; border-radius:7px;
+  font-size:13.5px; font-family:inherit; color:#2A2824; background:#fff; }
+.rec-write-kv dd > input:focus, .rec-write-kv dd > select:focus,
+.rec-write-kv dd > textarea:focus { border-color:var(--recs); outline:none; }
+.rec-write-kv dd > input[readonly], .rec-write-kv dd > input:disabled {
+  background:#f4f6fa; color:#4a5568; }
+.rec-write-kv dd > textarea { min-height:64px; resize:vertical; }
+.rec-write-kv > div[data-wide] { grid-column:1 / -1; }
+.rec-write-tbl { overflow-x:auto; overflow-y:visible; background:#fff;
+  border:1px solid #dde3ee; border-radius:10px; }
+.rec-write-tbl > table { width:100%; border-collapse:collapse; font-size:13px; }
+.rec-write-tbl thead th { background:var(--recs); color:#fff; font-weight:bold; text-align:left;
+  padding:9px 10px; white-space:nowrap; position:sticky; top:0; z-index:2; }
+.rec-write-tbl tbody td { border-bottom:1px solid #e6ebf2; padding:7px 10px;
+  color:#2A2824; vertical-align:top; }
+.rec-write-tbl tbody tr:last-child td { border-bottom:none; }
+.rec-write-tbl tbody td > input, .rec-write-tbl tbody td > select {
+  width:100%; min-width:90px; padding:6px 8px; border:1.5px solid #d5dbe7; border-radius:6px;
+  font-size:13px; font-family:inherit; color:#2A2824; }
+.rec-write-tbl tbody td > input:focus, .rec-write-tbl tbody td > select:focus {
+  border-color:var(--recs); outline:none; }
+.rec-write-tbl tfoot td { padding:9px 10px; background:#f2f8f6; font-size:12px;
+  color:var(--recs); font-weight:bold; }
+.rec-write-tbl caption { caption-side:top; text-align:left; font-size:12px;
+  color:#4a5568; padding:8px 10px 6px; }
+.rec-write-note { background:#f2f8f6; border:1px solid #cfe0da; border-left:4px solid var(--recs);
+  border-radius:8px; padding:10px 13px; font-size:12.5px; line-height:1.6;
+  color:#2A2824; margin:10px 0; }
+.rec-write-note > b { color:var(--recs); }
+.rec-write-note > ul { margin:5px 0 0 18px; }
+.rec-write-apv { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:10px; margin:12px 0; }
+.rec-write-apv > div { background:#fff; border:1px solid #dde3ee; border-top:3px solid var(--recs);
+  border-radius:9px; padding:9px 11px 11px; text-align:center; }
+.rec-write-apv > div > b { display:block; font-size:11px; color:#4a5568;
+  font-weight:normal; margin-bottom:3px; }
+.rec-write-apv > div > span { display:block; font-size:13px; font-weight:bold; color:var(--recs); }
+.rec-write-apv > div > i { display:block; height:34px; margin-top:5px; border-top:1px dashed #cfd8e3;
+  font-style:normal; font-size:11px; color:#4a5568; line-height:34px; }
+.rec-write-apv > div > i > img { max-height:30px; max-width:100%; vertical-align:middle; }
+.rec-write-store { position:sticky; bottom:0; z-index:5;
+  display:flex; align-items:center; justify-content:flex-end; gap:9px; flex-wrap:wrap;
+  background:#fff; border-top:2px solid var(--recs); border-radius:10px 10px 0 0;
+  padding:11px 14px; margin-top:18px; box-shadow:0 -4px 14px rgba(28,92,79,.10); }
+.rec-write-store > p { margin:0 auto 0 0; font-size:12px; color:#4a5568; }
+.rec-write-store > p > b { color:var(--recs); }
+.rec-write-store button { font:inherit; font-size:13px; padding:9px 18px; border-radius:8px;
+  cursor:pointer; background:#fff; color:var(--recs); border:1.5px solid var(--recs); }
+.rec-write-store button[type="submit"] { background:var(--recs); color:#fff;
+  border-color:var(--recs); font-weight:bold; }
+.rec-write-store button[type="submit"]:hover { background:var(--recs-d); border-color:var(--recs-d); }
+.rec-write-store button:disabled { opacity:.5; cursor:not-allowed; }
+.rec-write-foot { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  flex-wrap:wrap; border-top:1px solid #e6ebf2; margin-top:16px; padding:12px 2px 26px;
+  font-size:11.5px; color:#4a5568; }
+.rec-write-foot > nav { display:flex; gap:8px; flex-wrap:wrap; }
+.rec-write-foot > nav > a, .rec-write-foot > nav > button {
+  font:inherit; font-size:12px; padding:5px 12px; border-radius:7px; cursor:pointer;
+  text-decoration:none; background:#fff; color:var(--recs); border:1px solid #cfe0da; }
+@media (max-width:480px) {
+  .rec-write-kv { grid-template-columns:1fr; }
+  .rec-write-apv { grid-template-columns:1fr 1fr; }
+  .rec-write-store { position:static; border-radius:10px; box-shadow:none; }
+  .rec-write-store > p { flex:1 1 100%; margin:0 0 4px; }
+  .rec-write-store button { flex:1 1 42%; min-width:0; padding:9px 10px; }
+  .rec-write-foot { flex-direction:column; align-items:flex-start; }
+}
+.rec-write-apv > div, .rec-write-tbl, .rec-write-note { min-width:0; }
+</style>
+</head>
+<body>
+<!-- ★헤더 계약 — 키 확정분. common.js SYS 에 write 키가 등재됐으므로 'write' 를 쓴다.
+     (지시 20260816_10 §5-1-3 · SYS 등재분 md5 a27c5052342495664f511193988c7a1b)
+     ★SYS 등재본과 ★같은 회차로만 배포한다 — 등재 없이 이 값을 쓰면 SYS[key] 가
+     undefined 라 mountHeader 에서 TypeError 가 난다. -->
+<header id="edmsHeader" data-system="write"></header>
+
+<main>
+  <div id="loading" style="text-align:center;padding:60px 0;color:var(--recs)">양식 목록을 불러오는 중...</div>
+
+  <div id="content" style="display:none">
+
+    <div class="rec-hero">
+      <h3>기록작성 시스템</h3>
+      <p>등록된 양식을 골라 기록을 작성합니다. 칸·선택지·결재선은 양식 등록대장(<code>form_schema</code>)에서 읽습니다.</p>
+    </div>
+
+    <div class="rec-write-note" id="diag">진단 확인 중…</div>
+
+    <div class="rec-toolbar">
+      <label for="formPick" style="font-weight:bold">작성할 양식</label>
+      <select id="formPick" style="min-width:280px;padding:7px 10px;border:1.5px solid #d5dbe7;border-radius:7px;font:inherit"></select>
+      <span id="formMeta" style="font-size:12px;color:#4a5568"></span>
+    </div>
+
+    <form id="recForm" autocomplete="off">
+      <div id="formBody"></div>
+
+      <div class="rec-write-store">
+        <p id="saveMsg">칸을 채운 뒤 <b>임시저장</b>을 누르면 <b>작성중</b> 상태로 저장됩니다.</p>
+        <button type="button" id="btnReset">비우기</button>
+        <button type="submit" id="btnSave">임시저장</button>
+      </div>
+    </form>
+
+    <!-- ★저장 후 재조회 — 이식분(CC 산출본 20260816_개설회차A §3 재조회 블록)
+         완료 정의 ③의 「재조회」가 여기서 닫힌다. 인계본에는 이 자리가 없었다.
+         새 클래스를 만들지 않고 .rec-write-kv · .rec-write-tbl 을 쓴다. -->
+    <div id="savedBox" style="display:none">
+      <div class="rec-write-sec"><h3>저장 결과 — 재조회</h3><em>DB에서 다시 읽은 값</em></div>
+      <dl class="rec-write-kv" id="savedKv"></dl>
+      <div class="rec-write-tbl"><table id="savedTbl">
+        <caption>저장된 payload</caption>
+        <thead><tr><th>키</th><th>값</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="rec-write-foot">
+      <div id="footInfo"></div>
+      <nav>
+        <a href="records.html">기록관리 시스템</a>
+        <a href="index.html">대문</a>
+      </nav>
+    </div>
+  </div>
+</main>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="common.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   기록작성 시스템 — 통합 작성 화면   record-write.html
+   작성 : 기록작성_개발창 · 2026-08-16
+   ★근거 판정 : 20260816_14 §2 (통합본 산출·헤더 부착·인계)
+                20260816_12 §1·§2·§4 (별도 화면 승인 · 자체 CSS 선행 · --recs=#1c5c4f)
+                20260816_04 §4 (구조 계약 2건 — kv 는 div 로 한 쌍 · tbl 은 감싸는 div)
+
+   ★칸을 이 파일에 적지 않았습니다. 전부 DB(registry.form_schema)에서 읽습니다.
+     양식을 고치면 이 파일을 고치지 않아도 화면이 따라 바뀝니다.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var PREFIX = 'W-FR-P-G150000';   // 프로젝트 양식 8종
+  var DEPT   = 'MT';               // 등재 부서(실측 2026-08-16)
+  var YEAR   = 2026;               // 기록철 연도
+
+  var esc = window.esc || function (s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  };
+
+  function friendlyErr(e, fallback) {
+    if (!e) return fallback;
+    var raw = String(e.message || e);
+    console.warn('[서버오류]', raw);
+    if (/permission|denied|policy|rls|권한/i.test(raw)) return '권한이 없습니다.';
+    if (/schema|not exist|find the table|PGRST/i.test(raw)) return '저장 대상 테이블에 접근할 수 없습니다(스키마 노출 설정 확인 필요).';
+    if (/duplicate|conflict/i.test(raw)) return '이미 처리되었거나 충돌이 발생했습니다.';
+    if (/network|timeout|fetch/i.test(raw)) return '네트워크 상태를 확인한 뒤 다시 시도해 주세요.';
+    if (/jwt|expired|401/i.test(raw)) return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
+    return fallback;
+  }
+
+  /* staging 스키마 접근자 — supabase-js v2 의 .schema() 사용.
+     ★PostgREST 에 staging 이 노출돼 있어야 동작합니다. 노출 여부는 대시보드 설정이며
+     ★제 도구로 확인하지 못했습니다. 아래 진단 줄이 결과를 그대로 보여 줍니다. */
+  function staging() {
+    if (typeof edmsClient.schema === 'function') return edmsClient.schema('staging');
+    return null;
+  }
+
+  var FORMS = [];      // registry 행
+  var FOLDERS = {};    // form_seq → 기록철 행
+  var cur = null;      // 현재 선택 양식
+
+  /* ── 렌더 ─────────────────────────────────────────────────────────── */
+
+  function fieldId(si, bi, fi) { return 'f_' + si + '_' + bi + '_' + fi; }
+
+  function control(f, id) {
+    var t = f.type || '텍스트';
+    var opts = f.options || [];
+    var a = 'id="' + id + '" data-store="' + esc(f.store || '') + '" data-label="' + esc(f.label) + '"';
+    if (t === '선택' || t === '다중선택') {
+      var h = '<select ' + a + (t === '다중선택' ? ' multiple' : '') + '>';
+      if (t !== '다중선택') h += '<option value="">— 선택 —</option>';
+      for (var i = 0; i < opts.length; i++) h += '<option>' + esc(opts[i]) + '</option>';
+      return h + '</select>';
+    }
+    if (t === '장문') return '<textarea ' + a + '></textarea>';
+    if (t === '자동값') return '<input type="text" ' + a + ' value="(승인·등재 시 부여)" readonly>';
+    if (t === '체크') return '<input type="checkbox" ' + a + '>';
+    if (t === '날짜') return '<input type="date" ' + a + '>';
+    if (t === '숫자') return '<input type="number" ' + a + ' inputmode="decimal">';
+    return '<input type="text" ' + a + '>';
+  }
+
+  /* ★구조 계약 ① — dl 안에서 dt·dd 를 반드시 <div> 로 한 쌍 묶는다.
+     묶지 않으면 grid 가 행 우선으로 채워 라벨과 값이 흩어진다(20260816_04 §4-1). */
+  function blockKV(b, si, bi) {
+    var h = '<dl class="rec-write-kv">';
+    for (var i = 0; i < b.fields.length; i++) {
+      var f = b.fields[i], id = fieldId(si, bi, i);
+      var wide = (f.type === '장문') ? ' data-wide' : '';
+      h += '<div' + wide + '>'
+         + '<dt><label for="' + id + '">' + esc(f.label) + '</label></dt>'
+         + '<dd>' + control(f, id)
+         + (f.note ? '<div style="font-size:11px;color:#4a5568;margin-top:3px">※ ' + esc(f.note) + '</div>' : '')
+         + '<div style="font-size:10.5px;color:#8a9a96;margin-top:2px">→ ' + esc(f.store || '') + '</div>'
+         + '</dd></div>';
+    }
+    return h + '</dl>';
+  }
+
+  /* ★구조 계약 ② — 클래스는 감싸는 div 에 붙이고 그 안에 table 을 둔다.
+     .rec-xscroll 로 감싸지 말 것 — 그것은 높이 14px 스크롤바 막대다(20260816_04 §4-2). */
+  function blockTBL(b, si, bi) {
+    var cols = b.columns || [], rows = Number(b.rows || 5);
+    var h = '<div class="rec-write-tbl" data-store="' + esc(b.store || '') + '"><table>';
+    if (b.store) h += '<caption>반복행 → ' + esc(b.store) + '</caption>';
+    h += '<thead><tr>';
+    for (var c = 0; c < cols.length; c++) h += '<th>' + esc(cols[c].label) + '</th>';
+    h += '</tr></thead><tbody>';
+    for (var r = 0; r < rows; r++) {
+      h += '<tr>';
+      for (var c2 = 0; c2 < cols.length; c2++) {
+        h += '<td>' + control(cols[c2], fieldId(si, bi, r + '_' + c2)) + '</td>';
+      }
+      h += '</tr>';
+    }
+    h += '</tbody><tfoot><tr><td colspan="' + cols.length + '">행 ' + rows + '개 · 빈 행은 저장하지 않습니다</td></tr></tfoot>';
+    return h + '</table></div>';
+  }
+
+  function renderApproval(ap) {
+    if (!ap || !ap.steps || !ap.steps.length) {
+      return '<div class="rec-write-note">이 양식에는 결재란이 정의돼 있지 않습니다.</div>';
+    }
+    var h = '<div class="rec-write-sec"><h3>결재</h3><span>' + esc(ap.source || '') + '</span></div>'
+          + '<div class="rec-write-apv">';
+    for (var i = 0; i < ap.steps.length; i++) {
+      h += '<div><b>' + esc(ap.steps[i].name) + '</b><span>' + esc(ap.steps[i].role) + '</span><i></i></div>';
+    }
+    return h + '</div>';
+  }
+
+  function countFields(schema) {
+    var n = 0;
+    (schema.sections || []).forEach(function (s) {
+      (s.blocks || []).forEach(function (b) {
+        n += (b.fields || []).length + (b.columns || []).length;
+      });
+    });
+    return n;
+  }
+
+  function renderForm(reg) {
+    cur = reg;
+    var schema = reg.form_schema || {};
+    var secs = schema.sections || [];
+    var h = '';
+    for (var si = 0; si < secs.length; si++) {
+      var s = secs[si];
+      var nf = (s.blocks || []).reduce(function (a, b) {
+        return a + (b.fields || []).length + (b.columns || []).length; }, 0);
+      h += '<div class="rec-write-sec"><h3>' + esc((s.no ? s.no + '. ' : '') + s.title) + '</h3>'
+         + '<span>' + nf + '칸</span></div>';
+      for (var bi = 0; bi < (s.blocks || []).length; bi++) {
+        var b = s.blocks[bi];
+        if (b.kind === '라벨-값') h += blockKV(b, si, bi);
+        else if (b.kind === '표') h += blockTBL(b, si, bi);
+        else if (b.kind === '주석') h += '<div class="rec-write-note">' + esc(b.text) + '</div>';
+      }
+    }
+    h += renderApproval(schema.approval);
+    document.getElementById('formBody').innerHTML = h;
+
+    var fo = FOLDERS[reg.form_seq];
+    document.getElementById('formMeta').innerHTML =
+      esc(reg.form_doc_number) + ' · ' + countFields(schema) + '칸 · '
+      + (fo ? '기록철 ' + esc(fo.folder_no) + ' (L' + fo.security_level + ')'
+            : '<b style="color:#b3261e">기록철 없음 — 저장 불가</b>');
+    document.getElementById('btnSave').disabled = !fo;
+    document.getElementById('footInfo').textContent =
+      '양식 정본: ' + (schema.source || '') + ' · 화면은 등록대장 정의로 그립니다';
+  }
+
+  /* ── 값 모으기 ────────────────────────────────────────────────────── */
+
+  function collect() {
+    var payload = {};
+    var body = document.getElementById('formBody');
+
+    body.querySelectorAll('dl.rec-write-kv [data-store]').forEach(function (el) {
+      var store = el.getAttribute('data-store') || '';
+      var v = (el.type === 'checkbox') ? el.checked
+            : (el.multiple ? Array.prototype.map.call(el.selectedOptions, function (o) { return o.value; }) : el.value);
+      if (v === '' || v == null || (Array.isArray(v) && !v.length)) return;
+      if (store.indexOf('payload.') === 0) payload[store.slice(8)] = v;
+      else payload['_' + (el.getAttribute('data-label') || 'x')] = v;   // ★payload 밖 저장처는 별건(M-013 §3-1)
+    });
+
+    body.querySelectorAll('div.rec-write-tbl').forEach(function (wrap) {
+      var store = (wrap.getAttribute('data-store') || '').replace(/^payload\./, '');
+      var rows = [];
+      wrap.querySelectorAll('tbody tr').forEach(function (tr) {
+        var row = {}, any = false;
+        tr.querySelectorAll('[data-store]').forEach(function (el) {
+          var v = (el.type === 'checkbox') ? el.checked : el.value;
+          if (v === '' || v == null || v === false) return;
+          row[el.getAttribute('data-label')] = v; any = true;
+        });
+        if (any) rows.push(row);          // ★빈 행은 담지 않습니다
+      });
+      if (rows.length && store) payload[store] = rows;
+    });
+
+    return payload;
+  }
+
+  /* ── 저장 ─────────────────────────────────────────────────────────── */
+
+  async function save(ev) {
+    ev.preventDefault();
+    var msg = document.getElementById('saveMsg');
+    var btn = document.getElementById('btnSave');
+    var fo = FOLDERS[cur.form_seq];
+    if (!fo) { msg.innerHTML = '<b style="color:#b3261e">기록철이 없어 저장할 수 없습니다.</b>'; return; }
+
+    var payload = collect();
+    if (!Object.keys(payload).length) {
+      msg.innerHTML = '<b style="color:#b3261e">채운 칸이 없습니다.</b>'; return;
+    }
+
+    btn.disabled = true; msg.textContent = '저장 중…';
+    try {
+      var st = staging();
+      if (!st) throw new Error('schema() 미지원 supabase-js');
+      var uid = (window.session && window.session.user && window.session.user.id) || null;
+      var res = await st.from('edms_records').insert({
+        record_type: cur.form_doc_number + ' ' + cur.form_title,
+        drafter_id: uid,
+        status: '작성중',
+        payload: payload,
+        folder_id: fo.id
+      }).select('id').single();
+      if (res.error) throw res.error;
+      msg.innerHTML = '저장했습니다 — <b>작성중</b> · 기록 <b>' + esc(res.data.id) + '</b> · 편철 <b>'
+                    + esc(fo.folder_no) + '</b> · 담은 칸 <b>' + Object.keys(payload).length + '</b>';
+
+      /* ★재조회 — 이식분. 저장 직후 ★같은 id 로 DB 에서 다시 읽어 화면에 반영한다.
+         insert 의 반환값을 그대로 쓰지 않는다 — 그것은 「보낸 값」이고, 여기서 확인하려는 것은
+         ★「DB 에 실제로 들어간 값」이다(기본값·트리거가 채운 것까지 보인다). */
+      var re = await st.from('edms_records').select('*').eq('id', res.data.id).single();
+      if (re.error) { msg.innerHTML += ' <b style="color:#b3261e">— 재조회 실패: ' + esc(re.error.message) + '</b>'; }
+      else { showSaved(re.data); }
+    } catch (e) {
+      msg.innerHTML = '<b style="color:#b3261e">' + esc(friendlyErr(e, '저장하지 못했습니다.')) + '</b>';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* ★재조회 결과 표시 — 이식분 */
+  function showSaved(r) {
+    document.getElementById('savedKv').innerHTML =
+        '<div><dt>id</dt><dd>' + esc(r.id) + '</dd></div>'
+      + '<div><dt>record_type</dt><dd>' + esc(r.record_type) + '</dd></div>'
+      + '<div><dt>status</dt><dd>' + esc(r.status) + '</dd></div>'
+      + '<div><dt>folder_id</dt><dd>' + esc(r.folder_id) + '</dd></div>'
+      + '<div><dt>drafter_id</dt><dd>' + esc(r.drafter_id) + '</dd></div>';
+    var p = r.payload || {}, keys = Object.keys(p);
+    document.querySelector('#savedTbl tbody').innerHTML = keys.length
+      ? keys.map(function (k) { return '<tr><td>' + esc(k) + '</td><td>' + esc(p[k]) + '</td></tr>'; }).join('')
+      : '<tr><td colspan="2">payload 비어 있음</td></tr>';
+    document.querySelector('#savedTbl caption').textContent = '저장된 payload — 키 ' + keys.length + '건 (DB 재조회분)';
+    document.getElementById('savedBox').style.display = '';
+  }
+
+  /* ── 부팅 ─────────────────────────────────────────────────────────── */
+
+  EDMS.ready.then(async function (ctx) {
+    if (!ctx) return;
+    var diag = document.getElementById('diag');
+    var lines = [];
+
+    try {
+      var r1 = await edmsClient.from('edms_record_form_registry')
+        .select('id,dept_code,form_seq,form_doc_number,form_title,form_schema')
+        .like('form_doc_number', PREFIX + '%').eq('active', true).order('form_seq');
+      if (r1.error) throw r1.error;
+      FORMS = (r1.data || []).filter(function (x) { return x.form_schema; });
+      lines.push('양식 등록대장 <b>' + (r1.data || []).length + '건</b>(정의 있음 <b>' + FORMS.length + '</b>)');
+    } catch (e) {
+      lines.push('<b style="color:#b3261e">양식 등록대장을 읽지 못했습니다 — ' + esc(friendlyErr(e, '')) + '</b>');
+    }
+
+    try {
+      var r2 = await edmsClient.from('edms_record_folders')
+        .select('id,folder_no,dept_code,form_seq,year,security_level,read_scope,access_class')
+        .eq('dept_code', DEPT).eq('year', YEAR);
+      if (r2.error) throw r2.error;
+      (r2.data || []).forEach(function (f) { FOLDERS[f.form_seq] = f; });
+      lines.push('기록철 <b>' + (r2.data || []).length + '건</b>');
+    } catch (e) {
+      lines.push('<b style="color:#b3261e">기록철을 읽지 못했습니다 — ' + esc(friendlyErr(e, '')) + '</b>');
+    }
+
+    /* ★staging 접근 진단 — 저장 전에 미리 봅니다. 실패해도 화면은 뜹니다. */
+    try {
+      var st = staging();
+      if (!st) throw new Error('schema() 미지원');
+      var r3 = await st.from('edms_records').select('id').limit(1);
+      if (r3.error) throw r3.error;
+      lines.push('저장 대상 <b>staging.edms_records</b> 접근 <b>가능</b>');
+    } catch (e) {
+      lines.push('<b style="color:#b3261e">저장 대상 staging.edms_records 접근 불가 — '
+               + esc(friendlyErr(e, '')) + ' (PostgREST 노출 스키마 설정 확인 필요)</b>');
+    }
+
+    lines.push('로그인 <b>' + esc(window.myName || '') + '</b> · 역할 <b>' + esc(window.myRole || '') + '</b>');
+    diag.innerHTML = '<b>연결 상태</b><ul><li>' + lines.join('</li><li>') + '</li></ul>';
+
+    var sel = document.getElementById('formPick');
+    sel.innerHTML = FORMS.map(function (f, i) {
+      return '<option value="' + i + '">' + esc(f.form_title) + ' (' + esc(f.form_doc_number) + ')</option>';
+    }).join('');
+    sel.addEventListener('change', function () { renderForm(FORMS[Number(sel.value)]); });
+
+    document.getElementById('recForm').addEventListener('submit', save);
+    document.getElementById('btnReset').addEventListener('click', function () {
+      if (cur) renderForm(cur);
+      document.getElementById('saveMsg').textContent = '비웠습니다.';
+    });
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = '';
+    if (FORMS.length) renderForm(FORMS[0]);
+    else document.getElementById('formMeta').innerHTML =
+      '<b style="color:#b3261e">정의가 담긴 양식이 없습니다.</b>';
+  });
+})();
+</script>
+</body>
+</html>

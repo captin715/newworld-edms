@@ -36,7 +36,10 @@
 <script src="common.js"></script>
 <script>
   // 기록관리 서브 대문(지시 20260802_05 §3)
-  //   기록작성시스템은 미개발 — 타일은 노출하되 링크 없음(<div>), 가짜 진입 경로·alert 금지(§3-1 SHALL NOT)
+  //   ★기록작성시스템 개설(지시 20260816_08 §4-③ · 판정 20260816_07) — 「미개발」은 더는 사실이 아니다.
+  //   record-write.html 이 실재하므로 잠긴 <div> 를 <a href> 로 전환했다.
+  //   §3-1(가짜 진입 경로 금지)은 여전히 유효하다 — 그 금칙이 막던 것은 ★없는 경로로 링크하는 것이었고,
+  //   지금은 경로가 있으므로 링크가 맞다. ★SYS 등재·배포와 ★같은 회차로 나가야 한다(먼저 풀면 죽은 버튼).
   EDMS.ready.then(function (ctx) {
     if (!ctx) return;
     document.getElementById('loading').style.display = 'none';
@@ -49,20 +52,20 @@
         + '<div class="t-title">' + m.name + '</div><div class="t-desc">' + desc + '</div>'
         + '<div class="t-go">' + ico('arrowR') + ' 들어가기</div></a>';
     }
-    // 미개발 시스템 — 클릭 대상이 아니므로 <a>·onclick 을 두지 않는다
+    // ★개설 완료 — 진입 가능. 잠금 클래스·자물쇠 배지 제거, <a href> 로 전환
     var writeTile =
-      '<div class="gate-tile recs locked" id="tileRecordWrite"><span class="t-lock">' + ico('lock') + ' 준비 중 — 개발 예정</span>'
+      '<a class="gate-tile recs" id="tileRecordWrite" href="' + SYS.write.file + '">'
       + '<span class="t-ico">' + ico('doc') + '</span>'
       + '<div class="t-title">기록작성시스템</div>'
       + '<div class="t-desc">등재된 양식으로 기록을 작성·출력합니다. 양식이 문서관리시스템에 등재되어야 작성할 수 있습니다.</div>'
-      + '<div class="t-go">' + ico('lock') + ' 준비 중 — 개발 예정</div></div>';
+      + '<div class="t-go">' + ico('arrowR') + ' 들어가기</div></a>';
 
     document.getElementById('tiles').innerHTML =
       tile('records', '부서별 관리함 기록 등재·열람·배포 — 기록보관소·배포대장·양식 대장') + writeTile;
 
     document.getElementById('info').innerHTML =
       '<div class="gate-card recs"><div class="label">기록관리시스템 · 접속</div><div class="value">전원</div></div>'
-      + '<div class="gate-card recs"><div class="label">기록작성시스템</div><div class="value">준비 중</div></div>';
+      + '<div class="gate-card recs"><div class="label">기록작성시스템 · 접속</div><div class="value">전원</div></div>';
   });
 </script>
 </body>

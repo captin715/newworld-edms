@@ -26,7 +26,12 @@
   var SYS = {
     docs: { name: '문서관리 시스템', file: 'docs.html', cls: 'docs', icon: 'doc' },
     records: { name: '기록관리 시스템', file: 'records.html', cls: 'recs', icon: 'archive' },
-    establish: { name: '문서 제·개정 시스템', file: 'establish.html', cls: 'est', icon: 'stamp' }
+    establish: { name: '문서 제·개정 시스템', file: 'establish.html', cls: 'est', icon: 'stamp' },
+    // ★기록작성 시스템 등재(지시 20260816_08 §4-① · 판정 20260816_07 §2-4·§3-④)
+    //   cls·icon 은 ★기록 계열 재사용 — 새로 만들면 common.css 에 대응 규칙이 없어 색이 빠진다(C-51).
+    //   등재하면 others 로 docs·records·establish 3화면 이동 바에도 들어간다(6→9).
+    //   그 3개는 결함이 아니라 ★완료 정의 ④(헤더 상호 이동)의 요건이다.
+    write:     { name: '기록작성 시스템',     file: 'record-write.html', cls: 'recs', icon: 'archive' }
   };
   // 역할 라벨/배지 — 원문 보존(회귀 방지). 임원=approver, 작성 권한자=reviewer 로 매핑.
   var ROLE_LABEL = { admin: '관리자', approver: '승인자', reviewer: '검토자', general: '일반' };
@@ -100,7 +105,7 @@
           canvas.style.cssText = 'display:block;margin:10px auto;max-width:100%;box-shadow:0 2px 10px rgba(0,0,0,.4)';
           var cx = canvas.getContext('2d');
           await page.render({ canvasContext: cx, viewport: vp }).promise;
-          cx.save(); cx.globalAlpha = 0.14; cx.fillStyle = '#1F3864'; cx.font = '13px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+          cx.save(); cx.globalAlpha = 0.14; cx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim(); cx.font = '13px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
           cx.translate(canvas.width / 2, canvas.height / 2); cx.rotate(-Math.PI / 6);
           var tw = Math.max(cx.measureText(line1).width, cx.measureText(line2).width), xStep = tw + 120, yStep = 160, ext = Math.max(canvas.width, canvas.height);
           for (var y = -ext; y <= ext; y += yStep) for (var x = -ext; x <= ext; x += xStep) { cx.fillText(line1, x, y - 9); cx.fillText(line2, x, y + 9); }
