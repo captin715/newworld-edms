@@ -266,6 +266,8 @@
   var FOLDERS = {};    // form_seq → 기록철 행
   var cur = null;      // 현재 선택 양식
   var MINE = [];       // 내가 쓴 기록 (staging)
+  var PROJECTS = [];   // pm_projects — 프로젝트 코드 선택 목록
+  var curProj = null;  // 고른 프로젝트
   var curRec = null;   // 이어쓰기 중인 기록(없으면 새 기록)
 
   /* ★기록 상태 값역 — M-009 적용분. 문서 결재 값역(EST_STEPS)과 ★섞지 않는다.
@@ -281,10 +283,49 @@
 
   function fieldId(si, bi, fi) { return 'f_' + si + '_' + bi + '_' + fi; }
 
+  /* ── ★자동 채움 — 「시스템이 아는 값은 사용자가 치지 않는다」 (판정 20260816_22 §4) ──
+     ★자동 채운 칸은 읽기전용·회색으로 보여 ★무엇을 쳐야 하는지 한눈에 갈립니다.
+     ★여기 없는 칸만 사람이 칩니다. 넓게 잡지 않았습니다 — 확신 없는 칸을 잠그면
+       못 고치는 칸이 생깁니다. 늘리는 것은 쉽고 되돌리는 것은 어렵습니다. */
+  function todayISO() {
+    var d = new Date(), z = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
+  }
+
+  function autoValue(label) {
+    var L = String(label || '');
+    if (L.indexOf('프로젝트명') === 0)         return curProj ? curProj.project_name : '';
+    if (L.indexOf('유형') === 0)               return curProj
+        ? (curProj.type_char === 'D' ? '개발(D)' : (curProj.type_char === 'G' ? '일반(G)' : '')) : '';
+    if (L.indexOf('관리번호') >= 0)            return '(승인·등재 시 부여)';
+    if (L.indexOf('작성자') >= 0)              return window.myName || '';
+    if (L === '부서' || L.indexOf('작성 부서') === 0) return window.myDept || '';
+    if (L.indexOf('작성일') === 0 || L === '작성 일자') return todayISO();
+    return null;                                   // ★null = 사람이 칩니다
+  }
+
   function control(f, id) {
     var t = f.type || '텍스트';
     var opts = f.options || [];
     var a = 'id="' + id + '" data-store="' + esc(f.store || '') + '" data-label="' + esc(f.label) + '"';
+
+    /* ★프로젝트 코드 — 목록에서 고릅니다. 손으로 치지 않습니다. */
+    if (String(f.label).indexOf('프로젝트 코드') === 0) {
+      return '<select ' + a + ' data-proj="1">'
+        + '<option value="">— 프로젝트를 고르십시오 —</option>'
+        + PROJECTS.map(function (p) {
+            return '<option value="' + esc(p.project_code) + '"'
+                 + (curProj && curProj.project_code === p.project_code ? ' selected' : '') + '>'
+                 + esc(p.project_code) + ' · ' + esc(p.project_name) + '</option>'; }).join('')
+        + '</select>';
+    }
+
+    /* ★자동 채움 칸 — 읽기전용·회색 */
+    var av = autoValue(f.label);
+    if (av !== null) {
+      return '<input type="text" ' + a + ' value="' + esc(av) + '" readonly data-auto="1"'
+           + ' title="자동으로 채워집니다">';
+    }
     if (t === '선택' || t === '다중선택') {
       var h = '<select ' + a + (t === '다중선택' ? ' multiple' : '') + '>';
       if (t !== '다중선택') h += '<option value="">— 선택 —</option>';
@@ -518,8 +559,16 @@
   }
 
   /* 이어쓰기 — 저장돼 있던 payload 를 칸에 되돌려 넣는다 */
+  /* ★이어쓰기 — 이미 저장된 값이 자동값을 ★이깁니다. 다시 묻지 않습니다(판정 §4). */
   function fillForm(payload) {
     var body = document.getElementById('formBody');
+    var pc = payload['프로젝트코드'];
+    if (pc) {
+      for (var i = 0; i < PROJECTS.length; i++) if (PROJECTS[i].project_code === pc) curProj = PROJECTS[i];
+      var pk2 = body.querySelector('[data-proj]'); if (pk2) pk2.value = pc;
+      body.querySelectorAll('[data-auto]').forEach(function (el) {
+        var av = autoValue(el.getAttribute('data-label')); if (av !== null) el.value = av; });
+    }
     body.querySelectorAll('dl.rec-write-kv [data-store]').forEach(function (el) {
       var store = el.getAttribute('data-store') || '';
       if (store.indexOf('payload.') !== 0) return;
@@ -565,6 +614,18 @@
     }
     h += renderApproval(schema.approval);
     document.getElementById('formBody').innerHTML = h;
+
+    /* ★프로젝트를 고르면 이름·유형이 따라옵니다 — 두 번 치지 않습니다 */
+    var pk = document.querySelector('#formBody [data-proj]');
+    if (pk) pk.addEventListener('change', function () {
+      curProj = null;
+      for (var i = 0; i < PROJECTS.length; i++)
+        if (PROJECTS[i].project_code === pk.value) curProj = PROJECTS[i];
+      document.querySelectorAll('#formBody [data-auto]').forEach(function (el) {
+        var av = autoValue(el.getAttribute('data-label'));
+        if (av !== null) el.value = av;
+      });
+    });
 
     var fo = FOLDERS[reg.form_seq];
     document.getElementById('formMeta').innerHTML =
@@ -621,6 +682,12 @@
     var payload = collect();
     if (!Object.keys(payload).length) {
       msg.innerHTML = '<b style="color:#b3261e">채운 칸이 없습니다.</b>'; return;
+    }
+    /* ★결함 ① — 앞판은 「없으면 저장 불가」라 안내하고 ★그냥 저장했습니다.
+       ★말과 동작을 맞춥니다. DB 쪽도 M-015 로 함께 막습니다(화면만 고치면 뚫립니다). */
+    if (!payload['프로젝트코드']) {
+      msg.innerHTML = '<b style="color:#b3261e">프로젝트를 고르십시오. 프로젝트 없이 저장할 수 없습니다.</b>';
+      return;
     }
 
     btn.disabled = true; msg.textContent = '저장 중…';
@@ -719,16 +786,31 @@
     }
 
     try {
-      var r2 = await edmsClient.from('edms_record_folders')
-        .select('id,folder_no,dept_code,form_seq,year,security_level,read_scope,access_class')
-        .eq('dept_code', DEPT).eq('year', YEAR);
-      if (r2.error) throw r2.error;
+      /* ★이 양식들의 기록철만 가져옵니다 — 결함 ⑩.
+         앞판은 MT·2026 전체(★52건)를 세었습니다. 이 화면과 무관한 44건이 섞였습니다. 제 결함입니다. */
+      var seqs = FORMS.map(function (f) { return f.form_seq; });
+      var r2 = { data: [] };
+      if (seqs.length) {
+        r2 = await edmsClient.from('edms_record_folders')
+          .select('id,folder_no,dept_code,form_seq,year,security_level,read_scope,access_class,retention')
+          .eq('dept_code', DEPT).eq('year', YEAR).in('form_seq', seqs);
+        if (r2.error) throw r2.error;
+      }
       (r2.data || []).forEach(function (f) { FOLDERS[f.form_seq] = f; });
-      console.info('[기록작성] 기록철', (r2.data || []).length);
+      console.info('[기록작성] 기록철', (r2.data || []).length, '/ 양식', seqs.length);
     } catch (e) {
       lines.push('<b style="color:#b3261e">기록철을 불러오지 못했습니다 — 관리자 확인이 필요합니다.</b>');
       console.warn('[기록작성] folders', e);
     }
+
+    /* ★프로젝트 목록 — 코드는 「입력」이 아니라 「선택」입니다(판정 20260816_22 §4).
+       ★실물 피해: payload 에 'PPJ-D-2026-001' 이 들어와 있었습니다(PRJ 오타). 고르게 하면 안 생깁니다. */
+    try {
+      var r4 = await edmsClient.from('pm_projects')
+        .select('project_code,project_name,type_char,subtype').order('project_code');
+      if (r4.error) throw r4.error;
+      PROJECTS = r4.data || [];
+    } catch (e) { console.warn('[기록작성] 프로젝트 목록', e); }
 
     /* 저장 경로 확인 — 실패해도 화면은 뜹니다(작성은 되고 저장만 막힙니다).
        ★화면 문구에는 표·스키마 이름을 적지 않습니다 — 판정 20260816_17 §3. 상세는 콘솔로. */
