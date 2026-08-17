@@ -314,7 +314,9 @@
   .st-검토중 { background:#e3eefc; color:var(--ink); }
   .st-승인대기 { background:#fdf0d5; color:#b07d00; }
   .st-승인완료 { background:#e3efe3; color:#2e7d32; }
-  .st-반려 { background:#fbe2e0; color:#c0392b; }
+  /* ★글자만 어둡게(지시 20260816_13 §1) — 배경 무변경이라 문서·제정 화면의 「반려」도 함께 좋아진다.
+     대비 4.4172(미달 −0.0828) → ★4.8083(여유 +0.3083). 값역이 하나뿐인 클래스라 분리 불요. */
+  .st-반려 { background:#fbe2e0; color:#b63628; }
   .st-취소 { background:#e3e6ea; color:#777; }
   .st-보류 { background:#fdecc8; color:#9a6700; }
   .apv-hold { background:#fff; color:#9a6700; border:1.5px solid #e8b931; padding:5px 13px; border-radius:6px; font-size:12px; cursor:pointer; }
@@ -432,7 +434,7 @@
   tr.rec-void td { background:#f6f7f9; color:#999; }
 
   /* 기록보관소 2단 레이아웃 */
-  #recordPanel { border-top:4px solid #2d7d6a; }
+  #recordPanel { border-top:4px solid var(--recs); }
   .rec-layout { display:flex; gap:16px; align-items:flex-start; }
   #recTree { flex:0 0 260px; max-height:60vh; overflow:auto; border:1px solid #e3e8f0; border-radius:8px; padding:8px; background:#fafbfd; font-size:13px; }
   #recListWrap { flex:1; min-width:0; }
@@ -444,14 +446,14 @@
   .rt-cnt { color:#8894a8; font-weight:normal; font-size:11px; }
   .rec-filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
   .rec-filters input, .rec-filters select { padding:8px 10px; border:1.5px solid #d5dbe7; border-radius:8px; font-size:13px; outline:none; }
-  .rec-filters input:focus, .rec-filters select:focus { border-color:var(--docs); }
+  .rec-filters input:focus, .rec-filters select:focus { border-color:var(--recs); }
   .rec-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
   .rec-toolbar label { font-size:12px; color:#555; display:flex; align-items:center; gap:5px; cursor:pointer; }
-  .rec-btn { background:#2d7d6a; color:#fff; border:none; padding:6px 13px; border-radius:7px; font-size:13px; cursor:pointer; }
-  .rec-btn:hover { background:#22604f; }
-  .rec-btn.ghost { background:#fff; color:var(--ink); border:1.5px solid var(--docs); }
+  .rec-btn { background:var(--recs); color:#fff; border:none; padding:6px 13px; border-radius:7px; font-size:13px; cursor:pointer; }
+  .rec-btn:hover { background:var(--recs-d); }
+  .rec-btn.ghost { background:#fff; color:var(--ink); border:1.5px solid var(--recs); }
   .rec-btn.ghost:hover { background:#eef3fb; }
-  .rec-detail-btn { background:#fff; color:var(--ink); border:1.5px solid var(--docs); padding:3px 11px; border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .rec-detail-btn { background:#fff; color:var(--ink); border:1.5px solid var(--recs); padding:3px 11px; border-radius:6px; font-size:12px; cursor:pointer; white-space:nowrap; }
   .rec-detail-btn:hover { background:#eef3fb; }
   .rec-empty { font-size:13px; color:#888; padding:16px 4px; }
   #recTable th { position:sticky; top:0; }
@@ -535,11 +537,12 @@
   .rec-xscroll-inner { height:1px; }
   #recTableWrap2 { overflow:auto; max-height:56vh; border:1px solid #e3e8f0; border-radius:8px; }
   table.rec-std { width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed; min-width:1120px; }
-  table.rec-std th { background:var(--docs); color:#fff; padding:9px 8px; text-align:left; white-space:nowrap; position:sticky; top:0; z-index:3; box-shadow:0 1px 0 #16294a; overflow:hidden; text-overflow:ellipsis; }
+  /* ★기록 축으로 교체(B절 ① · 판정 20260816_18 §1) — rec- 접두인데 문서 파랑이었다 */
+  table.rec-std th { background:var(--recs); color:#fff; padding:9px 8px; text-align:left; white-space:nowrap; position:sticky; top:0; z-index:3; box-shadow:0 1px 0 #16294a; overflow:hidden; text-overflow:ellipsis; }
   table.rec-std td { padding:8px 8px; border-bottom:1px solid #eef1f6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   table.rec-std tbody tr:hover td { background:#eef3fb; }
   table.rec-std th.stick, table.rec-std td.stick { position:sticky; background:#fff; z-index:2; }
-  table.rec-std th.stick { background:var(--docs); z-index:4; }
+  table.rec-std th.stick { background:var(--recs); z-index:4; }
   table.rec-std .c1 { left:0; }
   table.rec-std tr.rec-void td { background:#f6f7f9; color:#999; }
 
@@ -560,6 +563,10 @@
 /* ★색 회차 §A·B (판정 20260816_05 §1 · 20260816_06 §2·§5) — 신설 토큰 10개
    --ink 먹색: 파랑을 「글자색」으로 쓰던 47개소 + PDF 워터마크 1개소가 이 토큰을 본다.
    나머지 9개는 .rec-write-* 가 쓰던 리터럴을 토큰으로 올린 것(중성색·기록 연녹 틴트). */
+/* ★단계 표시기 중성 토큰(A-2 · 판정 20260816_15 §1) — ★값은 현행 그대로 옮긴 것이다.
+   establish 화면 색이 바뀌면 안 되므로(지시 §C-7) 값을 손대지 않았다.
+   --step-idle 은 아직 자주 계열 tint 다 — 축 중립 값 판정은 별건(회신 §확인하지 못한 것). */
+:root { --step-idle:#e6e0ec; --step-arrow:#c3b0bf; }
 :root { --ink:#2A2824; --ink-soft:#4a5568; --surface:#fff; --bg-soft:#f4f6fa;
         --line:#dde3ee; --line-2:#e6ebf2; --field:#d5dbe7; --dash:#cfd8e3;
         --recs-tint:#f2f8f6; --recs-line:#cfe0da; }
@@ -574,7 +581,8 @@ header.edms-nav.docs { background:var(--docs); } header.edms-nav.recs { backgrou
 .nav-btn:hover { background:rgba(255,255,255,.24); }
 .nav-btn .ico { width:14px; height:14px; }
 .nav-btn.sw-docs { background:var(--docs); border-color:#3a5da0; font-weight:bold; }
-.nav-btn.sw-recs { background:var(--recs); border-color:#2d7d6a; font-weight:bold; }
+/* ★577행 — 배경은 토큰인데 테두리만 폐기색이었다(통지 20260816_12 §3). 같은 축 어두운 끝으로 */
+.nav-btn.sw-recs { background:var(--recs); border-color:var(--recs-d); font-weight:bold; }
 .nav-btn.sw-est { background:var(--est); border-color:#a24d86; font-weight:bold; }
 .ico { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
 .role-badge.author { background:#e3c2dd; color:#5c2247; }
@@ -605,12 +613,32 @@ header.edms-nav.docs { background:var(--docs); } header.edms-nav.recs { backgrou
 
 /* 제정 시스템 — 자주 · 스텝퍼 · 상태 배지 */
 #estPanel, .panel.est { border-top:4px solid var(--est); }
+/* ★기록 축 패널 상단선(A-3 ② · 판정 20260816_16 §2) — .panel.est 와 같은 꼴, 색만 기록 축 */
+.panel.recs { border-top:4px solid var(--recs); }
+/* ★기록 상태칩 신설(A-3 ① · M-009 값역) — 작성중·검토중·반려는 틀에 이미 있고 승인·보관만 신설.
+   ★문서 결재 값역의 .st-승인완료 를 기록 「승인」에 쓰지 않는다(SHALL NOT) — 값역이 다르다.
+   대비 실측: 승인 6.94:1 · 보관 6.53:1 (11px 일반 텍스트 · AA 4.5 통과) */
+.st-승인 { background:#eaf4f0; color:var(--recs); }
+.st-보관 { background:#eceff4; color:var(--ink-soft); }
 .st { font-size:10px; padding:1px 7px; border-radius:8px; font-weight:bold; white-space:nowrap; }
 .st-초안 { background:#e3f2fd; color:#0d47a1; } .st-검토중 { background:#fffde7; color:#b28704; } .st-승인대기 { background:#fff3e0; color:#bf360c; } .st-등록완료 { background:#e8f5e9; color:#1b5e20; } .st-폐기 { background:#eceff1; color:#607d8b; }
+/* ★기록 축 「검토중」 분리(지시 20260816_14 §1 · 판정 20260816_21 §3 승인) — ★위 두 줄은 무접촉.
+   기록 화면의 칩은 세 자리에 있고, ①만 표 안이라 표 셀렉터 하나로는 ②③이 안 덮인다(실측).
+     ① table.rec-std#mineTbl 안   ② #flowHead   ③ #flowStep(단계 표시기로 칩을 재사용한 자리)
+   ②③이 #panelFlow 안이라 ★화면 마크업을 고치지 않고 id 로 잡는다.
+   대비 6.3380(여유 +1.8380) · establish·docs·index·gate·login 무영향 ·
+   records.html 은 table.rec-std 를 쓰지만 .st-* 칩을 쓰지 않아 적용 대상 0. */
+table.rec-std .st-검토중,
+#panelFlow    .st-검토중 { background:#dcebe6; color:var(--recs); }
 .stepper { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:10px 0 14px; }
-.step { display:flex; align-items:center; gap:6px; } .step .dot { width:26px; height:26px; border-radius:50%; background:#e6e0ec; color:#7a2e5e; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; }
-.step.on .dot { background:var(--est); color:#fff; } .step.done .dot { background:#2e7d32; color:#fff; }
-.step .lbl { font-size:12px; color:#555; } .step.on .lbl { color:var(--est); font-weight:bold; } .step-arrow .ico { width:16px; height:16px; color:#c3b0bf; }
+.step { display:flex; align-items:center; gap:6px; } .step .dot { width:26px; height:26px; border-radius:50%; background:var(--step-idle); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; }
+.step.done .dot { background:#2e7d32; color:#fff; }   /* ★「완료」는 축과 무관한 뜻 — 유지(지시 A-2) */
+.step .lbl { font-size:12px; color:#555; } .step-arrow .ico { width:16px; height:16px; color:var(--step-arrow); }
+/* ★축 분기 — 종전에는 .stepper 가 문서제개정(--est)에 하드 결합돼 있었다(판정 20260816_15 §1) */
+.stepper.est  .step .dot { color:var(--est); }
+.stepper.est  .step.on .dot { background:var(--est);  color:#fff; } .stepper.est  .step.on .lbl { color:var(--est);  font-weight:bold; }
+.stepper.docs .step.on .dot { background:var(--docs); color:#fff; } .stepper.docs .step.on .lbl { color:var(--docs); font-weight:bold; }
+.stepper.recs .step.on .dot { background:var(--recs); color:#fff; } .stepper.recs .step.on .lbl { color:var(--recs); font-weight:bold; }
 .est-actions { display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 14px; }
 .est-btn { border:none; border-radius:7px; padding:7px 13px; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
 .est-btn.primary { background:var(--est); color:#fff; } .est-btn.ghost { background:#fff; border:1.5px solid #d9c6d2; color:#5c2247; } .est-btn.temp { background:#8a5a2b; color:#fff; } .est-btn .ico { width:13px; height:13px; }

@@ -16,7 +16,7 @@
   <div id="loading" style="text-align:center;padding:60px 0;color:#5c2247">불러오는 중...</div>
   <div id="body" style="display:none"></div>
 </main>
-<footer style="text-align:center;padding:18px;font-size:11px;color:#aaa">문서 제·개정 시스템 · 작성·상신·결재·임시저장·개정착수 · 데이터는 하나(edms_documents), 제정은 상태 전이</footer>
+<footer style="text-align:center;padding:18px;font-size:11px;color:#aaa">문서 제·개정</footer>
 
 <!-- ══ 새 문서 결재 작성 폼 (docs에서 이관) ══ -->
 <div id="formModal">
@@ -151,7 +151,7 @@
   <div class="big-box">
     <div class="big-head"><h3> 임시저장 초안 (이어쓰기)</h3><button id="tempClose">닫기 </button></div>
     <div class="big-body">
-      <div class="num-note">임시저장 = <b>edms_documents(status='초안')</b> 중 미상신 건. 다회차 작성 지원. 상신 전까지 결재함에는 나타나지 않습니다.</div>
+      <div class="num-note">임시저장 = <b>상신 전 문서</b>입니다. 여러 번 나누어 작성할 수 있고, 상신 전까지 결재함에 보이지 않습니다.</div>
       <div class="table-wrap" style="max-height:56vh;overflow:auto">
         <table class="log-table">
           <thead><tr><th>문서번호</th><th>제목</th><th>버전</th><th>등급</th><th>동작</th></tr></thead>
@@ -185,15 +185,12 @@ EDMS.ready.then(async function (ctx) {
     return;
   }
 
-  const EST_STEPS = ['초안', '검토중', '승인대기', '등록완료'];
-  function stepper(cur) {
-    const idx = EST_STEPS.indexOf(cur);
-    return '<div class="stepper">' + EST_STEPS.map(function (s, i) {
-      const cls = i < idx ? 'done' : (i === idx ? 'on' : '');
-      const ar = i < EST_STEPS.length - 1 ? '<span class="step-arrow">' + ico('arrowR') + '</span>' : '';
-      return '<span class="step ' + cls + '"><span class="dot">' + (i + 1) + '</span><span class="lbl">' + s + '</span></span>' + ar;
-    }).join('') + '</div>';
-  }
+  // ★3단계(판정 20260816_17 §1) — 「초안」은 ★상신 전 상태라 진행 단계가 아니다.
+  //   ★389행은 '초안' 을 넘긴다 → stepper 가 idx<0 으로 ★빈 문자열을 돌려준다(의도).
+  const EST_STEPS = ['검토중', '승인대기', '등록완료'];
+  // ★stepper() 정의는 common.js 로 승격됐다(판정 20260816_15 §1). 여기서는 호출만 한다.
+  //   ★축을 'est' 로 넘긴다 — 넘기지 않으면 색이 중성으로 빠져 현행 자주색이 사라진다.
+  //   EST_STEPS 는 ★이 화면에 그대로 둔다(기록 축 값역과 별개 표).
 
   // ── 데이터 로드 (프로필·등록완료 문서(개정대상·중복검사)·초안·결재) ──
   let allProfiles = [], docs = [], drafts = [], lastApvData = [];
@@ -386,7 +383,7 @@ EDMS.ready.then(async function (ctx) {
   function openForm() {
     resetForm();
     $('formTitle').textContent = '새 문서 작성 (제정)';
-    $('stepWrap').innerHTML = stepper('초안');
+    $('stepWrap').innerHTML = stepper(EST_STEPS, '초안', 'est');
     applyScheme(); applyFrMode(); syncDerived();
     formModal.classList.add('open');
   }
@@ -546,7 +543,13 @@ EDMS.ready.then(async function (ctx) {
     if (!storagePath) { alert('첨부 파일이 없습니다 — 작성자에게 재상신을 요청하세요.'); return; }
     const { data, error } = await edmsClient.storage.from('documents').createSignedUrl(storagePath, 600);
     if (error) { alert('열람 권한이 없거나 파일이 없습니다: ' + error.message); return; }
-    window.open(data.signedUrl, '_blank');
+    /* ★③ 폐기(지시 20260816_16 §1-1 · 판정 20260816_25) — 종전에는 새 창으로 열었고, signedUrl 이
+       docx·xlsx 면 브라우저가 ★내려받았다. 「열람 = 다운로드」가 되던 자리다.
+       ★①② 뷰어 경로는 무접촉. 여기까지 온 것은 PDF 본이 없는 첨부뿐이다.
+       ★바로 위 createSignedUrl 은 남겨 둔다 — 545행이 「권한 없음/파일 없음」과
+       「PDF 아님」을 갈라 주는 역할을 계속 한다(회신 참조). */
+    alert('PDF 본이 없습니다 — 작성자에게 PDF 재상신을 요청하세요.');
+    return;
   }
   async function loadWorkflow() {
     const { data, error } = await edmsClient.from('edms_approvals')
@@ -720,7 +723,7 @@ EDMS.ready.then(async function (ctx) {
     const rows = draftRows + apvRows;
     body.innerHTML =
       '<div class="crumbs"><a href="index.html">뉴월드 EDMS</a><span class="sep">›</span><b>문서 제·개정 시스템</b></div>'
-      + '<div class="est-hint">제정 결재선(C-41): <b>작성 = 품질팀장</b> → <b>검토 = 부대표(관리자)</b> → <b>승인 = 대표이사</b>. <b style="color:#c0392b">작성자는 검토·승인을 겸할 수 없습니다(§5.2).</b> 각 단계 권한자만 전이 버튼이 활성화됩니다. 데이터는 하나이며 상태 전이(초안 → 검토중 → 승인대기 → 등록완료)로만 진행됩니다.</div>'
+      + '<div class="est-hint">제정 결재선(C-41): <b>작성 = 품질팀장</b> → <b>검토 = 부대표(관리자)</b> → <b>승인 = 대표이사</b>. <b style="color:#c0392b">작성자는 검토·승인을 겸할 수 없습니다(§5.2).</b> 각 단계 권한자만 전이 버튼이 활성화됩니다.</div>'
       + '<div class="est-actions">'
       + (myRole === 'reviewer' || isAdmin ? '<button class="est-btn primary" id="btnNew">' + ico('doc') + '문서 작성</button> ' : '')
       + '<button class="est-btn temp" id="btnTemp">' + ico('doc') + '임시저장 목록</button> '
@@ -728,7 +731,7 @@ EDMS.ready.then(async function (ctx) {
       + (myRole === 'reviewer' && myDept === '품질' ? '<button class="est-btn ghost" id="btnCfsps">' + ico('doc') + 'CFSPS 일괄</button> ' : '')
       + (myRole === 'reviewer' || isAdmin ? '<button class="est-btn ghost" id="btnFr">' + ico('stamp') + '양식 생성</button>' : '')
       + '</div>'
-      + '<div class="panel est" id="estListPanel"><h2>' + ico('doc') + ' 진행 목록 (초안 ∪ 결재)</h2>' + stepper('검토중')
+      + '<div class="panel est" id="estListPanel"><h2>' + ico('doc') + ' 진행 목록 (초안 ∪ 결재)</h2>' + stepper(EST_STEPS, '검토중', 'est')
       + (rows
         ? '<div class="table-wrap"><table class="log-table"><thead><tr><th>상태</th><th>문서번호</th><th>제목</th><th>버전</th><th>구분</th><th>동작</th></tr></thead><tbody id="estListBody">' + rows + '</tbody></table></div>'
         : '<div class="est-empty">진행 중인 초안·결재가 없습니다. [문서 작성]으로 시작하세요.</div>')

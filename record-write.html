@@ -112,16 +112,76 @@
 
     <div class="rec-hero">
       <h3>기록작성 시스템</h3>
-      <p>등록된 양식을 골라 기록을 작성합니다. 칸·선택지·결재선은 양식 등록대장(<code>form_schema</code>)에서 읽습니다.</p>
+      <p>양식을 골라 기록을 작성합니다. 쓰다 만 기록은 아래 목록에서 이어쓸 수 있습니다.</p>
     </div>
 
     <div class="rec-write-note" id="diag">진단 확인 중…</div>
 
+    <!-- ══════════════════════════════════════════════════════════════
+         회차 A-2 — 목록·상태·진행 3요소   (판정 20260816_16)
+         ★establish.html 구조를 승계합니다 — 자체 설계 금지(§1).
+           목록 = .panel + .rec-tiles/.rec-tile     (기록 축 · 실재 클래스)
+           상태 = .table-wrap + table.rec-std + .st-tag  (실재 클래스)
+           진행 = .stepper/.step                    (establish 와 같은 요소)
+         ★새 클래스를 만들지 않았습니다. 부족분은 제작창 청구(인계문 §4).
+         ══════════════════════════════════════════════════════════════ -->
+
+    <!-- ① 양식 목록 -->
+    <div class="panel recs" id="panelForms">
+      <h2>작성할 수 있는 양식</h2>
+      <div class="rec-filters">
+        <input type="text" id="formFilter" placeholder="양식명·번호로 거르기" style="min-width:220px">
+        <span id="formsCount" style="font-size:12px;color:#4a5568;align-self:center"></span>
+      </div>
+      <div class="rec-tiles" id="formsTiles"></div>
+      <div class="rec-empty" id="formsEmpty" style="display:none">등록된 양식이 없습니다.</div>
+    </div>
+
+    <!-- ② 내 기록 목록 -->
+    <div class="panel recs" id="panelMine">
+      <h2>내가 쓴 기록</h2>
+      <div class="rec-filters">
+        <select id="mineStatus">
+          <option value="">상태 전체</option>
+          <option>작성중</option><option>검토중</option>
+          <option>승인</option><option>반려</option><option>보관</option>
+        </select>
+        <span id="mineCount" style="font-size:12px;color:#4a5568;align-self:center"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="rec-std" id="mineTbl">
+          <thead><tr>
+            <th class="stick c1">관리번호</th><th>양식</th><th>프로젝트</th>
+            <th>상태</th><th>최종 수정</th><th>동작</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="rec-empty" id="mineEmpty" style="display:none">아직 쓴 기록이 없습니다. 위 목록에서 [작성하기]로 시작하십시오.</div>
+    </div>
+
+    <!-- ③ 진행 상태 -->
+    <div class="panel recs" id="panelFlow" style="display:none">
+      <h2>진행 상태</h2>
+      <div id="flowHead" style="font-size:13px;margin-bottom:8px"></div>
+      <div id="flowStep"></div>
+      <div class="rec-write-apv" id="flowApv"></div>
+      <div style="margin-top:10px"><button type="button" class="rec-btn ghost" id="btnFlowClose">닫기</button></div>
+    </div>
+
+    <!-- ── 작성 화면 (기존) — 목록에서 들어옵니다 ───────────────────── -->
+    <div id="panelWrite" style="display:none">
+
+    <div class="crumbs" id="writeCrumbs"></div>
+
     <div class="rec-toolbar">
+      <button type="button" class="rec-btn ghost" id="btnBackList">← 목록</button>
       <label for="formPick" style="font-weight:bold">작성할 양식</label>
       <select id="formPick" style="min-width:280px;padding:7px 10px;border:1.5px solid #d5dbe7;border-radius:7px;font:inherit"></select>
       <span id="formMeta" style="font-size:12px;color:#4a5568"></span>
     </div>
+
+    <div id="editingNote" class="rec-write-note" style="display:none"></div>
 
     <form id="recForm" autocomplete="off">
       <div id="formBody"></div>
@@ -137,12 +197,14 @@
          완료 정의 ③의 「재조회」가 여기서 닫힌다. 인계본에는 이 자리가 없었다.
          새 클래스를 만들지 않고 .rec-write-kv · .rec-write-tbl 을 쓴다. -->
     <div id="savedBox" style="display:none">
-      <div class="rec-write-sec"><h3>저장 결과 — 재조회</h3><em>DB에서 다시 읽은 값</em></div>
+      <div class="rec-write-sec"><h3>저장 결과</h3><em>저장 뒤 다시 읽어 확인한 값입니다</em></div>
       <dl class="rec-write-kv" id="savedKv"></dl>
       <div class="rec-write-tbl"><table id="savedTbl">
-        <caption>저장된 payload</caption>
+        <caption>저장된 내용</caption>
         <thead><tr><th>키</th><th>값</th></tr></thead><tbody></tbody></table></div>
     </div>
+
+    </div><!-- /#panelWrite -->
 
     <div class="rec-write-foot">
       <div id="footInfo"></div>
@@ -185,7 +247,7 @@
     var raw = String(e.message || e);
     console.warn('[서버오류]', raw);
     if (/permission|denied|policy|rls|권한/i.test(raw)) return '권한이 없습니다.';
-    if (/schema|not exist|find the table|PGRST/i.test(raw)) return '저장 대상 테이블에 접근할 수 없습니다(스키마 노출 설정 확인 필요).';
+    if (/schema|not exist|find the table|PGRST/i.test(raw)) return '저장 불가 — 관리자 확인이 필요합니다.';
     if (/duplicate|conflict/i.test(raw)) return '이미 처리되었거나 충돌이 발생했습니다.';
     if (/network|timeout|fetch/i.test(raw)) return '네트워크 상태를 확인한 뒤 다시 시도해 주세요.';
     if (/jwt|expired|401/i.test(raw)) return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
@@ -203,6 +265,17 @@
   var FORMS = [];      // registry 행
   var FOLDERS = {};    // form_seq → 기록철 행
   var cur = null;      // 현재 선택 양식
+  var MINE = [];       // 내가 쓴 기록 (staging)
+  var curRec = null;   // 이어쓰기 중인 기록(없으면 새 기록)
+
+  /* ★기록 상태 값역 — M-009 적용분. 문서 결재 값역(EST_STEPS)과 ★섞지 않는다.
+     ★상태 칩 5종은 틀에 전건 있습니다 — .st-승인 · .st-보관 은 CC 신설분(common.css 617·618).
+       (앞판 주석은 낡아 정정했습니다 — 제작창 통지 20260816_02 §4.) */
+  var REC_STEPS = ['검토중', '승인', '보관'];   // ★판정 20260816_19 §4 확정
+  /* ★'작성중' 은 상신 전이라 단계에서 빼고, '반려' 는 단계가 아니라 되돌림이라 뺐습니다.
+     ★그 둘은 stepper() 안에서 idx<0 이 되어 ★단계 표시가 아예 안 나옵니다(의도된 동작). */
+  var OFFSTEP   = { '작성중': 1, '반려': 1 };
+  var LOCKED    = { '승인': 1, '보관': 1 };   // M-009 불변 트리거가 UPDATE 를 막는 상태
 
   /* ── 렌더 ─────────────────────────────────────────────────────────── */
 
@@ -237,8 +310,9 @@
          + '<dt><label for="' + id + '">' + esc(f.label) + '</label></dt>'
          + '<dd>' + control(f, id)
          + (f.note ? '<div style="font-size:11px;color:#4a5568;margin-top:3px">※ ' + esc(f.note) + '</div>' : '')
-         + '<div style="font-size:10.5px;color:#8a9a96;margin-top:2px">→ ' + esc(f.store || '') + '</div>'
          + '</dd></div>';
+      /* ★저장처(payload.…)를 화면에 적지 않습니다 — 판정 20260816_17 §3.
+         data-store 속성에 그대로 있어 개발자 도구로 볼 수 있습니다. */
     }
     return h + '</dl>';
   }
@@ -248,7 +322,6 @@
   function blockTBL(b, si, bi) {
     var cols = b.columns || [], rows = Number(b.rows || 5);
     var h = '<div class="rec-write-tbl" data-store="' + esc(b.store || '') + '"><table>';
-    if (b.store) h += '<caption>반복행 → ' + esc(b.store) + '</caption>';
     h += '<thead><tr>';
     for (var c = 0; c < cols.length; c++) h += '<th>' + esc(cols[c].label) + '</th>';
     h += '</tr></thead><tbody>';
@@ -285,6 +358,193 @@
     return n;
   }
 
+  /* ── ① 양식 목록 ─────────────────────────────────────────────────── */
+
+  function mineCountOf(seq) {
+    var fo = FOLDERS[seq]; if (!fo) return 0;
+    var n = 0;
+    for (var i = 0; i < MINE.length; i++) if (MINE[i].folder_id === fo.id) n++;
+    return n;
+  }
+
+  function renderFormsList() {
+    var q = (document.getElementById('formFilter').value || '').trim().toLowerCase();
+    var list = FORMS.filter(function (f) {
+      if (!q) return true;
+      return (f.form_title + ' ' + f.form_doc_number).toLowerCase().indexOf(q) >= 0;
+    });
+    var host = document.getElementById('formsTiles');
+    host.innerHTML = list.map(function (f) {
+      var fo = FOLDERS[f.form_seq];
+      var n  = mineCountOf(f.form_seq);
+      var cnt = countFields(f.form_schema || {});
+      return '<button type="button" class="rec-tile' + (fo ? '' : ' disabled') + '"'
+        + ' data-open="' + esc(f.form_doc_number) + '"' + (fo ? '' : ' disabled')
+        + ' title="' + esc(f.form_doc_number) + '">'
+        + '<div style="font-weight:bold;font-size:13.5px;margin-bottom:4px">' + esc(f.form_title) + '</div>'
+        + '<div style="font-size:11.5px;color:#4a5568">' + esc(f.form_doc_number) + ' · ' + cnt + '칸</div>'
+        + '<div style="font-size:11.5px;color:#4a5568;margin-top:3px">'
+        + (fo ? '기록철 ' + esc(fo.folder_no) : '<b style="color:#b3261e">기록철 없음</b>') + '</div>'
+        + '<div style="margin-top:7px;font-size:12px">내 작성 <b>' + n + '</b>건'
+        + '<span style="float:right;color:var(--recs);font-weight:bold">작성하기 →</span></div>'
+        + '</button>';
+    }).join('');
+    document.getElementById('formsEmpty').style.display = list.length ? 'none' : '';
+    document.getElementById('formsCount').textContent =
+      '양식 ' + list.length + '종' + (q ? ' (전체 ' + FORMS.length + ')' : '');
+  }
+
+  /* ── ② 내 기록 목록 ──────────────────────────────────────────────── */
+
+  function formOfFolder(fid) {
+    for (var seq in FOLDERS) if (FOLDERS[seq].id === fid) {
+      for (var i = 0; i < FORMS.length; i++) if (FORMS[i].form_seq === seq) return FORMS[i];
+    }
+    return null;
+  }
+
+  function stTag(st) {
+    /* ★기록 화면이 쓰는 칩 5종은 틀에 전건 있고 대비 AA 전건 통과입니다
+       (제작창 재계산 20260816_22 §2 — 검토중 6.34 · 반려 4.81 · 보관 6.53 · 승인 6.94 · 작성중 4.98). */
+    return '<span class="st-tag st-' + esc(st || '') + '">' + esc(st || '—') + '</span>';
+  }
+
+  function renderMine() {
+    var f = document.getElementById('mineStatus').value;
+    var list = MINE.filter(function (r) { return !f || r.status === f; });
+    var tb = document.querySelector('#mineTbl tbody');
+    tb.innerHTML = list.map(function (r) {
+      var reg = formOfFolder(r.folder_id);
+      var fo  = null; for (var s2 in FOLDERS) if (FOLDERS[s2].id === r.folder_id) fo = FOLDERS[s2];
+      var lock = LOCKED[r.status];
+      return '<tr>'
+        + '<td class="stick c1">' + esc(String(r.id).slice(0, 8)) + '</td>'
+        + '<td>' + esc(reg ? reg.form_title : (r.record_type || '')) + '</td>'
+        + '<td>' + esc((r.payload && (r.payload['프로젝트명'] || r.payload['프로젝트코드'])) || '—') + '</td>'
+        + '<td>' + stTag(r.status) + (fo ? ' <span class="rec-lock">' + esc(fo.folder_no) + '</span>' : '') + '</td>'
+        + '<td>' + esc(String(r.created_at || '').slice(0, 16).replace('T', ' ')) + '</td>'
+        + '<td>'
+        + (lock
+            ? '<span class="rec-lock">수정 불가</span> '
+            : '<button type="button" class="rec-detail-btn" data-edit="' + esc(r.id) + '">이어쓰기</button> ')
+        + '<button type="button" class="rec-detail-btn" data-flow="' + esc(r.id) + '">진행</button>'
+        + '</td></tr>';
+    }).join('');
+    document.getElementById('mineEmpty').style.display = list.length ? 'none' : '';
+    document.getElementById('mineCount').textContent =
+      '기록 ' + list.length + '건' + (f ? ' (전체 ' + MINE.length + ')' : '');
+  }
+
+  /* ── ③ 진행 상태 ────────────────────────────────────────────────── */
+
+  function renderFlow(rec) {
+    var reg = formOfFolder(rec.folder_id);
+    var ap  = (reg && reg.form_schema && reg.form_schema.approval) || { steps: [] };
+    var st  = rec.status || '작성중';
+    var idx = REC_STEPS.indexOf(st);
+
+    document.getElementById('flowHead').innerHTML =
+      '<b>' + esc(reg ? reg.form_title : rec.record_type) + '</b> · 기록 '
+      + esc(String(rec.id).slice(0, 8)) + ' · 현재 ' + stTag(st)
+      + (OFFSTEP[st] ? ' <span class="rec-lock">진행 단계 밖</span>' : '');
+
+    /* ★틀의 stepper() 로 치환했습니다 — 판정 20260816_18 §1 · 제작창 인터페이스 20260816_02 §1.
+       ★앞판은 상태 칩(.st-*)을 늘어놓아 단계 표시기로 ★겸용했습니다. 승격 전 임시 처리였고,
+         그 탓에 칩 색을 건드리면 단계 표시가 함께 움직였습니다. 이 한 줄로 그 얽힘이 풀립니다.
+       ★cls 는 'recs' — 'est' 를 주면 보라가 나옵니다. ★escHtml 은 stepper() 안에서 처리합니다. */
+    document.getElementById('flowStep').innerHTML =
+      (typeof window.stepper === 'function'
+        ? window.stepper(REC_STEPS, st, 'recs')
+        : '')
+      + (idx < 0
+          ? '<div style="font-size:12px;color:#4a5568">'
+            + (OFFSTEP[st] === 1 && st === '작성중'
+                ? '아직 상신 전입니다. 검토를 올리면 단계가 표시됩니다.'
+                : '되돌아온 기록입니다. 고쳐서 다시 올리면 단계가 표시됩니다.')
+            + '</div>'
+          : '');
+
+    /* ★결재선은 form_schema.approval 에서 읽는다 — 하드코딩 금지(판정 §2-③) */
+    document.getElementById('flowApv').innerHTML = (ap.steps || []).length
+      ? ap.steps.map(function (x) {
+          return '<div><b>' + esc(x.name) + '</b><span>' + esc(x.role) + '</span><i></i></div>'; }).join('')
+      : '<div><b>결재선</b><span>정의 없음</span><i></i></div>';
+
+    document.getElementById('panelFlow').style.display = '';
+    document.getElementById('panelFlow').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ── 화면 전환 ──────────────────────────────────────────────────── */
+
+  function showList() {
+    curRec = null;
+    document.getElementById('panelWrite').style.display = 'none';
+    document.getElementById('panelForms').style.display = '';
+    document.getElementById('panelMine').style.display = '';
+    document.getElementById('savedBox').style.display = 'none';
+    renderFormsList(); renderMine();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function openWrite(reg, rec) {
+    curRec = rec || null;
+    document.getElementById('panelForms').style.display = 'none';
+    document.getElementById('panelMine').style.display = 'none';
+    document.getElementById('panelFlow').style.display = 'none';
+    document.getElementById('panelWrite').style.display = '';
+    document.getElementById('savedBox').style.display = 'none';
+
+    var sel = document.getElementById('formPick');
+    for (var i = 0; i < FORMS.length; i++) if (FORMS[i].form_doc_number === reg.form_doc_number) sel.value = String(i);
+
+    document.getElementById('writeCrumbs').innerHTML =
+      '<a href="#" data-back="1">기록작성</a><span class="sep">›</span><b>'
+      + esc(reg.form_title) + '</b>' + (rec ? '<span class="sep">›</span>이어쓰기' : '');
+
+    renderForm(reg);
+
+    var note = document.getElementById('editingNote');
+    if (rec) {
+      note.style.display = '';
+      note.innerHTML = '<b>이어쓰기</b> — 기록 ' + esc(String(rec.id).slice(0, 8))
+        + ' (' + esc(rec.status) + '). 저장하면 <b>같은 기록</b>이 갱신됩니다.';
+      fillForm(rec.payload || {});
+      document.getElementById('btnSave').textContent = '저장(갱신)';
+    } else {
+      note.style.display = 'none';
+      document.getElementById('btnSave').textContent = '임시저장';
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* 이어쓰기 — 저장돼 있던 payload 를 칸에 되돌려 넣는다 */
+  function fillForm(payload) {
+    var body = document.getElementById('formBody');
+    body.querySelectorAll('dl.rec-write-kv [data-store]').forEach(function (el) {
+      var store = el.getAttribute('data-store') || '';
+      if (store.indexOf('payload.') !== 0) return;
+      var v = payload[store.slice(8)];
+      if (v == null) return;
+      if (el.type === 'checkbox') el.checked = !!v;
+      else if (el.multiple) { Array.prototype.forEach.call(el.options, function (o) {
+        o.selected = Array.isArray(v) && v.indexOf(o.value) >= 0; }); }
+      else el.value = v;
+    });
+    body.querySelectorAll('div.rec-write-tbl').forEach(function (wrap) {
+      var key = (wrap.getAttribute('data-store') || '').replace(/^payload\./, '');
+      var rows = payload[key];
+      if (!Array.isArray(rows)) return;
+      var trs = wrap.querySelectorAll('tbody tr');
+      for (var r = 0; r < rows.length && r < trs.length; r++) {
+        trs[r].querySelectorAll('[data-store]').forEach(function (el) {
+          var v = rows[r][el.getAttribute('data-label')];
+          if (v == null) return;
+          if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+        });
+      }
+    });
+  }
+
   function renderForm(reg) {
     cur = reg;
     var schema = reg.form_schema || {};
@@ -313,7 +573,7 @@
             : '<b style="color:#b3261e">기록철 없음 — 저장 불가</b>');
     document.getElementById('btnSave').disabled = !fo;
     document.getElementById('footInfo').textContent =
-      '양식 정본: ' + (schema.source || '') + ' · 화면은 등록대장 정의로 그립니다';
+      '양식 ' + (reg.form_doc_number || '') + ' · ' + (schema.title || reg.form_title || '');
   }
 
   /* ── 값 모으기 ────────────────────────────────────────────────────── */
@@ -368,23 +628,34 @@
       var st = staging();
       if (!st) throw new Error('schema() 미지원 supabase-js');
       var uid = (window.session && window.session.user && window.session.user.id) || null;
-      var res = await st.from('edms_records').insert({
-        record_type: cur.form_doc_number + ' ' + cur.form_title,
-        drafter_id: uid,
-        status: '작성중',
-        payload: payload,
-        folder_id: fo.id
-      }).select('id').single();
+      var res;
+      if (curRec) {
+        /* ★이어쓰기 — 같은 행을 갱신한다. 새로 만들지 않는다.
+           ★status 는 보내지 않는다 — 단계 전이는 결재 경로의 일이고, 저장의 일이 아니다.
+           ★승인·보관은 M-009 불변 트리거가 막는다(목록에서 버튼도 잠갔다). */
+        res = await st.from('edms_records').update({ payload: payload })
+                     .eq('id', curRec.id).select('id').single();
+      } else {
+        res = await st.from('edms_records').insert({
+          record_type: cur.form_doc_number + ' ' + cur.form_title,
+          drafter_id: uid,
+          status: '작성중',
+          payload: payload,
+          folder_id: fo.id
+        }).select('id').single();
+      }
       if (res.error) throw res.error;
-      msg.innerHTML = '저장했습니다 — <b>작성중</b> · 기록 <b>' + esc(res.data.id) + '</b> · 편철 <b>'
+      msg.innerHTML = (curRec ? '갱신했습니다' : '저장했습니다')
+                    + ' — 기록 <b>' + esc(res.data.id) + '</b> · 편철 <b>'
                     + esc(fo.folder_no) + '</b> · 담은 칸 <b>' + Object.keys(payload).length + '</b>';
 
       /* ★재조회 — 이식분. 저장 직후 ★같은 id 로 DB 에서 다시 읽어 화면에 반영한다.
          insert 의 반환값을 그대로 쓰지 않는다 — 그것은 「보낸 값」이고, 여기서 확인하려는 것은
          ★「DB 에 실제로 들어간 값」이다(기본값·트리거가 채운 것까지 보인다). */
       var re = await st.from('edms_records').select('*').eq('id', res.data.id).single();
-      if (re.error) { msg.innerHTML += ' <b style="color:#b3261e">— 재조회 실패: ' + esc(re.error.message) + '</b>'; }
-      else { showSaved(re.data); }
+      if (re.error) { msg.innerHTML += ' <b style="color:#b3261e">— 저장 뒤 확인에 실패했습니다.</b>';
+                      console.warn('[기록작성] 재조회', re.error); }
+      else { showSaved(re.data); curRec = re.data; await loadMine(); renderMine(); renderFormsList(); }
     } catch (e) {
       msg.innerHTML = '<b style="color:#b3261e">' + esc(friendlyErr(e, '저장하지 못했습니다.')) + '</b>';
     } finally {
@@ -392,19 +663,38 @@
     }
   }
 
+  /* ── 내 기록 읽기 ────────────────────────────────────────────────
+     ★RLS 가 걸린 표라 여기서 세는 수는 「표의 행 수」가 아니라 ★「내가 보는 행 수」다.
+       (8/16 에 그 둘을 섞어 읽을 뻔한 일이 있어 적어 둔다.) */
+  async function loadMine() {
+    MINE = [];
+    try {
+      var st = staging(); if (!st) return;
+      var uid = (window.session && window.session.user && window.session.user.id) || null;
+      if (!uid) return;
+      var r = await st.from('edms_records')
+        .select('id,record_type,status,payload,folder_id,drafter_id,created_at')
+        .eq('drafter_id', uid).order('created_at', { ascending: false }).limit(200);
+      if (r.error) throw r.error;
+      MINE = r.data || [];
+    } catch (e) { console.warn('[내 기록]', e); }
+  }
+
   /* ★재조회 결과 표시 — 이식분 */
   function showSaved(r) {
+    /* ★열 이름 대신 사람 말로 적습니다 — 판정 20260816_17 §3 */
+    var fo = null; for (var s3 in FOLDERS) if (FOLDERS[s3].id === r.folder_id) fo = FOLDERS[s3];
     document.getElementById('savedKv').innerHTML =
-        '<div><dt>id</dt><dd>' + esc(r.id) + '</dd></div>'
-      + '<div><dt>record_type</dt><dd>' + esc(r.record_type) + '</dd></div>'
-      + '<div><dt>status</dt><dd>' + esc(r.status) + '</dd></div>'
-      + '<div><dt>folder_id</dt><dd>' + esc(r.folder_id) + '</dd></div>'
-      + '<div><dt>drafter_id</dt><dd>' + esc(r.drafter_id) + '</dd></div>';
+        '<div><dt>기록 번호</dt><dd>' + esc(String(r.id).slice(0, 8)) + '</dd></div>'
+      + '<div><dt>양식</dt><dd>' + esc(r.record_type) + '</dd></div>'
+      + '<div><dt>상태</dt><dd>' + esc(r.status) + '</dd></div>'
+      + '<div><dt>편철</dt><dd>' + esc(fo ? fo.folder_no : '—') + '</dd></div>';
+    console.info('[기록작성] 저장 결과', r);
     var p = r.payload || {}, keys = Object.keys(p);
     document.querySelector('#savedTbl tbody').innerHTML = keys.length
       ? keys.map(function (k) { return '<tr><td>' + esc(k) + '</td><td>' + esc(p[k]) + '</td></tr>'; }).join('')
-      : '<tr><td colspan="2">payload 비어 있음</td></tr>';
-    document.querySelector('#savedTbl caption').textContent = '저장된 payload — 키 ' + keys.length + '건 (DB 재조회분)';
+      : '<tr><td colspan="2">담긴 내용이 없습니다</td></tr>';
+    document.querySelector('#savedTbl caption').textContent = '저장된 내용 — ' + keys.length + '항목 (다시 읽어 확인함)';
     document.getElementById('savedBox').style.display = '';
   }
 
@@ -421,9 +711,11 @@
         .like('form_doc_number', PREFIX + '%').eq('active', true).order('form_seq');
       if (r1.error) throw r1.error;
       FORMS = (r1.data || []).filter(function (x) { return x.form_schema; });
-      lines.push('양식 등록대장 <b>' + (r1.data || []).length + '건</b>(정의 있음 <b>' + FORMS.length + '</b>)');
+      lines.push('쓸 수 있는 양식 <b>' + FORMS.length + '</b>종');
+      console.info('[기록작성] registry', (r1.data || []).length, '· 정의 있음', FORMS.length);
     } catch (e) {
-      lines.push('<b style="color:#b3261e">양식 등록대장을 읽지 못했습니다 — ' + esc(friendlyErr(e, '')) + '</b>');
+      lines.push('<b style="color:#b3261e">양식 목록을 불러오지 못했습니다 — 관리자 확인이 필요합니다.</b>');
+      console.warn('[기록작성] registry', e);
     }
 
     try {
@@ -432,43 +724,81 @@
         .eq('dept_code', DEPT).eq('year', YEAR);
       if (r2.error) throw r2.error;
       (r2.data || []).forEach(function (f) { FOLDERS[f.form_seq] = f; });
-      lines.push('기록철 <b>' + (r2.data || []).length + '건</b>');
+      console.info('[기록작성] 기록철', (r2.data || []).length);
     } catch (e) {
-      lines.push('<b style="color:#b3261e">기록철을 읽지 못했습니다 — ' + esc(friendlyErr(e, '')) + '</b>');
+      lines.push('<b style="color:#b3261e">기록철을 불러오지 못했습니다 — 관리자 확인이 필요합니다.</b>');
+      console.warn('[기록작성] folders', e);
     }
 
-    /* ★staging 접근 진단 — 저장 전에 미리 봅니다. 실패해도 화면은 뜹니다. */
+    /* 저장 경로 확인 — 실패해도 화면은 뜹니다(작성은 되고 저장만 막힙니다).
+       ★화면 문구에는 표·스키마 이름을 적지 않습니다 — 판정 20260816_17 §3. 상세는 콘솔로. */
     try {
       var st = staging();
       if (!st) throw new Error('schema() 미지원');
       var r3 = await st.from('edms_records').select('id').limit(1);
       if (r3.error) throw r3.error;
-      lines.push('저장 대상 <b>staging.edms_records</b> 접근 <b>가능</b>');
+      lines.push('<b>저장 준비됨</b>');
     } catch (e) {
-      lines.push('<b style="color:#b3261e">저장 대상 staging.edms_records 접근 불가 — '
-               + esc(friendlyErr(e, '')) + ' (PostgREST 노출 스키마 설정 확인 필요)</b>');
+      lines.push('<b style="color:#b3261e">저장 불가 — 관리자 확인이 필요합니다.</b>'
+               + ' <span style="color:#4a5568">작성은 되지만 저장되지 않습니다.</span>');
+      console.warn('[기록작성] 저장 경로', e);
     }
 
-    lines.push('로그인 <b>' + esc(window.myName || '') + '</b> · 역할 <b>' + esc(window.myRole || '') + '</b>');
-    diag.innerHTML = '<b>연결 상태</b><ul><li>' + lines.join('</li><li>') + '</li></ul>';
+    lines.push('로그인 <b>' + esc(window.myName || '') + '</b>');
+
+    await loadMine();
+    lines.push('내 기록 <b>' + MINE.length + '</b>건');
+    diag.innerHTML = lines.join('&nbsp; · &nbsp;');
 
     var sel = document.getElementById('formPick');
     sel.innerHTML = FORMS.map(function (f, i) {
       return '<option value="' + i + '">' + esc(f.form_title) + ' (' + esc(f.form_doc_number) + ')</option>';
     }).join('');
-    sel.addEventListener('change', function () { renderForm(FORMS[Number(sel.value)]); });
+    sel.addEventListener('change', function () { openWrite(FORMS[Number(sel.value)], null); });
 
     document.getElementById('recForm').addEventListener('submit', save);
     document.getElementById('btnReset').addEventListener('click', function () {
-      if (cur) renderForm(cur);
+      if (cur) { renderForm(cur); if (curRec) fillForm(curRec.payload || {}); }
       document.getElementById('saveMsg').textContent = '비웠습니다.';
+    });
+
+    /* 목록 → 작성 화면 */
+    document.getElementById('formsTiles').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-open]'); if (!b) return;
+      for (var i = 0; i < FORMS.length; i++)
+        if (FORMS[i].form_doc_number === b.getAttribute('data-open')) return openWrite(FORMS[i], null);
+    });
+    document.getElementById('formFilter').addEventListener('input', renderFormsList);
+    document.getElementById('mineStatus').addEventListener('change', renderMine);
+
+    document.querySelector('#mineTbl tbody').addEventListener('click', function (e) {
+      var ed = e.target.closest('[data-edit]');
+      var fl = e.target.closest('[data-flow]');
+      var id = ed ? ed.getAttribute('data-edit') : (fl ? fl.getAttribute('data-flow') : null);
+      if (!id) return;
+      var rec = null;
+      for (var i = 0; i < MINE.length; i++) if (String(MINE[i].id) === id) rec = MINE[i];
+      if (!rec) return;
+      if (fl) return renderFlow(rec);
+      var reg = formOfFolder(rec.folder_id);
+      if (!reg) { alert('이 기록의 양식을 찾지 못했습니다.'); return; }
+      openWrite(reg, rec);
+    });
+
+    document.getElementById('btnBackList').addEventListener('click', showList);
+    document.getElementById('btnFlowClose').addEventListener('click', function () {
+      document.getElementById('panelFlow').style.display = 'none';
+    });
+    document.getElementById('writeCrumbs').addEventListener('click', function (e) {
+      if (e.target.closest('[data-back]')) { e.preventDefault(); showList(); }
     });
 
     document.getElementById('loading').style.display = 'none';
     document.getElementById('content').style.display = '';
-    if (FORMS.length) renderForm(FORMS[0]);
-    else document.getElementById('formMeta').innerHTML =
-      '<b style="color:#b3261e">정의가 담긴 양식이 없습니다.</b>';
+    if (FORMS.length) { showList(); }
+    else { document.getElementById('formsEmpty').style.display = '';
+           document.getElementById('formsEmpty').innerHTML =
+             '<b style="color:#b3261e">정의가 담긴 양식이 없습니다.</b>'; }
   });
 })();
 </script>

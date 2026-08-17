@@ -20,6 +20,30 @@
     lock: '<rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
     switch: '<path d="M4 9h13l-3-3M20 15H7l3 3"/>'
   };
+  /* ── 단계 표시기(stepper) — ★공통 승격 (판정 20260816_15 §1) ─────────────
+     establish.html 에만 있던 것을 옮겨 왔다. ★단계 배열을 인자로 받는다.
+       steps  단계 문자열 배열 — ★축마다 값역이 다르므로 호출부가 넘긴다
+              문서 제·개정 = ['초안','검토중','승인대기','등록완료']
+              기록        = M-009 값역 ['작성중','검토중','승인','반려','보관'] 에서 구성
+              ★두 값역을 섞지 않는다(SHALL NOT) — 별개 표의 값이다
+       cur    현재 단계 문자열
+       cls    축 클래스 'est' | 'docs' | 'recs' — .stepper 축 분기가 색을 정한다
+              ★생략하면 색이 중성으로 나온다. 축을 넘기는 것이 정상이다 */
+  function stepper(steps, cur, cls) {
+    steps = steps || [];
+    var idx = steps.indexOf(cur);
+    // ★단계에 없는 값이면 ★아무것도 그리지 않는다(판정 20260816_17 §1 · 제작창 확정 20260816_11 §2-3).
+    //   전부 회색으로 띄우면 「진행이 멈춤」으로 읽힌다 — 「아직 시작 전」과 다르다.
+    //   상신 후 단계가 ★나타나는 것 자체가 「진행 시작」 신호가 된다.
+    if (idx < 0) return '';
+    return '<div class="stepper ' + (cls || '') + '">' + steps.map(function (s, i) {
+      var st = i < idx ? 'done' : (i === idx ? 'on' : '');
+      var ar = i < steps.length - 1 ? '<span class="step-arrow">' + ico('arrowR') + '</span>' : '';
+      return '<span class="step ' + st + '"><span class="dot">' + (i + 1) + '</span><span class="lbl">'
+           + escHtml(s) + '</span></span>' + ar;
+    }).join('') + '</div>';
+  }
+
   function ico(name, cls) { return '<svg class="ico ' + (cls || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[name] || '') + '</svg>'; }
 
   // ── 시스템 메타 (명칭 확정 · 이동 버튼 문구 "~으로" 생략) ──
@@ -197,10 +221,11 @@
     window.session = session; window.myRole = myRole; window.myName = myName; window.myDept = myDept;
     window.isAdmin = isAdmin; window.isSuperOrig = isSuperOrig; window.ROLE_LABEL = ROLE_LABEL;
     window.escHtml = escHtml; window.esc = esc; window.askReason = askReason;
+    window.stepper = stepper;                    // ★공통 승격분(판정 20260816_15 §1)
     Object.assign(window.EDMS, ctx);
     return ctx;
   }
 
-  window.EDMS = { mountHeaderOnly: mountHeader, ico: ico, esc: esc, escHtml: escHtml, SYS: SYS, ROLE_LABEL: ROLE_LABEL };
+  window.EDMS = { mountHeaderOnly: mountHeader, ico: ico, esc: esc, escHtml: escHtml, SYS: SYS, ROLE_LABEL: ROLE_LABEL, stepper: stepper };
   window.EDMS.ready = boot();
 })();
