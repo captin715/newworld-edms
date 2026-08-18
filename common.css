@@ -42,6 +42,12 @@
   .pw-body label { display:block; font-size:13px; color:#444; font-weight:bold; margin:12px 0 5px; }
   .pw-body input { width:100%; padding:10px 12px; border:1.5px solid #d5dbe7; border-radius:7px; font-size:14px; outline:none; }
   .pw-body input:focus { border-color:var(--docs); }
+  /* C절 보기 토글 — nav 버튼 계열은 어두운 헤더용이라 흰 모달 위에서 대비가 1 이 됩니다.
+     명시도 2 로 씁니다 — 뒤쪽 nav 규칙과 클래스 1개끼리는 순서로 져서 무효가 됩니다.
+     기존 값만 씁니다: 테두리는 위 입력칸과 같은 값, 글자는 본문 먹색 토큰. 새 색·새 토큰 0.
+     판정 20260818_08 §1 */
+  .nav-btn.pw-eye { background:#fff; border:1.5px solid #d5dbe7; color:var(--ink); }
+  .nav-btn.pw-eye:hover { background:#eef1f6; }
   .pw-note { font-size:12px; color:#777; margin-top:10px; line-height:1.5; }
   .pw-msg { font-size:12px; margin-top:10px; min-height:15px; }
   .pw-msg.err { color:#c0392b; } .pw-msg.ok { color:#2e7d32; }
