@@ -130,7 +130,11 @@
     <div class="panel recs" id="panelForms">
       <h2>작성할 수 있는 양식</h2>
       <div class="rec-filters">
-        <input type="text" id="formFilter" placeholder="양식명·번호로 거르기" style="min-width:220px">
+        <!-- ★이름 부여 + 자동완성 차단 (지시 20260817_02 §1) — 이름 없는 text 칸이라 브라우저가
+             로그인 이메일을 채워 넣어 「양식 0종 (전체 8)」이 되던 자리다. type=search 는 쓰지 않았다
+             (Chrome 은 search 도 자동완성 대상으로 본다). 부팅 시 value 비우기도 함께 넣었다. -->
+        <input type="text" id="formFilter" name="q_form_filter" autocomplete="off" spellcheck="false"
+               placeholder="양식명·번호로 거르기" style="min-width:220px">
         <span id="formsCount" style="font-size:12px;color:#4a5568;align-self:center"></span>
       </div>
       <div class="rec-tiles" id="formsTiles"></div>
@@ -307,7 +311,10 @@
   function control(f, id) {
     var t = f.type || '텍스트';
     var opts = f.options || [];
-    var a = 'id="' + id + '" data-store="' + esc(f.store || '') + '" data-label="' + esc(f.label) + '"';
+    /* ★name 부여(지시 20260817_05 §1-6) — 이름 없는 칸이라 브라우저가 저장된 값을 채웠다.
+       ★여기 한 곳에 두면 아래 동적 생성 전건(input·select·textarea)에 붙는다.
+       ★이름은 화면약칭 rw_ + 칸 id — 일반 명사 단독을 쓰지 않는다(그 이름을 보고 또 채웁니다). */
+    var a = 'id="' + id + '" name="rw_' + id + '" data-store="' + esc(f.store || '') + '" data-label="' + esc(f.label) + '"';
 
     /* ★프로젝트 코드 — 목록에서 고릅니다. 손으로 치지 않습니다. */
     if (String(f.label).indexOf('프로젝트 코드') === 0) {
@@ -323,7 +330,7 @@
     /* ★자동 채움 칸 — 읽기전용·회색 */
     var av = autoValue(f.label);
     if (av !== null) {
-      return '<input type="text" ' + a + ' value="' + esc(av) + '" readonly data-auto="1"'
+      return '<input type="text" ' + a + ' autocomplete="off" spellcheck="false" value="' + esc(av) + '" readonly data-auto="1"'
            + ' title="자동으로 채워집니다">';
     }
     if (t === '선택' || t === '다중선택') {
@@ -332,12 +339,12 @@
       for (var i = 0; i < opts.length; i++) h += '<option>' + esc(opts[i]) + '</option>';
       return h + '</select>';
     }
-    if (t === '장문') return '<textarea ' + a + '></textarea>';
-    if (t === '자동값') return '<input type="text" ' + a + ' value="(승인·등재 시 부여)" readonly>';
+    if (t === '장문') return '<textarea ' + a + ' spellcheck="false"></textarea>';
+    if (t === '자동값') return '<input type="text" ' + a + ' autocomplete="off" spellcheck="false" value="(승인·등재 시 부여)" readonly>';
     if (t === '체크') return '<input type="checkbox" ' + a + '>';
     if (t === '날짜') return '<input type="date" ' + a + '>';
     if (t === '숫자') return '<input type="number" ' + a + ' inputmode="decimal">';
-    return '<input type="text" ' + a + '>';
+    return '<input type="text" ' + a + ' autocomplete="off" spellcheck="false">';
   }
 
   /* ★구조 계약 ① — dl 안에서 dt·dd 를 반드시 <div> 로 한 쌍 묶는다.

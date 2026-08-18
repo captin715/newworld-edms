@@ -1,0 +1,375 @@
+/* ═══════════════════════════════════════════════════════════════════
+   pm.css — 프로젝트관리 5화면 고유 스타일 (구 app.css)
+   ★파일명 변경(지시 20260817_07 §A-3-1 ①) — common.css 와 뜻을 가릅니다.
+   ★로드 순서: common.css 먼저 → pm.css 나중. 겹치는 셀렉터는 이 파일이 이깁니다.
+
+   ★색 시정 (§A-3-1 ②③ · 새 색·새 토큰 신설 0 · C-51)
+     구 파랑(폐기값)  → ★글자로 쓰던 22곳 = var(--ink) 먹색
+                        ★배경·테두리 15곳 = var(--docs)
+     비표준 노랑 7곳  → var(--docs) (테두리·구분선 용도)
+   ★글자를 먹색으로 돌린 근거: 색 회차 DEF-A 판정(20260816_05 §1) 「㉠ 전부 먹색」.
+     파랑을 글자로 두면 22곳 중 19곳이 본문 4.5 미달입니다(계산 근거는 회신 표).
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════════════════
+   뉴월드 EDMS · 기록보관소 재설계 목업 v2 — 공통 스타일
+   · 기존 문서목록 표준 화면(index.html)의 팔레트·표기 관례를 그대로 계승
+   · 외부 CDN 의존 없음 · 정적 · 상대경로
+   ════════════════════════════════════════════════════════════════════ */
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Malgun Gothic','Segoe UI',sans-serif; }
+body { background:#f0f2f7; color:#222; }
+
+/* ── 헤더(기존 EDMS와 동일 톤) ── */
+header.mk {
+  background:var(--docs); color:#fff; padding:14px 20px;
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+}
+header.mk h1 { font-size:18px; }
+header.mk h1 small { font-weight:normal; font-size:12px; opacity:.8; margin-left:8px; }
+/* 기록보관소는 문서 EDMS와 구분되는 강조색(청록)으로 대문 분리 신호 */
+header.mk.rec { background:#2d7d6a; }/* ★삭제: .userbox — common.css 것을 씁니다 (지시 §A-3-2) *//* ★삭제: .role-badge — common.css 것을 씁니다 (지시 §A-3-2) *//* ★삭제: .role-badge.general — common.css 것을 씁니다 (지시 §A-3-2) */
+.role-badge.exec { background:#9ad0a0; color:var(--ink); }
+.role-badge.admin { background:#e8b931; }
+.homebtn { background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff; padding:4px 12px; border-radius:6px; cursor:pointer; font-size:12px; text-decoration:none; }
+.homebtn:hover { background:rgba(255,255,255,.15); }
+
+main { max-width:1100px; margin:0 auto; padding:20px 16px 60px; }
+
+/* ── 변형 선택 툴바(목업 전용 — 실화면엔 없음) ── */
+.mk-toolbar {
+  background:#eef3fb; border:1px dashed #9fb4d6; border-radius:9px; padding:9px 12px;
+  display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:12px; color:#375; margin-bottom:16px;
+}
+.mk-toolbar .grp { display:flex; gap:5px; align-items:center; }
+.mk-toolbar b { color:var(--ink); }
+.mk-toolbar a { font-size:12px; text-decoration:none; color:var(--ink); border:1px solid #c3cfe2; background:#fff; border-radius:14px; padding:2px 10px; }
+.mk-toolbar a.on { background:var(--docs); color:#fff; border-color:var(--docs); }/* ★삭제: .mk-note — common.css 것을 씁니다 (지시 §A-3-2) */
+
+/* ── 카드/패널 ── */
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:20px; }
+.card { background:#fff; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(31,56,100,.08); border-top:4px solid var(--docs); }
+.card .label { font-size:12px; color:#777; margin-bottom:8px; }
+.card .value { font-size:26px; font-weight:bold; color:#2A2824; }
+.card .sub { font-size:11px; color:#999; margin-top:6px; }/* ★삭제: .panel — common.css 것을 씁니다 (지시 §A-3-2) *//* ★삭제: .panel h2 — common.css 것을 씁니다 (지시 §A-3-2) */
+.panel h2 .float { float:right; font-size:12px; }/* ★삭제: .filters — common.css 것을 씁니다 (지시 §A-3-2) */
+.filters input, .filters select { padding:9px 12px; border:1.5px solid #d5dbe7; border-radius:8px; font-size:14px; outline:none; }/* ★삭제: .filters input — 값 동일 (지시 §A-3-2) */
+.filters input:focus, .filters select:focus { border-color:var(--docs); }/* ★삭제: .count-info — common.css 것을 씁니다 (지시 §A-3-2) */
+.toolbar-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+.toolbar-row label { font-size:12px; color:#555; display:flex; align-items:center; gap:5px; }
+
+/* ── 표(기존 문서목록 표준 계승: 헤더 남색·sticky·말줄임) ── */
+.rec-top-scroll { overflow-x:auto; overflow-y:hidden; height:14px; margin-bottom:2px; }
+.rec-top-scroll::-webkit-scrollbar { height:11px; }
+.rec-top-scroll::-webkit-scrollbar-thumb { background:#9aa7bd; border-radius:6px; }
+.rec-top-scroll::-webkit-scrollbar-track { background:#eef1f6; }
+.rec-top-scroll-inner { height:1px; }
+/* ★pm- 로 살림: common 의 .table-wrap 은 overflow-x 만이라
+   ★표 스크롤(max-height:60vh)이 사라집니다. 이름만 갈라 유지합니다 (지시 §A-3-2 예외). */
+.pm-table-wrap { overflow:auto; max-height:60vh; border:1px solid #e3e8f0; border-radius:8px; }
+table.std { width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed; min-width:1080px; }
+table.std th { background:var(--docs); color:#fff; padding:9px 8px; text-align:left; white-space:nowrap; position:sticky; top:0; z-index:3; box-shadow:0 1px 0 #16294a; overflow:hidden; text-overflow:ellipsis; }  /* ★무효 — 후행 「표 머리 = 먹색」 규칙이 덮는다(mockup.css 368~370). 파랑 병합 판정 확정 시 삭제 예정(마스터 20260815_20 §2). */
+table.std td { padding:8px 8px; border-bottom:1px solid #eef1f6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+table.std tbody tr { cursor:pointer; }
+table.std tbody tr:hover td { background:#eef3fb; }
+table.std td.title-cell { white-space:nowrap; }
+/* 좌측 식별자 2열 고정(모바일 가로 스크롤 시 식별자 유지) */
+table.std th.sticky-col, table.std td.sticky-col { position:sticky; background:#fff; z-index:2; }
+table.std th.sticky-col { background:var(--docs); z-index:4; }  /* ★무효 — 후행 「표 머리 = 먹색」 규칙이 덮는다(mockup.css 368~370). 파랑 병합 판정 확정 시 삭제 예정(마스터 20260815_20 §2). */
+table.std th.c1, table.std td.c1 { left:0; }
+tr.void td { background:#f6f7f9; color:#999; }
+tr.void:hover td { background:#f0f1f4; }
+.masked { color:#999; font-style:italic; }
+
+/* 배지 — 등급 P1~P4 (색+텍스트 병행: 색각이상 대응) */
+.plv { font-size:11px; padding:1px 7px; border-radius:10px; font-weight:bold; white-space:nowrap; }
+.plv-1 { background:#e8edf5; color:#5a6b86; }
+.plv-2 { background:#e3efe3; color:#2e7d32; }
+.plv-3 { background:#fde3c4; color:#b9560a; }
+.plv-4 { background:#fbd5d1; color:#c0392b; }/* ★삭제: .rst — common.css 것을 씁니다 (지시 §A-3-2) */
+.rst-유효 { background:#e3efe3; color:#2e7d32; }
+.rst-대체됨 { background:#e3eefc; color:var(--ink); }
+.rst-폐기 { background:#e3e6ea; color:#777; }
+.site-badge { font-size:10px; background:#eef1f6; color:#5a6b86; padding:1px 7px; border-radius:8px; white-space:nowrap; }/* ★삭제: .rec-lock — common.css 것을 씁니다 (지시 §A-3-2) */
+
+/* 액션 버튼 */
+.btn { border:none; border-radius:6px; font-size:12px; padding:4px 11px; cursor:pointer; white-space:nowrap; }
+.btn.view { background:#fff; color:var(--ink); border:1.5px solid var(--docs); }
+.btn.view:hover { background:#eef3fb; }
+.btn.dist { background:#fff; color:#b07d00; border:1.5px solid #e8b931; }
+.btn.dl { background:var(--docs); color:#fff; }
+.btn.sup { background:#fff; color:#2d7d6a; border:1.5px solid #2d7d6a; }
+.btn.del { background:#fff; color:#c0392b; border:1.5px solid #c0392b; }
+.btn.primary { background:#2d7d6a; color:#fff; }
+.btn.primary:hover { background:#164a40; }
+.btn.ghost { background:#fff; color:var(--ink); border:1.5px solid var(--docs); }
+.btn.big { font-size:15px; padding:11px 18px; font-weight:bold; border-radius:8px; }
+.actions-cell { display:flex; gap:5px; }
+
+/* 배포 상태 배지 */
+.dstat { font-size:11px; padding:2px 9px; border-radius:10px; white-space:nowrap; font-weight:bold; }
+.dstat-gray { background:#eceff4; color:#666; }
+.dstat-blue { background:#e3eefc; color:var(--ink); }
+.dstat-green { background:#e3efe3; color:#2e7d32; }
+.dstat-green2 { background:#c8e6c9; color:#1b5e20; }
+.dstat-orange { background:#fdecc8; color:#9a6700; }
+.dstat-red { background:#fbe2e0; color:#c0392b; }
+
+/* 배너/안내 */
+.banner { border-radius:8px; padding:10px 13px; font-size:12px; line-height:1.55; margin:8px 0; }
+.banner.warn { background:#fdf0d5; border:1px solid #e8b931; color:#8a5a00; }
+.banner.crit { background:#fbe2e0; border:1px solid #c0392b; color:#a02419; }
+.banner.info { background:#eef3fb; border:1px solid #c3cfe2; color:var(--ink); }
+.empty-state, .error-state { text-align:center; padding:40px 16px; border:1px dashed #cdd6e5; border-radius:10px; color:#7a869c; background:#fafbfd; }
+.error-state { border-color:#e6b3ad; color:#a02419; background:#fdf3f2; }
+.empty-state .ic, .error-state .ic { font-size:34px; display:block; margin-bottom:8px; }
+
+/* 폼 */
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+.form-grid.one { grid-template-columns:1fr; }
+label.fld { display:block; font-size:13px; color:#444; font-weight:bold; margin:12px 0 5px; }
+label.fld .req { color:#c0392b; }
+.inp, select.inp, textarea.inp { width:100%; padding:9px 11px; border:1.5px solid #d5dbe7; border-radius:7px; font-size:14px; outline:none; font-family:inherit; }
+.inp:focus { border-color:var(--docs); }
+textarea.inp { min-height:60px; resize:vertical; }
+.hint { font-size:12px; color:#666; background:#f0f3f9; border-radius:7px; padding:8px 11px; line-height:1.5; margin-top:6px; }
+
+/* 대문 타일 */
+.gate-hero { background:linear-gradient(135deg,#2d7d6a,#154438); color:#fff; border-radius:14px; padding:26px 24px; margin-bottom:20px; }
+.gate-hero h2 { font-size:22px; margin-bottom:6px; }
+.gate-hero p { font-size:13px; opacity:.9; line-height:1.6; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+.tile { background:#fff; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(31,56,100,.08); border-left:5px solid #2d7d6a; cursor:pointer; }
+.tile:hover { box-shadow:0 5px 16px rgba(31,56,100,.16); }
+.tile.disabled { opacity:.5; cursor:not-allowed; border-left-color:#bbb; }
+.tile .t-ic { font-size:26px; }
+.tile .t-title { font-size:15px; font-weight:bold; color:var(--ink); margin:8px 0 4px; }
+.tile .t-desc { font-size:12px; color:#777; line-height:1.5; }
+.tile .t-lock { font-size:11px; color:#c0392b; margin-top:6px; }/* ★삭제: .crumbs — common.css 것을 씁니다 (지시 §A-3-2) *//* ★삭제: .crumbs b — common.css 것을 씁니다 (지시 §A-3-2) */
+
+/* 등록/부서추가 — 관리함 트리 */
+.two-col { display:flex; gap:16px; align-items:flex-start; }
+.tree { flex:0 0 250px; border:1px solid #e3e8f0; border-radius:8px; padding:10px; background:#fafbfd; font-size:13px; max-height:60vh; overflow:auto; }
+.tree .node { padding:4px 7px; border-radius:6px; cursor:pointer; }
+.tree .node:hover { background:#eef3fb; }
+.tree .node.sel { background:#dbe7f7; font-weight:bold; }
+.tree .dept { font-weight:bold; color:var(--ink); margin-top:6px; }
+.tree .folder { margin-left:14px; color:#3a4a67; }
+.tree .cnt { color:#8894a8; font-weight:normal; font-size:11px; }
+.grow { flex:1; min-width:0; }
+
+/* 승인 카드 */
+.appr-card { border:1px solid #eef1f6; border-radius:9px; padding:12px 14px; margin-bottom:10px; background:#fff; }
+.appr-card .top { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.appr-card .meta { font-size:12px; color:#777; margin-top:4px; line-height:1.5; }
+.appr-card .checklist { font-size:12px; margin-top:8px; background:#f7f9fc; border-radius:7px; padding:8px 10px; line-height:1.7; }
+.appr-card .checklist .ok { color:#2e7d32; }
+.appr-card .checklist .warn { color:#b9560a; }
+.appr-card .checklist .no { color:#c0392b; }
+.appr-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+
+/* 상세 정의목록 */
+.dl-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 18px; margin-bottom:14px; }
+.dl-row { display:flex; gap:10px; padding:7px 2px; border-bottom:1px solid #eef1f6; font-size:13px; }
+.dl-row .k { color:#888; flex:0 0 92px; }
+.dl-row .v { color:var(--ink); font-weight:600; word-break:break-all; }
+.sec-title { font-size:13px; font-weight:bold; color:var(--ink); margin:14px 0 7px; }
+
+footer.mk { text-align:center; padding:20px; font-size:11px; color:#aaa; }
+
+/* ════════════ 모바일 (360~430px) ════════════ */
+@media (max-width:480px) {
+  main { padding:12px 10px 40px; }
+  header.mk { padding:11px 12px; }
+  header.mk h1 { font-size:15px; }
+  .cards { grid-template-columns:1fr 1fr; gap:10px; }
+  .card { padding:13px; }
+  .card .value { font-size:20px; }
+  .filters input, .filters select { font-size:13px; padding:8px 10px; }
+  .two-col { flex-direction:column; }
+  .tree { flex:0 0 auto; width:100%; max-height:none; }
+  .form-grid { grid-template-columns:1fr; }
+  .dl-grid { grid-template-columns:1fr; }
+  /* 표: 가로 스크롤 유지 + 식별자 2열 고정 + 터치 타깃 확대 */
+  table.std { min-width:760px; }
+  .btn { padding:9px 12px; }
+  .actions-cell { flex-direction:column; }
+  .tiles { grid-template-columns:1fr; }
+  .gate-hero { padding:18px 16px; }
+  .gate-hero h2 { font-size:18px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ▼▼ 프로젝트관리(④) 목업 v1 추가 블록 — 파일 끝 한 블록에만 둔다 ▼▼
+   · 위 200행은 목업_기록보관소_v2\assets\mockup.css 무변경 복사분이다.
+   · W-SOP-G152100 Rev1.00 §6.1.3 「공통 자산 재사용(SHALL) ·
+     새 스타일 체계를 생성하지 않는다(SHALL NOT)」
+   · 새 팔레트·다크모드·color-mix() 없음. 기존 색·클래스 관례를 그대로 쓴다.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── 권한 배지 4번째(PM) — 기존 .role-badge 관례 계승 ── */
+.role-badge.pm { background:#c9b3d6; color:var(--ink); }
+.tag-pm { background:#c9b3d6; color:var(--ink); }
+
+/* ── 게이트 배지 .pgb — .plv-* 형식 계승(색 + 텍스트 병행) ── */
+.pgb { font-size:11px; padding:1px 7px; border-radius:10px; font-weight:bold; white-space:nowrap; }
+.pgb-m1 { background:#e8edf5; color:#5a6b86; }
+.pgb-0  { background:#fbd5d1; color:#c0392b; }
+.pgb-1  { background:#e3eefc; color:var(--ink); }
+.pgb-2  { background:#e3efe3; color:#2e7d32; }
+.pgb-3  { background:#e3efe3; color:#2e7d32; }
+.pgb-4  { background:#fbd5d1; color:#c0392b; }
+.pgb-5  { background:#fde3c4; color:#b9560a; }
+.pgb-none { background:#eceff4; color:#888; }
+.ceo-mark { font-size:10px; background:#fbe2e0; color:#a02419; border:1px solid #e6b3ad;
+            padding:1px 6px; border-radius:8px; white-space:nowrap; margin-left:4px; }
+
+/* ── 프로젝트 상태 배지 — 절차서 Annex D 7값. .rst-* 관례 계승 ── */
+.rst-미착수   { background:#eceff4; color:#666; }
+.rst-진행     { background:#e3efe3; color:#2e7d32; }
+.rst-보류     { background:#fdecc8; color:#9a6700; }
+.rst-완료종료 { background:#e3eefc; color:var(--ink); }
+.rst-중도종결 { background:#e3e6ea; color:#777; }
+.rst-실패종료 { background:#fbe2e0; color:#c0392b; }
+.rst-잠정종료 { background:#efe6f5; color:#6b3f8c; }
+
+/* ── 「(예)」 배지 · 성립요건 표식 ── */
+.demo-badge { font-size:10px; background:#f3e6c8; color:#8a5a00; border:1px solid #e8d59a;
+              padding:1px 6px; border-radius:8px; white-space:nowrap; }
+tr.demo td { background:#fffdf5; }
+.req-ic { font-size:11px; padding:1px 7px; border-radius:9px; white-space:nowrap; font-weight:bold; }
+.req-ok { background:#e3efe3; color:#2e7d32; }
+.req-no { background:#fbe2e0; color:#c0392b; }
+.req-part { background:#fdecc8; color:#9a6700; }
+tr.unmet td { background:#fdf7f6; }
+tr.unmet:hover td { background:#fbeeec; }
+
+/* ── 단색 SVG 아이콘(그림문자 대체) ── */
+.ico { display:inline-block; vertical-align:-2px; width:13px; height:13px; }
+.ico path, .ico rect, .ico circle, .ico line { fill:none; stroke:currentColor; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round; }
+.ico.solid rect, .ico.solid path { fill:currentColor; stroke:none; }
+
+/* ── 간트 ── */
+.gantt-wrap { overflow:auto; border:1px solid #e3e8f0; border-radius:8px; max-height:60vh; }
+table.gantt { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; min-width:1080px; }
+table.gantt th { background:var(--docs); color:#fff; padding:7px 6px; text-align:left; white-space:nowrap;
+  position:sticky; top:0; z-index:3; font-weight:normal; }  /* ★무효 — 후행 「표 머리 = 먹색」 규칙이 덮는다(mockup.css 368~370). 파랑 병합 판정 확정 시 삭제 예정(마스터 20260815_20 §2). */
+table.gantt th.d { text-align:center; font-size:10px; padding:7px 0; }
+table.gantt td { padding:0; border-bottom:1px solid #eef1f6; height:28px; }
+table.gantt td.lbl { padding:4px 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; }
+/* 대기 노드 행 — 「빗금 막대 + 텍스트 병행」이 잘리지 않게 줄바꿈 허용 */
+table.gantt td.lbl.wrap { white-space:normal; line-height:1.35; text-overflow:clip; }
+table.gantt tr.waitrow td { height:40px; }
+table.gantt td.cell { border-left:1px solid #f4f6fa; position:relative; }
+table.gantt tr:hover td { background:#f7f9fd; }
+.bar { position:absolute; left:1px; right:1px; top:6px; height:15px; border-radius:4px; }
+.bar-work { background:var(--docs); }
+.bar-work.crit { background:#c0392b; }
+.bar-wait { background:repeating-linear-gradient(45deg,#cfd6e4 0 6px,#eef1f6 6px 12px);
+            border:1px solid #9aa7bd; }
+.gate-mark { display:inline-block; font-size:10px; padding:0 5px; border-radius:7px;
+             background:#fbd5d1; color:#a02419; border:1px solid #e6b3ad; white-space:nowrap; }
+.gate-mark.norm { background:#e3eefc; color:var(--ink); border-color:#c3cfe2; }
+.wait-tag { font-size:11px; color:#5a6b86; white-space:nowrap; }
+
+/* ── 게이트 보드 ── */
+table.gboard { width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed; min-width:1080px; }
+table.gboard th { background:var(--docs); color:#fff; padding:8px 6px; text-align:center; white-space:nowrap;
+  position:sticky; top:0; z-index:3; }  /* ★무효 — 후행 「표 머리 = 먹색」 규칙이 덮는다(mockup.css 368~370). 파랑 병합 판정 확정 시 삭제 예정(마스터 20260815_20 §2). */
+table.gboard th.pj { text-align:left; }
+table.gboard td { padding:6px 5px; border-bottom:1px solid #eef1f6; border-left:1px solid #f0f3f8;
+  text-align:center; vertical-align:top; }
+table.gboard td.pj { text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+table.gboard tr:hover td { background:#f7f9fd; }
+.gcell { display:inline-block; font-size:11px; border-radius:8px; padding:2px 7px; white-space:nowrap; }
+.gc-pass    { background:#e3efe3; color:#2e7d32; }
+.gc-cond    { background:#fdecc8; color:#9a6700; }
+.gc-reject  { background:#fbe2e0; color:#c0392b; }
+.gc-none    { background:#f4f6fa; color:#aab3c2; }
+.gc-wait    { background:#e3eefc; color:var(--ink); }
+.gc-ext     { background:#efe6f5; color:#6b3f8c; }
+.gc-del     { background:#e3e6ea; color:#777; text-decoration:line-through; }
+.gc-sub     { background:#fff3d9; color:#8a5a00; border:1px dashed #e8b931; margin-top:3px; }
+.gc-note { display:block; font-size:10px; color:#8894a8; margin-top:3px; white-space:normal; line-height:1.35; }
+.legend { display:flex; gap:10px; flex-wrap:wrap; font-size:11px; color:#666; margin-top:10px; }
+
+/* ── 연결 보기 ── */
+.lnk-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.lnk-list { border:1px solid #e3e8f0; border-radius:8px; padding:10px; background:#fafbfd; }
+.lnk-item { background:#fff; border:1px solid #eef1f6; border-radius:8px; padding:9px 11px; margin-bottom:8px; font-size:12px; }
+.lnk-item .lt { font-size:10px; background:#e3eefc; color:var(--ink); border-radius:8px; padding:1px 7px; }
+.lnk-item .pj { font-weight:bold; color:var(--ink); display:block; margin-top:4px; }
+.lnk-item .nt { color:#777; margin-top:4px; line-height:1.5; }
+
+/* ── 대문 타일(장 27) — 배치 골격은 목업_시스템분리_v2_3타일 참조 ── */
+.pm-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; }
+.pm-tile { background:#fff; border-radius:12px; padding:18px; text-decoration:none; display:block;
+  box-shadow:0 2px 8px rgba(31,56,100,.08); border-left:5px solid var(--docs); }
+.pm-tile:hover { box-shadow:0 5px 16px rgba(31,56,100,.16); }
+.pm-tile .t-title { font-size:17px; font-weight:bold; margin:8px 0 6px; }
+/* ★§2-1 : 파랑 var(--docs) 위 흰 글자는 4.45:1 — 본문 기준 4.5:1 미달, 큰 글자 기준 3:1 통과.
+   설명 문장을 16px 이상으로 키워 「큰 글자」 기준을 만족시킨다. 색은 바꾸지 않는다. */
+.pm-tile .t-desc { font-size:16px; line-height:1.55; min-height:56px; }
+.pm-tile .t-go { font-size:15px; font-weight:bold; margin-top:10px; }
+.pm-tile .t-hex { font-size:12px; margin-top:8px; opacity:.85; }
+.pm-tile .t-mgmt { font-size:12px; margin-top:6px; opacity:.85; }
+.pm-tile.focus { outline:3px solid #2A2824; outline-offset:2px; }
+
+/* ★CI 천지인 3색 — 화면 UI 축 (CI천지인3색_화면UI표준 V1.0 §1). hex 변경 금지 */
+/* 천 · 문서관리 — 파랑 배경 + 흰 글자(4.45:1 · 큰 글자 기준) */
+.pm-tile.sys-docs { background:var(--docs); border-left-color:#2A2824; color:#fff; }
+.pm-tile.sys-docs .t-title, .pm-tile.sys-docs .t-desc,
+.pm-tile.sys-docs .t-go,   .pm-tile.sys-docs .t-hex,
+.pm-tile.sys-docs .t-mgmt { color:#fff; }
+/* 지 · 기록관리 — ★녹색 배경 + 흰 글자 (표준 V1.1 §1·§2)
+   ★CI 빨강 → 녹색 예외(적색 눈 피로·부대표 정정 2026-08-11). 빨강은 적용하지 않는다. */
+.pm-tile.sys-recs { background:#2d7d6a; border-left-color:#2A2824; color:#fff; }
+.pm-tile.sys-recs .t-title, .pm-tile.sys-recs .t-desc,
+.pm-tile.sys-recs .t-go,   .pm-tile.sys-recs .t-hex,
+.pm-tile.sys-recs .t-mgmt { color:#fff; }
+/* ★인 · 프로젝트관리 — 노랑 배경 + 먹색 글자(7.19:1).
+   ★흰 글자 금지(SHALL NOT) — 2.05:1 로 읽을 수 없다. 표준 §2 부대표 승인 예외. */
+.pm-tile.sys-prj  { background:var(--docs); border-left-color:#2A2824; color:#2A2824; }
+.pm-tile.sys-prj .t-title, .pm-tile.sys-prj .t-desc,
+.pm-tile.sys-prj .t-go,   .pm-tile.sys-prj .t-hex,
+.pm-tile.sys-prj .t-mgmt { color:#2A2824; }
+
+.swatch { display:inline-block; width:13px; height:13px; border-radius:3px; vertical-align:-2px;
+          margin-right:5px; border:1px solid rgba(0,0,0,.15); }
+
+/* ════════ ★프로젝트관리 화면 헤더·표머리 색 — 확정 (부대표 2026-08-11) ════════
+   표준 V1.1 §4 : 프로젝트관리 화면 = var(--docs).
+   확정값  상단 헤더 바 = 노랑 var(--docs) + 먹색 글자 #2A2824 ( 7.19:1 )
+           표 머리      = 먹색 #2A2824 + 흰 글자 #ffffff   ( 14.71:1 )
+   확정 사유(부대표) : 12열 표 머리가 전부 밝은 노랑이면 장시간 보기 어렵다.
+                      노랑은 상단 띠 한 줄에만 두고 표는 차분하게 간다.
+   ★노랑 배경 위에는 먹색만 쓴다. 흰 글자 금지(2.05:1 · SHALL NOT).
+   ★적용 범위 = 프로젝트관리 화면 전건(대장·간트·게이트보드·연결).
+   ★제외 = 대문 entry.html · 목업 목차 index.html — header.mk 바탕(var(--docs)) 그대로.
+     범위 한정을 header 요소의 .pm 으로 준다. 위 200행(공통 자산 무변경 복사분)을
+     고치지 않으면서 대문을 노랑으로 물들이지 않는 유일한 방법이다.
+   ★.pm 은 정적 HTML 속성이므로 JS 를 끄면 사라지지 않는다.
+     (종전 body.hdr-a/b 는 pmHdrApply() 가 붙이는 JS 의존 덮개였다 — 전건 삭제함) */
+header.mk.pm { background:var(--docs); color:#2A2824; }
+header.mk.pm h1 { color:#2A2824; }
+header.mk.pm .userbox { color:#2A2824; }
+header.mk.pm .homebtn { color:#2A2824; border-color:rgba(42,40,36,.45); }
+header.mk.pm .homebtn:hover { background:rgba(42,40,36,.12); }
+header.mk.pm .role-badge.general,
+header.mk.pm .role-badge.exec  { background:#fff;    color:#2A2824; }
+header.mk.pm .role-badge.admin,
+header.mk.pm .role-badge.pm    { background:#2A2824; color:#fff; }
+
+/* 표 머리 = 먹색 + 흰 글자(14.71:1).
+   이 3표(std·gantt·gboard)는 이 목업에서 프로젝트관리 화면에만 등장한다 —
+   list.html · gantt.html · gates.html 뿐이고 entry.html · index.html 에는 없다. */
+table.std th, table.gantt th, table.gboard th { background:#2A2824; color:#fff; }
+table.std th { box-shadow:0 1px 0 #00000020; }   /* 종전 #16294a(남색) 교체 */
+table.std th.sticky-col { background:#2A2824; }
+
+@media (max-width:480px) {
+  .lnk-cols { grid-template-columns:1fr; }
+  .pm-tiles { grid-template-columns:1fr; }
+  table.gantt, table.gboard { min-width:760px; }
+}
+/* ▲▲ 프로젝트관리(④) 추가 블록 끝 ▲▲ */

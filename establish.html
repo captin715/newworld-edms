@@ -55,10 +55,10 @@
           <div id="frWrap" style="display:none">
             <div class="grid2">
               <div><label>계층코드(양식)</label><select id="fLayer"></select></div>
-              <div><label>순번(2자리)</label><input type="text" id="fSeq" placeholder="01" maxlength="2"></div>
+              <div><label>순번(2자리)</label><input type="text" id="fSeq" placeholder="01" maxlength="2" name="est_f_seq" autocomplete="off"></div>
             </div>
             <label>상위문서 (구분자+6자리, 예: Q071110)</label>
-            <input type="text" id="fParent" placeholder="예: Q071110">
+            <input type="text" id="fParent" placeholder="예: Q071110" name="est_f_parent" autocomplete="off">
           </div>
         </div>
         <div id="cfspWrap" style="display:none">
@@ -73,7 +73,7 @@
             </select></div>
           </div>
           <label>6자리 일련번호 (예: 010000)</label>
-          <input type="text" id="cfspSeq" placeholder="010000" maxlength="6">
+          <input type="text" id="cfspSeq" placeholder="010000" maxlength="6" name="est_cfsp_seq" autocomplete="off">
         </div>
         <div class="prefix-hint">조립 접두사: <b id="prefixHint">—</b></div>
         <div class="num-row" style="margin-top:8px">
@@ -84,18 +84,18 @@
       </div>
 
       <label>최종 문서번호</label>
-      <input type="text" id="fDocNo" placeholder="유형·구분자를 고르고 ‘다음 후보 제안’을 누르세요">
+      <input type="text" id="fDocNo" placeholder="유형·구분자를 고르고 ‘다음 후보 제안’을 누르세요" name="est_f_doc_no" autocomplete="off">
       <div id="numWarn" class="num-warn"></div>
 
       <label>제목</label>
-      <input type="text" id="fTitle" placeholder="문서 제목">
-      <input type="hidden" id="fSeries"><input type="hidden" id="fDocType">
+      <input type="text" id="fTitle" placeholder="문서 제목" name="est_f_title" autocomplete="off">
+      <input type="hidden" id="fSeries" name="est_f_series"><input type="hidden" id="fDocType" name="est_f_doc_type">
 
       <div class="grid2">
         <div><label>보안등급</label><select id="fSecurity">
           <option value="1">P1 (일반)</option><option value="2" selected>P2 (일반)</option><option value="3">P3 (대외비)</option><option value="4">P4 (기밀)</option>
         </select></div>
-        <div><label>버전</label><input type="text" id="fVersion" value="Rev1.00"></div>
+        <div><label>버전</label><input type="text" id="fVersion" value="Rev1.00" name="est_f_version" autocomplete="off"></div>
       </div>
 
       <label>열람 범위</label>
@@ -115,10 +115,10 @@
       <div class="apv-line" id="apvLine"></div>
 
       <label>초안 원본 파일 (선택 · docx/xlsx)</label>
-      <input type="file" id="fFile" accept=".docx,.xlsx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <input type="file" id="fFile" accept=".docx,.xlsx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" name="est_f_file">
 
       <label>PDF 열람본 (검토 상신 시 필수 · pdf)</label>
-      <input type="file" id="fPdf" accept=".pdf,application/pdf">
+      <input type="file" id="fPdf" accept=".pdf,application/pdf" name="est_f_pdf">
       <div class="num-note" style="margin-top:6px">빌드엔진이 docx와 함께 산출한 <b>열람본 PDF</b>를 첨부하세요(검토 상신 시 필수). 워터마크는 열람 시 자동 합성됩니다.</div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
@@ -771,10 +771,10 @@ EDMS.ready.then(async function (ctx) {
   function estFormGen() {
     return '<h2>' + ico('stamp') + ' 표준양식(FR) 생성 <span class="tag-fr">신규 · UI+스텁</span></h2>'
       + '<div class="est-hint">문서작성지침 <b>W-GL-G051000</b> 기반 표준양식(W-FR) docx 제작. 실제 docx 산출·발번대장 연동은 <b>후속 과제</b>이며 현재는 미리보기·접수까지만 동작합니다.</div>'
-      + '<div class="est-grid"><div><label>기반(상위) 문서번호</label><input class="est-inp" id="frBase" value="W-QS-Q030000"></div>'
+      + '<div class="est-grid"><div><label>기반(상위) 문서번호</label><input class="est-inp" id="frBase" value="W-QS-Q030000" name="est_fr_base" autocomplete="off"></div>'
       + '<div><label>계층코드</label><select class="est-inp" id="frLayer"><option value="P">P (절차서 예하)</option><option value="L">L (지침서 예하)</option><option value="S">S (작업표준서 예하)</option><option value="Q">Q (검사기준서 예하)</option><option value="I">I (작업지침서 예하)</option></select></div></div>'
-      + '<div class="est-grid"><div><label>양식명</label><input class="est-inp" id="frName" value="수입검사 성적서 양식"></div>'
-      + '<div><label>양식번호(자동)</label><input class="est-inp" id="frNo" readonly></div></div>'
+      + '<div class="est-grid"><div><label>양식명</label><input class="est-inp" id="frName" value="수입검사 성적서 양식" name="est_fr_name" autocomplete="off"></div>'
+      + '<div><label>양식번호(자동)</label><input class="est-inp" id="frNo" readonly name="est_fr_no" autocomplete="off"></div></div>'
       + '<label class="est-sec" style="display:block">양식 미리보기 (docx 뼈대)</label><div class="form-preview" id="frPreview"></div>'
       + '<div class="est-actions" style="margin-top:12px"><button class="est-btn primary" id="frMake">' + ico('stamp') + '표준양식 생성(스텁)</button></div>'
       + '<div id="frMsg" style="font-size:12px;margin-top:8px;min-height:16px;color:#2e7d32"></div>';
@@ -814,7 +814,7 @@ EDMS.ready.then(async function (ctx) {
     const docByNum = {}; docs.forEach(d => { docByNum[d.doc_number] = d; });
     const opts = allProfiles.map(p => `<option value="${p.id}">${escHtml(p.name || p.email)} (${ROLE_LABEL[p.role] || p.role})</option>`).join('');
     mount.innerHTML = '<div class="num-note">CFSPS 표준 개정본을 한 번에 등재·상신합니다. 각 행에 <b>열람본 PDF(필수)</b>·docx(선택)를 첨부하세요. 결재선: <b>작성(나) → 검토(관리자) → 승인(대표)</b>.</div>'
-      + '<div class="ga-form"><label>한꺼번에 첨부:</label><input type="file" id="cfspsMulti" multiple accept=".pdf,.docx"><span style="font-size:12px;color:#888">파일명이 ‘CFSPS-번호(장)’로 시작해야 자동 배정됩니다</span></div>'
+      + '<div class="ga-form"><label>한꺼번에 첨부:</label><input type="file" id="cfspsMulti" multiple accept=".pdf,.docx" name="est_cfsps_multi"><span style="font-size:12px;color:#888">파일명이 ‘CFSPS-번호(장)’로 시작해야 자동 배정됩니다</span></div>'
       + '<div class="grid2"><div><label>검토자 (관리자)</label><select id="cfspsReviewer">' + opts + '</select></div><div><label>승인자 (대표)</label><select id="cfspsApprover">' + opts + '</select></div></div>'
       + '<div class="table-wrap" style="max-height:52vh;overflow:auto;margin-top:10px"><table class="log-table"><thead><tr><th>문서번호</th><th>제목</th><th>버전</th><th>개정요약</th><th>PDF(필수)</th><th>docx</th><th>상태</th></tr></thead><tbody id="cfspsRows"></tbody></table></div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><button class="est-btn primary" id="cfspsSubmit">일괄 상신</button><button class="est-btn ghost" id="cfspsCancelOld" style="color:#c0392b;border-color:#c0392b">기존 CFSPS 상신 취소</button></div>'
@@ -822,7 +822,7 @@ EDMS.ready.then(async function (ctx) {
     const cBody = $('cfspsRows');
     cBody.innerHTML = CFSPS_TARGETS.map(t => { cfspsRowState[t.n] = cfspsRowState[t.n] || {}; const d = docByNum[t.n];
       return `<tr><td><b>${t.n}</b></td><td>${escHtml((d && d.title) || '—')}</td><td>${t.rev}</td><td>${escHtml(t.s)}</td>
-        <td><input type="file" class="cfsps-pdf" accept=".pdf" data-num="${t.n}"></td><td><input type="file" class="cfsps-docx" accept=".docx" data-num="${t.n}"></td>
+        <td><input type="file" class="cfsps-pdf" accept=".pdf" data-num="${t.n}" name="est_f825"></td><td><input type="file" class="cfsps-docx" accept=".docx" data-num="${t.n}" name="est_f825_x"></td>
         <td class="cfsps-status" data-num="${t.n}">${d ? '대기(개정)' : ' EDMS에 없음(제정)'}</td></tr>`; }).join('');
     const setStatus = (n, html) => { const el = cBody.querySelector(`.cfsps-status[data-num="${n}"]`); if (el) el.innerHTML = html; };
     cBody.addEventListener('change', (e) => {

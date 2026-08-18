@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>프로젝트 대장 — 프로젝트관리 실앱 v1</title>
+<!-- ★common.css 먼저, pm.css 나중 (지시 20260817_07 §A-4) — 겹치는 셀렉터는 pm.css 가 이깁니다.
+     ★pm.css 에서는 공통과 겹치는 17개를 지웠으므로 남은 것은 pm 고유분입니다. -->
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="pm.css">
+</head>
+<body>
+<!-- ════ 헤더 계약 (판정 20260816_03 §2) ════════════════════════════════
+     라이브 common.js 관례와 동일한 꼴 — 빈 컨테이너를 두고 common.js 가 채운다.
+       근거 : 09_백업\EDMS_라이브소스_20260731\정본_20260731\common.js:56
+              「<header id="edmsHeader" data-system="docs|records|establish|gate">」
+              docs.html:10 · records.html:10 · establish.html:10 · index.html:10 (전건 빈 요소)
+     ★선행 조건 ★충족됨(2026-08-18) — common.js SYS 에 project 키가 등재됐습니다
+       (cls:'est' · icon:'stamp' · nav:false · 통지 20260817_04 확정). 이 화면은 이제
+       ★common.js 를 로드하며 헤더는 mountHeader() 가 그립니다.
+       ★nav:false 이므로 다른 화면 이동 바에는 아직 나타나지 않습니다(배포 후 해제).
+       ★종전 주석은 「이 앱은 common.js 를 로드하지 않아 화면에 영향 0」이었고,
+       ★지금은 사실이 아니라 고쳤습니다(지시 20260817_07 §A-4 반영분). -->
+<header id="edmsHeader" data-system="project"></header>
+
+<!-- ★header class="mk pm" — 프로젝트관리 화면 = 노랑 띠 + 먹색 글자(㉯ 확정 2026-08-11) -->
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>프로젝트 대장 — 실앱 v1(읽기 전용)</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+  </div>
+</header>
+<main>
+  <div class="mk-note" id="ribbon"></div>
+  <!-- ★진입 링크 3개 신설 (지시 §A-5) — 종전에는 게이트·간트·연결로 들어가는 길이 ★0 이라
+       주소를 직접 쳐야 닿았습니다. ★새 클래스를 만들지 않고 common.css 의 .crumbs a 를 씁니다. -->
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <b>프로젝트 대장</b>
+    &nbsp;|&nbsp; <a href="project-gates.html">게이트 판정</a>
+    &nbsp;·&nbsp; <a href="project-gantt.html">간트</a>
+    &nbsp;·&nbsp; <a href="project-links.html">문서 연결</a></div>
+
+  <div id="state"></div>
+
+  <div class="panel" id="panel" style="display:none">
+    <h2>프로젝트 대장 <span class="float" id="cnt"></span></h2>
+    <div class="count-info" id="sub"></div>
+    <div class="pm-table-wrap">
+      <table class="std">
+        <thead><tr>
+          <th class="sticky-col c1">프로젝트 코드</th><th>프로젝트명</th><th>유형</th><th>주관 부서</th>
+          <th>생애주기</th><th>상태</th><th>현 게이트</th><th>착수일</th><th>마감일</th>
+          <th>성립요건</th>
+        </tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+    <div class="banner info" id="unnumbered"></div>
+  </div>
+</main>
+<footer class="mk">프로젝트관리 실앱 v1 · 조회 전용 · 편집 정책 미적용</footer>
+
+<!-- ★접속 설정을 새로 적지 않는다 — 배포본이 쓰는 파일을 그대로 로드한다.
+     vendor/supabase.js  : 로컬 동봉본(외부 CDN 아님)
+     edms-config.js      : EDMS_SUPABASE_URL · EDMS_SUPABASE_ANON_KEY · edmsClient 정의 -->
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<!-- ★common.js 신설 (지시 §A-4) — data-system="project" 헤더를 이것이 그립니다.
+     ★boot() 를 그대로 씁니다 — 세션이 없으면 login.html 로 보냅니다(새로 짜지 않습니다 · C-51). -->
+<script src="common.js"></script>
+<script src="pmdata.js"></script>
+<script>
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+/* ★빈 날짜는 빈 값이다. 지어내지 않고 「—」로만 표시한다(C-44). */
+function dash(v) { return (v === null || v === undefined || v === '') ? '—' : esc(v); }
+
+function reqCell(p) {
+  function t(ok, label) {
+    return '<span class="req-ic ' + (ok ? 'req-ok' : 'req-no') + '">' + label + (ok ? ' O' : ' X') + '</span>';
+  }
+  return '<span style="display:inline-flex;gap:3px;flex-wrap:wrap">'
+       + t(p.req_annex, '부속서') + t(p.req_pg0, 'PG0') + '</span>';
+}
+
+function render(rows, gates) {
+  var tb = document.getElementById('tb'), h = '';
+  var unmet = 0;
+  rows.forEach(function (p) {
+    var no = !p.req_annex || !p.req_pg0;
+    if (no) unmet++;
+    /* ★행 클릭 → 상세 진입 (project-detail.html?code=…) · 코드로 넘긴다 */
+    h += '<tr class="' + (p.closed ? 'void ' : '') + (no ? 'unmet' : '') + '"'
+      +  ' data-code="' + pmEsc(p.project_code) + '" title="상세 열기 — ' + pmEsc(p.project_code) + '">'
+      +  '<td class="sticky-col c1">' + dash(p.project_code) + '</td>'
+      +  '<td class="title-cell">' + esc(p.project_name) + (p.note ? '<br><span class="rec-lock">' + esc(p.note) + '</span>' : '') + '</td>'
+      +  '<td>' + dash(p.type) + '</td>'
+      +  '<td>' + dash(p.dept) + '</td>'
+      +  '<td>' + dash(p.lifecycle) + '</td>'
+      +  '<td><span class="rst rst-' + esc(p.status) + '">' + esc(p.status) + '</span></td>'
+      +  '<td>' + gateCell(p.gate, gates) + '</td>'
+      +  '<td>' + dash(p.start) + '</td>'
+      +  '<td>' + dash(p.end) + '</td>'
+      +  '<td>' + reqCell(p) + '</td>'
+      +  '</tr>';
+  });
+  tb.innerHTML = h;
+  /* 상세 진입 — 행 전체가 클릭 대상(table.std tbody tr { cursor:pointer } 승계) */
+  Array.prototype.forEach.call(tb.querySelectorAll('tr[data-code]'), function (tr) {
+    tr.addEventListener('click', function () {
+      location.href = 'project-detail.html?code=' + encodeURIComponent(tr.getAttribute('data-code'));
+    });
+  });
+  document.getElementById('cnt').textContent = rows.length + '건';
+  document.getElementById('sub').textContent =
+    '성립요건 미충족 ' + unmet + ' / ' + rows.length + '건 — ② 부속서 · ③ PG0 착수 승인 2요건';
+  /* ★미채번은 DB 행이 아니다. 정적 문구로만 알린다. */
+  document.getElementById('unnumbered').innerHTML =
+    '① 코드 채번은 열이 아닙니다 — 대장에 있다는 것이 채번 완료를 뜻합니다(<b>project_code</b> NOT NULL·PK). '
+  + '<b>미채번 「KOLAS 인정」은 대장 밖</b>이며 채번 시 편입됩니다 — 채번은 운영 담당 창 소관입니다.';
+  document.getElementById('panel').style.display = '';
+}
+
+function gateCell(code, gates) {
+  if (!code) return '<span class="pgb pgb-none">—</span>';
+  var cls = code === 'PG-1' ? 'pgb-m1' : 'pgb-' + code.replace('PG', '');
+  var g = null;
+  gates.forEach(function (x) { if (x.gate_code === code) g = x; });
+  var s = '<span class="pgb ' + cls + '">' + esc(code) + '</span>';
+  if (g && g.ceo_only) s += '<span class="ceo-mark">대표이사 전권</span>';
+  return s;
+}
+
+function fail(e) {
+  var box = document.getElementById('state');
+  var authed = e && e.authed;
+  box.innerHTML =
+      '<div class="banner crit"><b>[실패] 조회하지 못했습니다</b><br>'
+    + esc(e && e.message ? e.message : String(e))
+    + (e && e.pgCode ? ' <code>' + esc(e.pgCode) + '</code>' : '')
+    + '<br>로그인 세션 : <b>' + (authed ? esc(e.who) : '★없음(anon 역할)') + '</b>'
+    + (authed ? '' :
+        '<br>★막는 층이 <b>둘</b>입니다 — 앞의 것에서 먼저 걸립니다.'
+      + '<br>① <b>GRANT</b> : anon 에 SELECT 권한이 0건 → <code>42501 permission denied</code> (401 · 지금 이 경우)'
+      + '<br>② <b>RLS</b> : 정책이 <b>authenticated</b> 전용 → GRANT 를 통과해도 <b>0행</b>(조용한 실패)'
+      + '<br>화면 결함이 아니라 <b>권한 상태</b>입니다. 배포 origin 의 로그인 세션으로 열면 해소됩니다.')
+    + '</div>';
+}
+
+(async function () {
+  var rib = document.getElementById('ribbon');
+  rib.innerHTML = '<b>실앱(조회 전용)</b> — 편집 정책 미적용. 이 화면은 DB 를 읽기만 합니다.';
+  try {
+    var s = await edmsClient.auth.getSession();
+    var authed = !!(s && s.data && s.data.session);
+    document.getElementById('who').textContent =
+      authed ? (s.data.session.user.email || '로그인됨') : '로그인 세션 없음';
+    document.getElementById('roleBadge').textContent = authed ? 'authenticated' : 'anon';
+    document.getElementById('roleBadge').className = 'role-badge ' + (authed ? 'admin' : 'general');
+
+    var rows  = await pmFetchProjects();
+    var gates = await pmFetchGateDefs();
+
+    if (!rows.length) {
+      document.getElementById('state').innerHTML =
+          '<div class="banner warn"><b>0행</b> — 대장이 비어 보입니다.<br>'
+        + '로그인 세션 : <b>' + (authed ? '있음' : '★없음(anon 역할)') + '</b>. '
+        + (authed ? '데이터가 실제로 없습니다.'
+                  : '★RLS 는 권한이 없을 때 오류가 아니라 <b>0행</b>으로 답합니다. '
+                  + '「데이터 없음」이 아니라 <b>권한 없음</b>일 수 있습니다.')
+        + '</div>';
+      return;
+    }
+    render(rows, gates);
+  } catch (e) { fail(e); }
+})();
+</script>
+</body>
+</html>

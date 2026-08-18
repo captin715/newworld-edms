@@ -94,7 +94,7 @@
     <div class="panel" id="docPanel">
       <h2>표준문서 목록</h2>
       <div class="filters">
-        <input type="text" id="searchInput" placeholder="문서번호·제목 검색">
+        <input type="text" id="searchInput" placeholder="문서번호·제목 검색" name="doc_search_input" autocomplete="off">
         <select id="seriesFilter"><option value="">시리즈 전체</option></select>
         <select id="typeFilter"><option value="">유형 전체</option></select>
         <button id="recentRevBtn" class="rec-btn ghost" title="개정일 내림차순 정렬(개정 없음은 최하단)">최근 개정순</button>
@@ -184,11 +184,11 @@
     <div class="big-head"><h3> 이력 / 로그 (감사 추적)</h3><button id="logClose">닫기 </button></div>
     <div class="big-body">
       <div class="log-filters">
-        <input type="text" id="logSearch" placeholder="문서번호·제목 검색">
+        <input type="text" id="logSearch" placeholder="문서번호·제목 검색" name="doc_log_search" autocomplete="off">
         <select id="logStatus"><option value="">상태 전체</option><option>승인완료</option><option>반려</option><option>취소</option><option value="진행중">진행중</option></select>
         <select id="logDept"><option value="">담당팀 전체</option><option>공사</option><option>품질</option><option>관리</option><option>경영</option></select>
-        <input type="date" id="logFrom" title="시작일">
-        <input type="date" id="logTo" title="종료일">
+        <input type="date" id="logFrom" title="시작일" name="doc_log_from">
+        <input type="date" id="logTo" title="종료일" name="doc_log_to">
       </div>
       <div class="table-wrap" style="max-height:58vh;overflow:auto">
         <table class="log-table">
@@ -209,7 +209,7 @@
     </div>
     <div class="form-body">
       <label>제목</label>
-      <input type="text" id="nTitle" placeholder="공지 제목">
+      <input type="text" id="nTitle" placeholder="공지 제목" name="doc_n_title" autocomplete="off">
       <label>본문</label>
       <textarea id="nBody" style="min-height:90px" placeholder="공지 내용"></textarea>
       <div class="grid2">
@@ -219,11 +219,11 @@
         </div>
         <div>
           <label>관련 문서번호 (선택)</label>
-          <input type="text" id="nRelated" placeholder="예: CFSP-DS-MAN-010000">
+          <input type="text" id="nRelated" placeholder="예: CFSP-DS-MAN-010000" name="doc_n_related" autocomplete="off">
         </div>
       </div>
       <div class="radio-row" style="margin-top:10px">
-        <label><input type="checkbox" id="nPinned"> 상단 고정</label>
+        <label><input type="checkbox" id="nPinned" name="doc_n_pinned"> 상단 고정</label>
       </div>
       <button class="form-submit" id="nSubmit">게시</button>
       <div class="form-msg" id="nMsg"></div>
@@ -400,7 +400,13 @@ EDMS.ready.then(async function (ctx) {
   function fileCell(d) {
     if (!d.storage_path) return '—';
     const dlBtn = `<button class="dl-btn" data-path="${d.storage_path}" data-num="${d.doc_number}">다운로드</button>`;
-    if (isAdmin || isForm(d)) return dlBtn;
+    /* ★양식은 다운로드 칸 자체를 두지 않습니다 (지시 20260817_07 §B-1 · 판정 20260816_25 §3 ㉠)
+       ★근거: 양식은 내려받아 작성하는 것이 아니라 기록작성 화면에서 작성합니다.
+       ★멈춤 사유였던 「PDF 가 없으면 열람도 막힌다」는 해소됐습니다 —
+       제작창 DB 실측으로 양식 8종 전건 view/<번호>.pdf 존재 확인(8/8).
+       ★열람 칸(별개 <th>열람</th>)은 무접촉입니다. */
+    if (isForm(d) && !isAdmin) return '—';
+    if (isAdmin) return dlBtn;                 // 관리자 유지 — 서식 정본 관리
     const r = reqByDoc[d.id];
     if (r && r.status === '요청') return '<button class="wait-btn" disabled>요청 중…</button>';
     if (r && r.status === '승인' && !r.confirmed_at) {

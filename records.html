@@ -36,7 +36,7 @@
 <div class="panel" id="recGatePanel" style="display:none">
       <div class="rec-hero">
         <h3><svg class="rec-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>기록보관소</h3>
-        <p>표준문서(제·개정 관리) EDMS와 <b>별도의 진입 대문</b>입니다. 부서별 관리함(문서철)에 편철된 <b>기록 낱장</b>을 조회·열람·등재·배포합니다. 기록 관리번호 부서 접두는 <b>D(개발부서)</b> 기준입니다.</p>
+        <p><b>기록관리 시스템</b>은 승인된 양식으로 남긴 기록을 다룹니다. 부서별 관리함(문서철)에 편철된 <b>기록 낱장</b>을 조회·열람·등재·배포합니다.</p>
       </div>
       <div class="rec-tiles" id="recGateTiles"></div>
     </div>
@@ -47,7 +47,7 @@
         <button id="recRefresh" style="float:right;font-size:12px;padding:3px 10px;cursor:pointer;margin-right:8px">새로고침</button>
       </h2>
       <div class="rec-filters">
-        <input type="text" id="recSearch" placeholder="관리번호·제목 검색" style="flex:1;min-width:160px">
+        <input type="text" id="recSearch" placeholder="관리번호·제목 검색" style="flex:1;min-width:160px" name="rec_search" autocomplete="off">
         <select id="recDeptFilter"><option value="">부서 전체</option></select>
         <select id="recLevelFilter"><option value="">등급 전체</option><option value="1">P1</option><option value="2">P2</option><option value="3">P3</option><option value="4">P4</option></select>
         <select id="recStatusFilter"><option value="">상태 전체</option><option value="유효">유효</option><option value="대체됨">대체됨</option><option value="폐기">폐기</option></select>
@@ -55,7 +55,7 @@
       </div>
       <div class="rec-toolbar">
         <span class="count-info" id="recCount"></span>
-        <label id="recVoidToggleWrap" style="display:none;margin-left:auto"><input type="checkbox" id="recVoidToggle"> 폐기 포함 보기</label>
+        <label id="recVoidToggleWrap" style="display:none;margin-left:auto"><input type="checkbox" id="recVoidToggle" name="rec_void_toggle"> 폐기 포함 보기</label>
       </div>
       <div id="recBanner"></div>
       <!-- (지적 d) 상단 가로 스크롤바 — 본문과 동기화 -->
@@ -85,11 +85,11 @@
         <button id="distLedgerRefresh" style="float:right;font-size:12px;padding:3px 10px;cursor:pointer">새로고침</button>
       </h2>
       <div class="rec-filters">
-        <input type="date" id="dlFrom" title="시작일">
-        <input type="date" id="dlTo" title="종료일">
+        <input type="date" id="dlFrom" title="시작일" name="rec_dl_from">
+        <input type="date" id="dlTo" title="종료일" name="rec_dl_to">
         <select id="dlKind"><option value="">대상 전체</option><option value="document">표준문서</option><option value="record">기록</option></select>
         <select id="dlChannel"><option value="">경로 전체</option><option value="내부열람">내부열람</option><option value="내부발급">내부발급</option><option value="외부전달">외부전달</option></select>
-        <input type="text" id="dlDest" placeholder="배포처 검색" style="flex:1;min-width:140px">
+        <input type="text" id="dlDest" placeholder="배포처 검색" style="flex:1;min-width:140px" name="rec_dl_dest" autocomplete="off">
       </div>
       <div class="count-info" id="dlSummary"></div>
       <div class="table-wrap" style="max-height:60vh;overflow:auto">
@@ -108,40 +108,12 @@
       <div class="rec-layout">
         <div id="recDeptTree" style="flex:0 0 250px"></div>
         <div style="flex:1;min-width:0">
-          <div class="rec-sec">① 새 부서(관리함) 추가</div>
-          <div class="rec-form-grid">
-            <div><label class="form-label" style="font-size:13px;font-weight:bold;color:#444;display:block;margin:4px 0">부서명 <b style="color:#c0392b">*</b></label><input class="filter-inp" id="ndName" placeholder="예: 개발부서" style="width:100%;padding:9px 11px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px"></div>
-            <div><label class="form-label" style="font-size:13px;font-weight:bold;color:#444;display:block;margin:4px 0">부서 코드 <b style="color:#c0392b">*</b> (발번체계 내 선택)</label>
-              <select id="ndCode" style="width:100%;padding:9px 11px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px">
-                <option value="">— 선택 —</option>
-                <option value="C">C (공사)</option><option value="Q">Q (품질·검사)</option>
-                <option value="D" selected>D (개발부서)</option><option value="M">M (매뉴얼/관리)</option>
-                <option value="G">G (공통)</option><option value="E">E (환경)</option>
-                <option value="R">R (규제)</option><option value="S">S (전략)</option>
-              </select></div>
-          </div>
-          <div class="hint" style="font-size:12px;color:#666;background:#f0f3f9;border-radius:7px;padding:8px 11px;margin-top:6px">부서 코드는 관리번호 접두([부서])로 쓰입니다. 발번체계(C/Q/D/M/G/E/R/S) 외 값은 선택할 수 없습니다. 기록 기본 부서코드는 D(개발부서)입니다.</div>
-          <div style="margin:8px 0"><button class="rec-btn" id="ndCreateDept">부서 생성</button></div>
-
-          <div class="rec-sec" style="margin-top:16px">② 문서철(양식) 등록</div>
-          <div class="rec-form-grid">
-            <div><label class="form-label" style="font-size:13px;font-weight:bold;color:#444;display:block;margin:4px 0">소속 부서 코드 <b style="color:#c0392b">*</b></label>
-              <select id="nfDept" style="width:100%;padding:9px 11px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px">
-                <option value="C">C (공사)</option><option value="Q">Q (품질·검사)</option>
-                <option value="D" selected>D (개발부서)</option><option value="M">M (매뉴얼/관리)</option>
-                <option value="G">G (공통)</option><option value="E">E (환경)</option>
-                <option value="R">R (규제)</option><option value="S">S (전략)</option>
-              </select></div>
-            <div><label class="form-label" style="font-size:13px;font-weight:bold;color:#444;display:block;margin:4px 0">양식 순번 <b style="color:#c0392b">*</b></label><input id="nfSeq" placeholder="예: 001" maxlength="3" style="width:100%;padding:9px 11px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px"></div>
-          </div>
-          <div class="rec-form-grid">
-            <div><label class="form-label" style="font-size:13px;font-weight:bold;color:#444;display:block;margin:4px 0">양식명 <b style="color:#c0392b">*</b></label><input id="nfName" placeholder="예: 검사기록부" style="width:100%;padding:9px 11px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px"></div>
-            <div><label class="form-label" style="font-size:13px;font-weight:bold;color:#444;display:block;margin:4px 0">연도</label><input id="nfYear" value="2026" style="width:100%;padding:9px 11px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px"></div>
-          </div>
-          <label class="form-label" style="font-size:13px;font-weight:bold;color:#444;display:block;margin:4px 0">문서철 번호(자동)</label>
-          <input id="nfPreview" readonly value="[부서]-[양식순번]-[YYYY] (생성 시 확정)" style="width:100%;padding:9px 11px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px;background:#f7f9fc">
-          <div style="margin-top:12px"><button class="rec-btn" id="nfCreate">문서철 생성</button></div>
-          <div class="form-msg" id="ndMsg" style="font-size:12px;margin-top:10px;min-height:16px"></div>
+          <!-- ★부서 생성 · 문서철(양식) 등록 폼 제거 (지시 20260817_05 §2 · 판정 20260817_09 §5)
+               ★기록관리는 그 둘을 하지 않습니다. 두 폼은 서버 RPC 가 없어 「요청 접수」 안내만 띄우던
+               미연결 상태였습니다(서버 RPC 미제공 · TODO 주석만 있던 자리).
+               ★부서 구조 조회(좌측 트리)는 「하는 일」이라 그대로 둡니다. -->
+          <div class="info-banner">부서(관리함)와 문서철은 <b>이 화면에서 만들지 않습니다.</b>
+            구조는 왼쪽에서 확인하고, 새로 만들 필요가 있으면 관리자에게 요청하십시오.</div>
         </div>
       </div>
 
@@ -149,9 +121,9 @@
       <h2><svg class="rec-ico" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>양식 대장 (등재 현황)</h2>
       <div class="info-banner">기록작성시스템에 <b>등재된 양식(W-FR)</b> 목록입니다. 문서철번호는 <b>[부서]-[양식순번]-[연도]</b> 로 DB가 자동 발번합니다. 조회 전용 화면입니다.</div>
       <div class="rec-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0">
-        <input type="text" id="frSearch" placeholder="문서번호·양식명 검색" style="flex:1;min-width:180px">
+        <input type="text" id="frSearch" placeholder="문서번호·양식명 검색" style="flex:1;min-width:180px" name="rec_fr_search" autocomplete="off">
         <select id="frDeptFilter"><option value="">부서 전체</option></select>
-        <label style="font-size:13px"><input type="checkbox" id="frActiveOnly" checked> 사용중만 보기</label>
+        <label style="font-size:13px"><input type="checkbox" id="frActiveOnly" checked name="rec_fr_active_only"> 사용중만 보기</label>
         <button id="frRefresh" style="font-size:12px;padding:3px 10px;cursor:pointer">새로고침</button>
         <span class="count-info" id="frCount"></span>
       </div>
@@ -196,22 +168,22 @@
       <label>문서철(관리함) <b style="color:#c0392b">*</b></label>
       <select id="rrFolder"><option value="">— 선택 —</option></select>
       <label>관리번호(자동)</label>
-      <input type="text" id="rrNoPreview" readonly placeholder="문서철 선택 시 미리보기(등재 시 확정)">
+      <input type="text" id="rrNoPreview" readonly placeholder="문서철 선택 시 미리보기(등재 시 확정)" name="rec_rr_no_preview" autocomplete="off">
       <label>제목 <b style="color:#c0392b">*</b></label>
-      <input type="text" id="rrTitle" maxlength="200" placeholder="기록 제목 (200자 이내)">
+      <input type="text" id="rrTitle" maxlength="200" placeholder="기록 제목 (200자 이내)" name="rec_rr_title" autocomplete="off">
       <label>원본 보관 장소 <b style="color:#c0392b">*</b></label>
-      <input type="text" id="rrOrigin" placeholder="원본(종이/전자)의 실제 보관 위치">
+      <input type="text" id="rrOrigin" placeholder="원본(종이/전자)의 실제 보관 위치" name="rec_rr_origin" autocomplete="off">
       <label>공사 <b style="color:#c0392b">*</b></label>
-      <input type="text" id="rrSite" list="rrSiteList" placeholder="예: SITE-DAEJEON-01 (공백·특수문자 불가)">
+      <input type="text" id="rrSite" list="rrSiteList" placeholder="예: SITE-DAEJEON-01 (공백·특수문자 불가)" name="rec_rr_site" autocomplete="off">
       <datalist id="rrSiteList"></datalist>
-      <div class="radio-row" style="margin-top:4px"><label><input type="checkbox" id="rrNoSite"> 비현장 기록(공사 없음)</label></div>
+      <div class="radio-row" style="margin-top:4px"><label><input type="checkbox" id="rrNoSite" name="rec_rr_no_site"> 비현장 기록(공사 없음)</label></div>
       <div class="grid2">
         <div><label>보안등급 <b style="color:#c0392b">*</b></label><select id="rrLevel"><option value="1">P1 (일반)</option><option value="2" selected>P2 (일반)</option><option value="3">P3 (대외비)</option><option value="4">P4 (극비)</option></select></div>
         <div><label>접근 구분 <b style="color:#c0392b">*</b></label><select id="rrAccess"><option value="dept">부서 기준(기본)</option><option value="need_to_know">need-to-know</option></select></div>
       </div>
       <div class="num-note" id="rrAccessNote" style="display:none;margin-top:4px">need-to-know: 목록에서 제목이 '(제한 기록)'으로 마스킹됩니다.</div>
       <label>참조복사본 <b style="color:#c0392b">*</b> (PDF 권고)</label>
-      <input type="file" id="rrRefFile" accept=".pdf,application/pdf">
+      <input type="file" id="rrRefFile" accept=".pdf,application/pdf" name="rec_rr_ref_file">
       <label>비고</label>
       <textarea id="rrNote"></textarea>
       <button class="form-submit" id="rrSubmit">등재</button>
@@ -248,21 +220,21 @@
     <div class="form-head"><h3>배포 신청</h3><button id="drClose">닫기</button></div>
     <div class="form-body">
       <label>대상</label>
-      <input type="text" id="drTarget" readonly>
+      <input type="text" id="drTarget" readonly name="rec_dr_target" autocomplete="off">
       <label>보안등급</label>
       <div id="drLevel" style="margin-top:4px"></div>
       <label>배포 이유 <b style="color:#c0392b">*</b></label>
       <textarea id="drReason" placeholder="예: 대전 현장 착공 전 협력사 제출용 (10자 이상)"></textarea>
       <label>배포처 <b style="color:#c0392b">*</b></label>
-      <input type="text" id="drDest" placeholder="예: 사내 개발팀 / 협력사(계약명) / 발주처">
+      <input type="text" id="drDest" placeholder="예: 사내 개발팀 / 협력사(계약명) / 발주처" name="rec_dr_dest" autocomplete="off">
       <label>수신자(선택)</label>
-      <input type="text" id="drRecipient" placeholder="수신 담당자/부서(선택)">
+      <input type="text" id="drRecipient" placeholder="수신 담당자/부서(선택)" name="rec_dr_recipient" autocomplete="off">
       <div class="grid2">
         <div><label>배포 경로 <b style="color:#c0392b">*</b></label><select id="drChannel"><option value="내부열람">내부열람</option><option value="내부발급">내부발급</option><option value="외부전달">외부전달</option></select></div>
-        <div><label>부수</label><input type="number" id="drCount" value="1" min="1"></div>
+        <div><label>부수</label><input type="number" id="drCount" value="1" min="1" name="rec_dr_count"></div>
       </div>
       <label>필요 시점(선택)</label>
-      <input type="date" id="drDue">
+      <input type="date" id="drDue" name="rec_dr_due">
       <div class="warn-banner" id="drExecNote" style="display:none">이 신청은 <b>관리자 승인 후 대표 승인</b>이 추가로 필요합니다. 승인까지 시간이 더 걸릴 수 있습니다.</div>
       <button class="form-submit" id="drSubmit">배포 신청</button>
       <div class="form-msg" id="drMsg"></div>
@@ -281,7 +253,7 @@
   </div>
 </div>
 
-<footer style="text-align:center;padding:18px;font-size:11px;color:#aaa">기록관리 시스템 · 부서별 관리함 기록 · 전사 공개·제한기록 마스킹</footer>
+<footer style="text-align:center;padding:18px;font-size:11px;color:#aaa">기록관리 시스템 · 부서별 관리함 기록 · 열람 권한이 없는 기록은 제목이 가려집니다</footer>
 
 <script src="assets/vendor/supabase.js"></script>
 <script src="assets/vendor/pdf.min.js"></script>
@@ -439,7 +411,7 @@ EDMS.ready.then(async function (ctx) {
       recRows = (data || []).filter(r => r.visible_to_me !== false);  // 기본: 가시행만
       const cr = document.getElementById('cardRecords');
       if (cr) cr.textContent = recRows.filter(r => !r.is_void).length;
-      populateRecFilters(); renderRecList(); renderGateTiles();
+      await populateRecFilters(); renderRecList(); renderGateTiles();
     }
     let recLoadError = false;
 
@@ -571,11 +543,32 @@ EDMS.ready.then(async function (ctx) {
       window.addEventListener('resize', recSyncScroll);
     })();
 
-    function populateRecFilters() {
+    /* ★부서 목록 원천 = 명부(edms_profiles) — 판정 20260816_27 §1
+       ★기록 값에서 긁지 않는다(SHALL NOT). 기록에 「관리팀」·「MT」·「관리」가 섞여 적혀 있어도
+       목록은 명부 하나만 본다. 명부를 못 읽으면 ★기록 값으로 되돌아가지 않고 「부서 전체」만 남긴다.
+       ★option value 는 부서 ★이름이다 — 597행 필터가 기록의 owner_dept 와 대조하기 때문이다(무접촉 지시).
+       표시는 코드+이름 한 쌍, 값은 이름. 명부에 코드 열이 없으면 이름만 표시한다. */
+    let DEPT_LIST = null;
+    async function loadDeptList() {
+      if (DEPT_LIST) return DEPT_LIST;
+      const { data, error } = await edmsClient.from('edms_profiles').select('*');
+      if (error) { console.warn('[부서목록] 명부 조회 실패 — 목록을 비웁니다:', error.message); DEPT_LIST = []; return DEPT_LIST; }
+      const seen = new Map();
+      (data || []).forEach(p => {
+        const name = (p.dept || '').trim(), code = (p.dept_code || '').trim();
+        if (!name && !code) return;
+        const key = code + '|' + name;
+        if (!seen.has(key)) seen.set(key, { value: name || code, label: code && name ? `${code} ${name}` : (name || code) });
+      });
+      DEPT_LIST = [...seen.values()].sort((a, b) => a.label.localeCompare(b.label, 'ko'));
+      return DEPT_LIST;
+    }
+
+    async function populateRecFilters() {
       const dsel = document.getElementById('recDeptFilter'), ssel = document.getElementById('recSiteFilter');
-      const depts = [...new Set(recRows.map(r => r.owner_dept).filter(Boolean))].sort();
+      const depts = await loadDeptList();
       const cur = dsel.value;
-      dsel.innerHTML = '<option value="">부서 전체</option>' + depts.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+      dsel.innerHTML = '<option value="">부서 전체</option>' + depts.map(d => `<option value="${esc(d.value)}">${esc(d.label)}</option>`).join('');
       dsel.value = cur;
       const sites = [...new Set(recRows.map(r => r.site_label || '비현장 기록'))].sort();
       const curS = ssel.value;
@@ -1189,9 +1182,9 @@ EDMS.ready.then(async function (ctx) {
       distDetailModal.classList.add('open');
     }
 
-    // ══════════ (G) 부서·관리함(문서철) 추가 — 관리자 전용 ══════════
-    //  발번체계 부서코드(C/Q/D/M/G/E/R/S) 범위 내 선택만 허용(자유 입력 금지) — 승인조건 a
-    const VALID_DEPT_CODES = ['C', 'Q', 'D', 'M', 'G', 'E', 'R', 'S'];
+    // ══════════ (G) 부서·관리함(문서철) ★구조 조회 — 관리자 전용 ══════════
+    //  ★생성 기능 제거됨 (지시 20260817_05 §2 · 판정 20260817_09 §5).
+    //  ★기록관리는 부서·문서철을 만들지 않습니다. 남은 것은 구조를 보여 주는 트리뿐입니다.
     function renderDeptTree() {
       const box = document.getElementById('recDeptTree'); if (!box) return;
       const byDept = {};
@@ -1207,39 +1200,17 @@ EDMS.ready.then(async function (ctx) {
       });
       box.innerHTML = html;
     }
-    function updateFolderPreview() {
-      const code = document.getElementById('nfDept').value;
-      const seq = document.getElementById('nfSeq').value.trim();
-      const year = document.getElementById('nfYear').value.trim() || '2026';
-      const prev = document.getElementById('nfPreview');
-      prev.value = (code && seq) ? `${code}-${seq.padStart(3, '0')}-${year} (생성 시 확정)` : '[부서]-[양식순번]-[YYYY] (생성 시 확정)';
-    }
+    /* ★updateFolderPreview() 제거 (지시 §2 후속) — 미리보기 칸·입력칸이 함께 사라졌습니다.
+       ★남겨 두면 getElementById(...) 가 null 이라 .value 에서 TypeError 가 나고,
+       그 시점 이후 스크립트가 멈춥니다. 제거의 필연적 후속입니다. */
     function setupDeptAdd() {
       if (!isAdmin) return;
       document.getElementById('recDeptPanel').style.display = '';
       renderDeptTree();
-      ['nfDept', 'nfSeq', 'nfYear'].forEach(id => { const el = document.getElementById(id); el && el.addEventListener('input', updateFolderPreview); el && el.addEventListener('change', updateFolderPreview); });
-      const msg = document.getElementById('ndMsg');
-      document.getElementById('ndCreateDept').addEventListener('click', () => {
-        msg.className = 'form-msg';
-        const name = document.getElementById('ndName').value.trim();
-        const code = document.getElementById('ndCode').value;
-        if (!name || !code) { msg.className = 'form-msg err'; msg.textContent = '부서명과 부서 코드를 입력/선택해 주세요.'; return; }
-        if (!VALID_DEPT_CODES.includes(code)) { msg.className = 'form-msg err'; msg.textContent = '부서 코드는 발번체계(C/Q/D/M/G/E/R/S) 내에서만 선택할 수 있습니다.'; return; }
-        // TODO(DB계약): 부서 생성 RPC가 현재 DB 계약에 없음 + 이번 작업은 DB 쓰기 금지 →
-        //   서버에 edms_record_dept_add(p_name,p_code) 신설 확정 후 연결한다. 현재는 접수 안내만.
-        msg.className = 'form-msg ok'; msg.textContent = `부서 생성 요청 접수: ${name} (코드 ${code}). ※ 부서 생성 RPC 확정 후 반영됩니다(현재 DB 변경 없음).`;
-      });
-      document.getElementById('nfCreate').addEventListener('click', () => {
-        msg.className = 'form-msg';
-        const code = document.getElementById('nfDept').value, seq = document.getElementById('nfSeq').value.trim(), name = document.getElementById('nfName').value.trim();
-        if (!code || !seq || !name) { msg.className = 'form-msg err'; msg.textContent = '소속 부서 코드·양식 순번·양식명을 입력해 주세요.'; return; }
-        if (!/^\d{1,3}$/.test(seq)) { msg.className = 'form-msg err'; msg.textContent = '양식 순번은 숫자(최대 3자리)여야 합니다.'; return; }
-        const year = document.getElementById('nfYear').value.trim() || '2026';
-        // TODO(DB계약): 문서철 생성 RPC 미제공 + DB 쓰기 금지 → edms_record_folder_add 확정 후 연결.
-        msg.className = 'form-msg ok'; msg.textContent = `문서철 생성 요청 접수: ${code}-${seq.padStart(3, '0')}-${year} · ${name}. ※ 문서철 생성 RPC 확정 후 반영됩니다(현재 DB 변경 없음).`;
-      });
-      updateFolderPreview();
+      /* ★부서 생성 핸들러 제거 (지시 20260817_05 §2) — 서버 RPC 미연결 상태였습니다. */
+
+      /* ★문서철 생성 핸들러 제거 (지시 20260817_05 §2) — 서버 RPC 미연결 상태였습니다. */
+
     }
 
     // ── 초기 로드 (로그인 전원: 대문·기록 목록 항상 표시) ──
