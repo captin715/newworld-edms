@@ -105,6 +105,13 @@
   /* [DR-080 CR] 공용 사유 입력 모달 */
   #reasonModal { display:none; position:fixed; inset:0; z-index:1400; background:rgba(15,25,45,.6); padding:6vh 4vw; }
   #reasonModal.open { display:flex; align-items:flex-start; justify-content:center; }
+  /* V0.4 - 주입 모달 2종 숨김 규칙. 이것이 없어 처음부터 그려졌고 사람이 갇혔습니다.
+     값은 위 비밀번호 모달과 같습니다 - 새 색 0. 층 번호만 위로 올립니다(경고가 가려지면 안 됩니다).
+     판정 MST2-20260818_19 §4 · 상신 MK-20260818_16 §3-1 */
+  #reauthModal { display:none; position:fixed; inset:0; z-index:1400; background:rgba(15,25,45,.6); padding:6vh 4vw; }
+  #reauthModal.open { display:flex; align-items:flex-start; justify-content:center; }
+  #idleModal { display:none; position:fixed; inset:0; z-index:1500; background:rgba(15,25,45,.6); padding:6vh 4vw; }
+  #idleModal.open { display:flex; align-items:flex-start; justify-content:center; }
 
   /* 인앱 알림 종 */
   .bell-wrap { position:relative; }
