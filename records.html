@@ -832,7 +832,6 @@ EDMS.ready.then(async function (ctx) {
         const refPath = `records/${folder}/${Date.now()}_${safe}`;
         const up = await edmsClient.storage.from('documents').upload(refPath, refFile, { upsert: true, contentType: refFile.type || 'application/pdf' });
         if (up.error) { msg.className = 'form-msg err'; msg.textContent = '참조복사본 업로드에 실패했습니다. 파일 크기와 형식을 확인해 주세요.'; console.warn(up.error.message); return; }
-        if (!await reauth('정본으로 등재합니다. 되돌릴 수 없습니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_record_register */
         const { data, error } = await edmsClient.rpc('edms_record_register', {
           p_folder: folder, p_title: title, p_origin: origin, p_ref_path: refPath,
           // [DEF-35] 두 축 분리 — p_read_scope 는 문서철 상속분, p_access 는 화면 선택분
@@ -899,7 +898,6 @@ EDMS.ready.then(async function (ctx) {
     async function doSupersede(newNo, reason, msg) {
       const btn = document.getElementById('rsSubmit'); btn.disabled = true; const lbl = btn.textContent; btn.textContent = '대체 중…';
       try {
-        if (!await reauth('기존 기록을 대체합니다. 되돌릴 수 없습니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_record_supersede */
         const { error } = await edmsClient.rpc('edms_record_supersede', { p_old: supOldNo, p_new: newNo, p_reason: reason });
         if (error) {
           const raw = String(error.message || error);
@@ -917,7 +915,6 @@ EDMS.ready.then(async function (ctx) {
     async function doVoidRecord(recordNo) {
       const reason = await askReason('기록 폐기 사유', '폐기 사유를 입력해야 처리됩니다(필수). 폐기 건은 삭제되지 않고 추적 가능하게 남습니다.');
       if (reason === null) return;
-      if (!await reauth('기록을 폐기합니다. 되돌릴 수 없습니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_record_void */
       const { error } = await edmsClient.rpc('edms_record_void', { p_record_no: recordNo, p_reason: reason });
       if (error) { alert(friendlyErr(error, '폐기 처리에 실패했습니다.')); return; }
       closeRecDetail(); toast('기록을 폐기했습니다.'); await loadRecords();
@@ -1010,7 +1007,6 @@ EDMS.ready.then(async function (ctx) {
       if (c) {
         const reason = await askReason('배포 신청 취소 사유', '취소 사유를 입력해 주세요(필수).');
         if (reason === null) return;
-        if (!await reauth('배포를 회수합니다. 즉시 차단됩니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_dist_revoke */
         const { error } = await edmsClient.rpc('edms_dist_revoke', { p_id: c.dataset.cancel, p_reason: reason });
         if (error) { alert(friendlyErr(error, '이미 처리된 건은 취소할 수 없습니다.')); return; }
         toast('신청을 취소했습니다.'); await loadDistMine(); return;
@@ -1076,7 +1072,6 @@ EDMS.ready.then(async function (ctx) {
       if (r2) { const rz = await askReason('배포 반려 사유', '반려 사유를 입력해야 반려됩니다(필수).'); if (rz === null) return; return distDecide('edms_dist_exec_approve', r2.dataset.reject2, false, rz, e.target); }
       if (iss) {
         iss.disabled = true;
-        if (!await reauth('배포를 발급합니다. 승인 단계를 건너뜁니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_dist_issue */
         const { error } = await edmsClient.rpc('edms_dist_issue', { p_id: iss.dataset.issue, p_minutes: 10 });
         if (error) { alert(friendlyErr(error, '발급 처리에 실패했습니다. 관리자에게 알려 주세요.')); iss.disabled = false; return; }
         toast('발급했습니다.'); await loadDistApprovals(); await loadDistLedger();
@@ -1150,7 +1145,6 @@ EDMS.ready.then(async function (ctx) {
       if (rv) {
         const reason = await askReason('배포 회수 사유', '회수 사유를 입력해야 처리됩니다(필수). 수신처에 "구본 회수 — 보유 사본 폐기 확인 회신 요망" 통지가 발송됩니다.');
         if (reason === null) return;
-        if (!await reauth('배포를 회수합니다. 즉시 차단됩니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_dist_revoke */
         const { error } = await edmsClient.rpc('edms_dist_revoke', { p_id: rv.dataset.revoke, p_reason: reason });
         if (error) { alert(friendlyErr(error, '이미 회수된 건입니다.')); return; }
         toast('회수했습니다.'); await loadDistLedger(); return;

@@ -599,7 +599,6 @@ EDMS.ready.then(async function (ctx) {
     const reason = await askReason('문서 폐기 사유', '폐기 사유를 입력해야 폐기됩니다(필수). 폐기 시 목록에서 제외되며 이력은 조회 전용으로 보존됩니다.');
     if (reason === null) return;
     if (!confirm(`[${d.doc_number}]를 폐기합니다. 폐기 후에는 목록에서 제외되고 열람·다운로드·개정이 차단됩니다(이력 조회는 가능). 계속할까요?`)) return;
-    if (!await reauth('문서를 폐기합니다. 되돌릴 수 없습니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_doc_void */
     const { error } = await edmsClient.rpc('edms_doc_void', { p_doc_number: d.doc_number, p_reason: reason });
     if (error) {
       const msg = error.message || '';
@@ -818,7 +817,6 @@ EDMS.ready.then(async function (ctx) {
       if (rejectReason === null) return;
     }
     b.disabled = true;
-    if (!await reauth('다운로드를 승인·반려합니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_decide_download */
     const { error } = await edmsClient.rpc('edms_decide_download',
       { p_req: b.dataset.req, p_approve: !!ok, p_minutes: 10, p_reject_reason: rejectReason });
     if (error) alert('처리 실패: ' + error.message);
@@ -996,7 +994,6 @@ EDMS.ready.then(async function (ctx) {
         if (days === null) { b.disabled = false; return; }
         args = { p_id: b.dataset.g, p_approve: true, p_permanent: false, p_minutes: Math.max(1, parseInt(days, 10) || 1) * 1440 };
       }
-      if (!await reauth('열람 권한을 처리합니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_grant_decide */
       const { error } = await edmsClient.rpc('edms_grant_decide', args);
       if (error) { alert('처리 실패: ' + error.message); b.disabled = false; return; }
       await loadGrantAdmin();
@@ -1005,7 +1002,6 @@ EDMS.ready.then(async function (ctx) {
       const b = e.target.closest('[data-rv]'); if (!b) return;
       if (!confirm('이 권한을 회수할까요?')) return;
       b.disabled = true;
-      if (!await reauth('권한을 회수합니다. 남의 접근이 끊깁니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_grant_revoke */
       const { error } = await edmsClient.rpc('edms_grant_revoke', { p_id: b.dataset.rv });
       if (error) { alert('회수 실패: ' + error.message); b.disabled = false; return; }
       await loadGrantAdmin();
@@ -1015,7 +1011,6 @@ EDMS.ready.then(async function (ctx) {
       if (!doc || !user) { alert('문서와 대상자를 선택하세요.'); return; }
       const permanent = term === 'perm';
       const minutes = permanent ? null : parseInt(term, 10) * 1440;
-      if (!await reauth('요청 없이 권한을 직접 부여합니다.')) return;   /* ★D절 재인증 (판정 20260818_06 §1) — edms_grant_admin_set */
       const { error } = await edmsClient.rpc('edms_grant_admin_set',
         { p_document_id: doc, p_grantee_id: user, p_mode: mode, p_permanent: permanent, p_minutes: minutes,
           p_action: ($('gaAction') ? $('gaAction').value : '개정'), p_reason: '관리자 직접 설정' });
