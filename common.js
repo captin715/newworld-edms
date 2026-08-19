@@ -57,10 +57,10 @@
     //   그 3개는 결함이 아니라 ★완료 정의 ④(헤더 상호 이동)의 요건이다.
     write:     { name: '기록작성 시스템',     file: 'record-write.html', cls: 'recs', icon: 'archive' },
     // ★프로젝트관리 등재 — 판정 20260817_06 §1·§2 · ★통지 20260817_04 로 cls·icon 확정
-    //   nav:false = 등재는 지금, 노출은 배포 후. 화면이 없는 동안 죽은 버튼을 만들지 않는다.
+    //   화면이 배포되어 이동 바에 함께 나옵니다(판정 MST2-20260819_06 §1). 숨김 표시를 뺐습니다.
     //   ★cls 는 기존 계열 재사용(새 색·새 토큰 신설 금지 · C-51 · 판정 08 §2) → 'est'
     //   ★icon 도 기존 10종에서 차용 → 'stamp'. 노출 전까지 새 SVG 불요
-    project:   { name: '프로젝트관리 시스템', file: 'project.html',      cls: 'est',  icon: 'stamp', nav: false }
+    project:   { name: '프로젝트관리 시스템', file: 'project.html',      cls: 'est',  icon: 'stamp' }
   };
   // 역할 라벨/배지 — 원문 보존(회귀 방지). 임원=approver, 작성 권한자=reviewer 로 매핑.
   var ROLE_LABEL = { admin: '관리자', approver: '승인자', reviewer: '검토자', general: '일반' };
@@ -329,8 +329,8 @@
         + '<button class="nav-btn" id="logoutBtn">' + ico('logout') + '로그아웃</button></div>';
     } else {
       var me = SYS[sysKey];
-      // ★nav:false 인 키는 이동 바에서 뺀다(지시 20260817_03 §2-1) — 등재는 지금, 노출은 배포 후.
-      //   화면이 없는 동안 버튼을 만들지 않기 위한 것이다(죽은 버튼 0).
+      // ★숨김 표시가 붙은 키는 이동 바에서 뺀다(지시 20260817_03 §2-1). ★필터는 남겨 둔다 —
+      //   앞으로 새 시스템이 등재될 때 화면이 없는 동안 죽은 버튼을 만들지 않기 위한 것이다(판정 MST2-20260819_06 §1).
       var others = Object.keys(SYS).filter(function (k) { return k !== sysKey && SYS[k].nav !== false; });
       var sw = others.map(function (k) { var o = SYS[k]; return '<a class="nav-btn sw-' + o.cls + '" href="' + o.file + '">' + ico('switch') + o.name + '</a>'; }).join('');
       el.className = 'edms-nav ' + me.cls;
