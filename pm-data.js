@@ -85,6 +85,8 @@ async function pmTypeMap() {
 /* ── ① 프로젝트 대장 ─────────────────────────────────────────────────
    ★M-005: 성립요건은 2요건(부속서·PG0). 「코드 채번」은 열로 두지 않는다.
      미채번(KOLAS)은 대장 밖이다(마스터 판정 20260815_17 §1).                */
+/* ★폐기보관(2026-08-24 부대표 승인) — archived_at 이 있는 행은 대장에서 뺀다.
+   ★지운 것이 아니다. 폐기보관함(pmFetchArchivedProjects)에서 읽기 전용으로 본다. */
 async function pmFetchProjects() {
   var r = await edmsClient
     .from('pm_projects')
@@ -92,6 +94,7 @@ async function pmFetchProjects() {
           + 'planned_start,planned_end,actual_start,actual_end,baseline_fixed_at,'
           + 'owner,owner_dept,annex_doc_no,pg0_approved_at,critical_path,'
           + 'hold_reason,resume_condition,remark')
+    .is('archived_at', null)
     .order('project_code', { ascending: true });
   if (r.error) throw await pmErr('pm_projects', r.error);
 
@@ -124,6 +127,18 @@ async function pmFetchProjects() {
       note         : p.remark || ''
     };
   });
+}
+
+/* ── ①-2 ★폐기보관함 (읽기 전용) ─────────────────────────────────────
+   ★대장에서 내려온 것만 본다. 되살리기는 이 파일에 두지 않는다(쓰기 아님). */
+async function pmFetchArchivedProjects() {
+  var r = await edmsClient
+    .from('pm_projects')
+    .select('project_code,project_name,status,current_gate,archived_at,archive_reason')
+    .not('archived_at', 'is', null)
+    .order('project_code', { ascending: true });
+  if (r.error) throw await pmErr('pm_projects(폐기보관함)', r.error);
+  return r.data || [];
 }
 
 /* ── ② 성립요건 뷰 (5열 · security_invoker = on) ────────────────────── */

@@ -152,18 +152,53 @@ function fail(e) {
 
     var rows  = await pmFetchProjects();
     var gates = await pmFetchGateDefs();
+    var arc   = await pmFetchArchivedProjects();
+
+    /* ★폐기보관함 — 대장 아래에 접어 둔다. 읽기 전용. */
+    function archiveBox() {
+      if (!arc.length) return '';
+      var h = '<div style="border-top:1px solid #e3e8f0;padding-top:12px;margin-top:16px">'
+            + '<button class="btn ghost" id="arcBtn">폐기보관함 보기 (' + arc.length + ')</button>'
+            + '<div id="arcBox" style="display:none;margin-top:12px">'
+            + '<div class="count-info">읽기 전용 · 되살리려면 부대표 승인이 필요합니다</div>';
+      arc.forEach(function (a) {
+        h += '<div style="display:flex;gap:10px;align-items:center;padding:7px 10px;'
+           + 'border-bottom:1px solid #eef1f6;font-size:13px;color:#999">'
+           + '<span style="min-width:140px">' + a.project_code + '</span>'
+           + '<span style="flex:1">' + (a.project_name || '') + '</span>'
+           + '<span class="site-badge">' + (a.archive_reason || '') + '</span></div>';
+      });
+      return h + '</div></div>';
+    }
+    function bindArchive() {
+      var b = document.getElementById('arcBtn'), x = document.getElementById('arcBox');
+      if (!b || !x) return;
+      b.addEventListener('click', function () {
+        var on = x.style.display === 'none';
+        x.style.display = on ? 'block' : 'none';
+        b.textContent = on ? '폐기보관함 닫기' : '폐기보관함 보기 (' + arc.length + ')';
+      });
+    }
 
     if (!rows.length) {
       document.getElementById('state').innerHTML =
-          '<div class="banner warn"><b>0행</b> — 대장이 비어 보입니다.<br>'
-        + '로그인 세션 : <b>' + (authed ? '있음' : '★없음(anon 역할)') + '</b>. '
-        + (authed ? '데이터가 실제로 없습니다.'
-                  : '★RLS 는 권한이 없을 때 오류가 아니라 <b>0행</b>으로 답합니다. '
-                  + '「데이터 없음」이 아니라 <b>권한 없음</b>일 수 있습니다.')
-        + '</div>';
+          (arc.length
+            ? '<div class="banner info">준비단계 시험분 <b>' + arc.length + '건</b>이 폐기보관되었습니다. '
+              + '지워지지 않았고 아래 폐기보관함에서 보실 수 있습니다.</div>'
+            : '')
+        + '<div class="empty-state"><b>아직 등록된 프로젝트가 없습니다</b><br>'
+        + '1층 과제에서 프로젝트 판정을 받으면 여기에 내려옵니다.</div>'
+        + (authed ? ''
+                  : '<div class="banner warn">로그인 세션 <b>★없음(anon)</b> — '
+                  + 'RLS 는 권한이 없을 때 오류가 아니라 <b>0행</b>으로 답합니다. '
+                  + '「데이터 없음」이 아니라 <b>권한 없음</b>일 수 있습니다.</div>')
+        + archiveBox();
+      bindArchive();
       return;
     }
     render(rows, gates);
+    document.getElementById('state').insertAdjacentHTML('beforeend', archiveBox());
+    bindArchive();
   } catch (e) { fail(e); }
 })();
 </script>
