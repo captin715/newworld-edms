@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>프로젝트 축 결재 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+<style>
+  table.ap { width:100%; border-collapse:collapse; font-size:12px; background:#fff; }
+  table.ap th { background:#2A2824; color:#fff; padding:7px 6px; border:1px solid #2A2824; text-align:left; white-space:nowrap; }
+  table.ap td { padding:6px; border:1px solid #d8d5cf; vertical-align:middle; }
+  .st  { display:inline-block; padding:1px 7px; font-weight:700; white-space:nowrap; border:1px solid #8a8578; background:#efece6; }
+  .st.wait { background:#E2AD33; border-color:#8a6a12; color:#2A2824; }
+  .st.done { background:#2d7d6a; border-color:#2d7d6a; color:#fff; }
+  .st.rej  { background:#B03A2E; border-color:#B03A2E; color:#fff; }
+  .turn { background:#fdecea; }
+  .btn { font:inherit; padding:3px 10px; border:1px solid #2A2824; background:#fff; cursor:pointer; }
+  .btn.go { background:#E2AD33; font-weight:700; }
+  .btn[disabled] { opacity:.4; cursor:not-allowed; }
+  .form { background:#fff; border:1px solid #d8d5cf; padding:12px 14px; margin-bottom:14px; font-size:13px; }
+  .form label { display:inline-block; min-width:88px; color:#5a564c; }
+  .form input, .form select { font:inherit; padding:3px 6px; border:1px solid #c9c5bd; }
+  .row { margin-bottom:7px; }
+  .err { border:2px solid #B03A2E; background:#fdecea; color:#7B241C; padding:9px 12px; font-size:12px; margin:10px 0; white-space:pre-wrap; }
+  .axis { font-size:12px; color:#5a564c; }
+  .filter { background:#fff; border:1px solid #d8d5cf; padding:8px 12px; margin-bottom:10px; font-size:13px; }
+  .detail { background:#fbfaf7; border:1px solid #d8d5cf; padding:10px 12px; font-size:12px; }
+  .detail b { color:#2A2824; }
+  table.at { width:100%; border-collapse:collapse; font-size:11px; background:#fff; margin-top:6px; }
+  table.at th { background:#5a564c; color:#fff; padding:4px 6px; border:1px solid #5a564c; text-align:left; }
+  table.at td { padding:4px 6px; border:1px solid #d8d5cf; }
+  .sec4 { background:#B03A2E; color:#fff; padding:0 5px; font-weight:700; }
+  .wd { color:#8a8578; text-decoration:line-through; }
+  .noatt { color:#B03A2E; font-weight:700; }
+  .hash { font-family:Consolas,monospace; font-size:10px; color:#8a8578; }
+</style>
+</head>
+<body>
+<header id="edmsHeader" data-system="project"></header>
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>프로젝트 축 결재 — 실앱 v1</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+    <a class="homebtn" href="pm-list.html">대장</a>
+  </div>
+</header>
+<main>
+  <div class="mk-note approval-note">여기가 <b>프로젝트 축 결재선</b>입니다. <b>C-PRJ</b> — 작성 <b>프로젝트 담당자</b> → 검토 <b>소관 팀장</b> → 승인 <b>부대표</b>. <b>검토 생략은 사유를 적어야 됩니다</b>(동일인일 때 · 판정 MST2-20260822_62 §1). <b>문서 축(양식 제·개정)</b>·<b>기록 축(양식으로 쓴 기록)</b>과 <b>서로를 대신하지 않습니다</b> — 축을 섞어 인용하면 무효입니다(W-16). 게이트 승인은 <b>PG0·PG4·PG5 = 대표이사</b> · 그 밖 = <b>부대표</b>이며, <b>결재자는 정의(pm_gate_defs)와 대조</b>됩니다. (근거: 판정 MST2-20260820_24 §4·§5)</div>
+  <div class="mk-note" id="ribbon"></div>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <b>프로젝트 축 결재</b></div>
+
+  <div class="form" id="draftBox">
+    <div class="row"><b>기안</b> <span class="axis">— 상태는 항상 <b>작성중</b>으로 시작합니다(전이표 진입점).</span></div>
+    <div class="row"><label>프로젝트</label><select id="fProject"></select></div>
+    <div class="row"><label>대상</label>
+      <select id="fType"><option>계획서</option><option>게이트</option><option>산출물등록</option><option>WBS변경</option></select>
+      <label style="min-width:40px">참조</label><input id="fRef" size="16" placeholder="FR-2 / PG0 / DA-01 / 1.7">
+    </div>
+    <div class="row"><label>제목</label><input id="fTitle" size="52"></div>
+    <div class="row"><label>작성</label><select id="fDrafter"></select>
+      <label style="min-width:40px">검토</label><select id="fReviewer"></select>
+      <label style="min-width:40px">승인</label><select id="fApprover"></select></div>
+    <div class="row"><button class="btn go" id="btnDraft">기안</button>
+      <span class="axis">★작성자 = 검토자는 넣을 수 없습니다(W-10). ★작성자 = 승인자도 막힙니다.
+      ★결재선은 <b>pm_approval_lines</b>와 대조됩니다 — <b>C-PRJ</b>: 작성 <b>프로젝트 담당자</b> → 검토 <b>소관 팀장</b>(동일인이면 생략+사유) → 승인 <b>부대표</b> · <b>D-GATE</b>: 승인은 <b>게이트 정의</b>대로 · <b>C-PRJ-2</b>: <b>2단</b> — 승인 단이 <b>없습니다</b>.
+      ★<b>축은 화면이 고르지 않습니다</b> — <b>pm_form_axis</b>(양식↔축)를 DB가 보고 채웁니다(판정 MST2-20260822_74 §2).
+      <span class="tmp">★소관 팀장은 부서 표가 없어 아직 대조하지 않습니다.</span></span></div>
+  </div>
+
+  <div class="filter">
+    <b>프로젝트별 보기</b>
+    <select id="fFilter"><option value="">(전체)</option></select>
+    <span class="axis">★결재자가 <b>내용을 보고</b> 판정하도록, 행을 누르면 <b>본문 경로·첨부</b>가 펼쳐집니다(㉰).</span>
+  </div>
+  <div id="msg"></div>
+  <div id="state"></div>
+  <div id="listBox"></div>
+  <div class="mk-note" id="footNote"></div>
+</main>
+<footer class="mk">프로젝트관리 실앱 v1 · 프로젝트 축 결재선 · 삭제 없음(취소는 상태)</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script src="pm-write.js"></script>
+<script>
+(async function () {
+  document.getElementById('ribbon').innerHTML =
+    '<b>실앱</b> — 이 화면은 <b>쓰기</b>를 합니다. 대상은 <b>pm_approvals</b> 한 표뿐이고, '
+  + '<b>삭제 버튼은 두지 않았습니다</b> — 취소는 상태 변경입니다(판정 §5 ㉱).';
+  await pmFillSession();
+
+  function say(html, isErr) {
+    document.getElementById('msg').innerHTML = html ? ('<div class="' + (isErr ? 'err' : 'mk-note') + '">' + html + '</div>') : '';
+  }
+  function opt(list, sel) {
+    return '<option value="">(지정 안 함)</option>' + list.map(function (p) {
+      return '<option value="' + p.id + '"' + (sel === p.id ? ' selected' : '') + '>' + pmEsc(p.name) + ' · ' + pmEsc(p.role) + '</option>';
+    }).join('');
+  }
+
+  var people = [], projects = [], CUR_FILTER = null, LAST_ROWS = [];
+  try {
+    people   = await pmFetchPeople();
+    projects = await pmFetchProjects();
+  } catch (e) {
+    document.getElementById('state').innerHTML = pmStateBox(pmIsAuthProblem(e) ? 'A' : 'B', e, '결재');
+    return;
+  }
+  document.getElementById('fProject').innerHTML =
+    projects.map(function (p) { var c = p.code || p.project_code;
+      return '<option value="' + c + '">' + pmEsc(c) + ' — ' + pmEsc(p.name || p.project_name || '') + '</option>'; }).join('');
+  ['fDrafter','fReviewer','fApprover'].forEach(function (id) {
+    document.getElementById(id).innerHTML = opt(people, null);
+  });
+
+  async function refresh() {
+    try {
+      var rows = await pmFetchApprovalDetail(CUR_FILTER); LAST_ROWS = rows;
+      if (!rows.length) {
+        document.getElementById('listBox').innerHTML =
+          '<div class="mk-note">결재 <b>0건</b>입니다. 위에서 기안하십시오. ' +
+          '<b>★0 은 「없다」입니다 — 「셀 곳이 없다」가 아닙니다</b>(표는 있습니다).</div>';
+        return;
+      }
+      var h = '<table class="ap"><thead><tr>'
+        + '<th>프로젝트</th><th>대상</th><th>참조</th><th>제목</th><th>상태</th>'
+        + '<th>작성</th><th>검토</th><th>승인</th><th>진행</th></tr></thead><tbody>';
+      rows.forEach(function (r) {
+        var cls = r.status === '승인완료' ? 'done' : (r.status === '반려' ? 'rej' : (r.my_turn ? 'wait' : ''));
+        h += '<tr data-row="' + r.approval_id + '" class="' + (r.my_turn ? 'turn' : '') + '">'
+          + '<td>' + pmEsc(r.project_code) + '</td>'
+          + '<td>' + pmEsc(r.entity_type) + '</td>'
+          + '<td>' + pmVal(r.entity_ref) + '</td>'
+          + '<td>' + pmEsc(r.title) + (r.skip_reason ? '<br><span class="axis">축약사유: ' + pmEsc(r.skip_reason) + '</span>' : '') + '</td>'
+          + '<td><span class="st ' + cls + '">' + pmEsc(r.status) + '</span>'
+          + (r.my_turn ? '<br><span class="axis">' + pmEsc(r.my_turn) + '</span>' : '') + '</td>'
+          + '<td>' + pmVal(r.drafter_name) + '</td>'
+          + '<td>' + pmVal(r.reviewer_name) + '</td>'
+          + '<td>' + pmVal(r.approver_name) + '</td>'
+          + '<td>' + btns(r) + '</td></tr>'
+          /* ★㉰ 열람 — 근거가 없으면 그것을 드러낸다 */
+          + '<tr id="d_' + r.approval_id + '" style="display:none"><td colspan="9">'
+          + '<div class="detail" id="dc_' + r.approval_id + '">여는 중…</div></td></tr>';
+      });
+      document.getElementById('listBox').innerHTML = h + '</tbody></table>';
+      bind(); bindRows(rows);
+    } catch (e) {
+      document.getElementById('state').innerHTML = pmStateBox(pmIsAuthProblem(e) ? 'A' : 'B', e, '결재');
+    }
+  }
+
+  /* ★전이표를 화면에 다시 쓰지 않는다 — 버튼만 놓고, 되는지 아닌지는 DB 가 답한다 */
+  function btns(r) {
+    var b = [];
+    /* ★「검토 생략」 버튼을 ★두지 않았습니다 — 판정 MST2-20260820_33 §4 ㉮
+       「검토 행위가 DB 에 남아야 함」. 부대표 지적 4건 중 하나가 ★검토 생략입니다. */
+    /* ★생략은 사유를 적어야 됩니다 — 축이 허용하는지·사유가 있는지는 ★DB 가 판정합니다 */
+    if (r.status === '작성중')   { b.push(mk(r, '검토중', '검토 요청')); b.push(mk(r, '승인대기', '검토 생략(사유)')); }
+    /* ★2단 양식(-03·-04·-08 · C-PRJ-2)은 승인 단이 없다 — 「확인」으로 끝난다.
+       ★판정 MST2-20260822_99 (PMD ㉣ 채택). 축은 DB 가 정해 axis_code 로 내려 준다.
+       ★승인 버튼을 함께 두지 않는다 — 누를 수 없는 것을 보여 주면 그것도 조용한 실패다. */
+    if (r.status === '검토중' && r.axis_code === 'C-PRJ-2') {
+      b.push(mk(r, '확인', '확인 완료'));
+      b.push(mk(r, '반려', '반려'));
+    }
+    else if (r.status === '검토중') { b.push(mk(r, '승인대기', '검토 완료')); b.push(mk(r, '반려', '반려')); }
+    if (r.status === '승인대기') { b.push(mk(r, '승인완료', '승인')); b.push(mk(r, '반려', '반려')); }
+    if (r.status === '반려')     { b.push(mk(r, '작성중', '재작성')); }
+    if (r.status !== '승인완료' && r.status !== '취소') b.push(mk(r, '취소', '취소'));
+    /* ★끝난 것은 끝났다고 적는다 — 버튼이 없는 까닭을 비워 두지 않는다 */
+    if (r.status === '확인') b.push('<span class="axis">확인으로 끝났습니다 — 이 양식은 승인 단이 없습니다</span>');
+    return b.join(' ') || '<span class="axis">—</span>';
+  }
+  function mk(r, to, label) {
+    return '<button class="btn' + (r.my_turn ? ' go' : '') + '" data-id="' + r.approval_id + '" data-to="' + to + '">' + label + '</button>';
+  }
+  function bind() {
+    Array.prototype.forEach.call(document.querySelectorAll('#listBox button'), function (el) {
+      el.onclick = async function () {
+        var to = el.getAttribute('data-to'), extra = {};
+        var r0 = (LAST_ROWS || []).filter(function (x) { return x.approval_id === el.getAttribute('data-id'); })[0];
+        /* ★사유가 필요한 자리는 ★DB 가 요구한다. 화면은 미리 받아 둔다 — 막히고 나서 다시 묻지 않게. */
+        if (to === '승인대기') {
+          if (r0 && r0.status === '작성중') {
+            var sk = prompt('★검토 생략 사유(필수) — 담당자와 소관 팀장이 동일인인 경우');
+            if (!sk) { say('생략 사유가 없어 보내지 않았습니다.', true); return; }
+            extra.skip_reason = sk;
+          } else {
+            var rc = prompt('검토 의견(형식·발번·양식). 비워도 진행됩니다.');
+            if (rc) extra.review_comment = rc;
+          }
+        }
+        if (to === '반려') {
+          var rr = prompt('반려 사유(필수)');
+          if (!rr) { say('반려 사유가 없어 보내지 않았습니다.', true); return; }
+          extra.reject_reason = rr;
+        }
+        say('보내는 중…');
+        try { await pmMoveApproval(el.getAttribute('data-id'), to, extra); say('<b>' + to + '</b> 로 옮겼습니다.'); await refresh(); }
+        catch (e) { say('<b>DB 가 막았습니다 — 문면 그대로 옮깁니다.</b>\n' + pmEsc(String(e && e.message || e)), true); }
+      };
+    });
+  }
+
+  /* ★상세 펼침 — 본문 경로 · 첨부 목록 · 미리보기 */
+  function bindRows(rows) {
+    rows.forEach(function (r) {
+      var tr = document.querySelector('tr[data-row="' + r.approval_id + '"]');
+      if (!tr) return;
+      tr.style.cursor = 'pointer';
+      tr.onclick = async function (ev) {
+        if (ev.target.tagName === 'BUTTON') return;
+        var box = document.getElementById('d_' + r.approval_id);
+        if (box.style.display !== 'none') { box.style.display = 'none'; return; }
+        box.style.display = '';
+        var c = document.getElementById('dc_' + r.approval_id);
+        try {
+          var at = await pmFetchAttachments(r.project_code, '결재', r.approval_id);
+          var h = '<b>본문</b> ' + (r.body_path
+                ? pmEsc(r.body_path)
+                : '<span class="noatt">경로 없음 — 결재 대상의 실물이 대장에 없습니다</span>')
+            + ' &nbsp;·&nbsp; <b>검토 의견</b> ' + pmVal(r.review_comment)
+            + ' &nbsp;·&nbsp; <b>승인 의견</b> ' + pmVal(r.approve_comment)
+            + (r.reject_reason ? ' &nbsp;·&nbsp; <b>반려 사유</b> ' + pmEsc(r.reject_reason) : '');
+
+          /* ★M-49 (판정 MST2-20260822_92 §1) — 조용한 실패 0건.
+             ★막지 않고 지나간 자리를 DB가 unchecked_notes 에 적어 둔다. 화면은 그것을 숨기지 않는다.
+             ★비어 있으면 「전건 대조」라고 적는다 — 빈칸은 「검사 안 함」으로도 읽히기 때문이다. */
+          h += '<div style="margin-top:6px"><b>축</b> ' + pmVal(r.axis_code)
+             + ' <span class="axis">(' + pmVal(r.axis_source) + ')</span>'
+             + (r.axis_source === '기본값'
+                 ? ' <span style="color:#8a5a00">★대응표에서 못 찾아 유도한 값입니다 — 2단 양식이면 틀립니다</span>'
+                 : '')
+             + '</div>';
+          h += '<div style="margin-top:4px"><b>대조하지 못한 것</b> '
+             + (r.unchecked_notes
+                 ? '<span style="color:#8a5a00">' + pmEsc(r.unchecked_notes) + '</span>'
+                 : '<span class="axis">없음 — 결재선 전건 대조</span>')
+             + '</div>';
+          if (!at.length) {
+            h += '<div class="noatt" style="margin-top:6px">★첨부 0건입니다 — 근거 없이 누르지 마십시오.</div>';
+          } else {
+            h += '<table class="at"><thead><tr><th>#</th><th>파일</th><th>출처</th><th>등급</th><th>해시</th><th>상태</th><th>보기</th></tr></thead><tbody>';
+            at.forEach(function (a) {
+              h += '<tr class="' + (a.status === '철회' ? 'wd' : '') + '">'
+                + '<td>' + a.seq + '</td><td>' + pmEsc(a.file_name) + '</td>'
+                + '<td>' + pmEsc(a.source) + (a.external_from ? ' · ' + pmEsc(a.external_from) : '') + '</td>'
+                + '<td>' + (a.security_level === 4 ? '<span class="sec4">4급</span>' : (a.security_level + '급')) + '</td>'
+                + '<td class="hash">' + pmEsc(String(a.file_hash).slice(0, 16)) + '…</td>'
+                + '<td>' + pmEsc(a.status) + (a.withdraw_reason ? ' · ' + pmEsc(a.withdraw_reason) : '') + '</td>'
+                + '<td>' + (a.status === '철회' ? '—'
+                    : '<button class="btn" data-open="' + pmEsc(a.storage_path) + '">열기</button>') + '</td></tr>';
+            });
+            h += '</tbody></table>';
+          }
+          c.innerHTML = h;
+          Array.prototype.forEach.call(c.querySelectorAll('button[data-open]'), function (el) {
+            el.onclick = async function (e) {
+              e.stopPropagation();
+              try { var u = await pmSignedUrl(el.getAttribute('data-open'), 60); window.open(u, '_blank'); }
+              catch (err) { say('<b>파일을 열지 못했습니다.</b>\n' + pmEsc(String(err && err.message || err)), true); }
+            };
+          });
+        } catch (e) {
+          c.innerHTML = '<span class="noatt">첨부를 읽지 못했습니다 — ' + pmEsc(String(e && e.message || e)) + '</span>';
+        }
+      };
+    });
+  }
+
+  document.getElementById('fFilter').innerHTML = '<option value="">(전체)</option>'
+    + projects.map(function (p) { var c = p.code || p.project_code;
+        return '<option value="' + c + '">' + pmEsc(c) + '</option>'; }).join('');
+  document.getElementById('fFilter').onchange = async function () {
+    CUR_FILTER = this.value || null; await refresh();
+  };
+
+  document.getElementById('btnDraft').onclick = async function () {
+    var t = document.getElementById('fTitle').value.trim();
+    if (!t) { say('제목을 적으십시오.', true); return; }
+    say('기안 중…');
+    try {
+      await pmCreateApproval({
+        project_code: document.getElementById('fProject').value,
+        entity_type : document.getElementById('fType').value,
+        entity_ref  : document.getElementById('fRef').value.trim(),
+        title       : t,
+        drafter_id  : document.getElementById('fDrafter').value || null,
+        reviewer_id : document.getElementById('fReviewer').value || null,
+        approver_id : document.getElementById('fApprover').value || null
+      });
+      say('기안했습니다.'); document.getElementById('fTitle').value = '';
+      await refresh();
+    } catch (e) {
+      say('<b>DB 가 막았습니다 — 문면 그대로 옮깁니다.</b>\n' + pmEsc(String(e && e.message || e)), true);
+    }
+  };
+
+  document.getElementById('footNote').innerHTML =
+      '<b>★삭제 버튼이 없습니다.</b> 결재는 지우지 않습니다 — 「취소」로 상태를 바꾸고, 그 전이도 <b>pm_status_transitions</b> 에 남습니다(판정 §5 ㉱).<br>'
+    + '<b>★전이표를 화면에 다시 쓰지 않았습니다.</b> 버튼만 놓고 되는지 아닌지는 <b>DB 트리거</b>가 판정합니다. 막히면 <b>그 문면을 그대로</b> 보여 줍니다.<br>'
+    + '<b>★결재자는 코드에 없습니다.</b> 사람 목록을 <b>edms_profiles</b> 에서 읽어 uuid 로 보내고, '
+    + '결재선은 <b>pm_approval_lines</b>(대장 §2)와 대조됩니다(W-17).<br>'
+    + '<b>★검토 생략은 사유를 적어야 됩니다.</b> 「동일인이면 생략 + 사유」가 확정입니다(판정 MST2-20260822_62 §1). '
+    + '<b>생략해도 사유가 이력에 남습니다</b> — 그래서 「검토 행위가 DB에 남아야 함」(판정 33 §4 ㉮)과 어긋나지 않습니다.<br>'
+    + '<b class="tmp">★동일인 여부는 아직 검사하지 않습니다</b> — 소관 팀장을 뽑을 부서 표가 없습니다.<br>'
+    + '<b>★축은 양식마다 다릅니다.</b> 판정 <b>MST2-20260822_74 §2</b> 가 「C-PRJ 8종 일괄」을 정정했습니다 — '
+    + '<b>-01 착수보고서·-07 종료보고서</b>는 <b>D-GATE</b>(승인 <b>대표이사</b>), <b>-02·-06</b>은 <b>C-PRJ</b>(승인 <b>부대표</b>), '
+    + '<b>-03·-04·-08</b>은 <b>2단</b>이라 <b>승인 단이 없습니다</b>.<br>'
+    + '<b>★-03·-04·-08 은 「확인」으로 끝납니다.</b> 승인 단이 없는 양식이라 <b>승인 버튼을 두지 않습니다</b> '
+    + '(판정 <b>MST2-20260822_99</b> — 본 창 권고 ㉣ 채택). '
+    + '<b>「확인」에는 승인자도 승인일도 붙지 않습니다</b> — 없는 승인을 만들지 않습니다.<br>'
+    + '<b class="tmp">★FR-3~FR-8 은 양식과 아직 잇지 못했습니다</b> — pm_records 에 행이 없어 맞출 근거가 없습니다. '
+    + '그 건은 <b>C-PRJ 로 두되, 행을 펼치면 「축 (기본값)」과 사유가 보입니다</b>(막지는 않습니다).<br>'
+    + '<b>★막지 않고 지나간 자리는 행에 남습니다.</b> 종전에는 DB 알림(NOTICE)으로만 냈는데 '
+    + '<b>화면에는 도달하지 않았습니다</b> — <b>조용한 실패</b>였습니다(검사식 <b>M-49</b> · 판정 MST2-20260822_92 §1). '
+    + '이제 <b>unchecked_notes</b> 열에 담고 이 화면이 그대로 폅니다.';
+
+  await refresh();
+})();
+</script>
+</body>
+</html>

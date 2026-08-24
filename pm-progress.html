@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>전 프로젝트 진도 표 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+<style>
+  table.prog { width:100%; border-collapse:collapse; font-size:12px; background:#fff; }
+  table.prog th { background:#2A2824; color:#fff; padding:7px 6px; border:1px solid #2A2824; text-align:left; white-space:nowrap; }
+  table.prog td { padding:6px; border:1px solid #d8d5cf; vertical-align:middle; white-space:nowrap; }
+  table.prog td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .vd-bad  { display:inline-block; background:#B03A2E; color:#fff; padding:1px 7px; font-weight:700; }
+  .vd-ok   { display:inline-block; background:#2d7d6a; color:#fff; padding:1px 7px; font-weight:700; }
+  .zero    { color:#B03A2E; font-weight:700; }
+  .none    { color:#a8a49b; }
+  .notab   { color:#8a5a00; font-style:normal; }
+  .issues  { font-size:11px; color:#7B241C; line-height:1.5; white-space:normal; }
+</style>
+</head>
+<body>
+<!-- ════ 헤더 계약 (판정 20260816_03 §2) — 근거·선행조건은 list.html 주석 참조 ════
+     ★common.js SYS 에 'project' 미등록 → 등재가 선행(제작창 소관). 값은 추측하지 않았다. -->
+<header id="edmsHeader" data-system="project"></header>
+
+<!-- ★header class="mk pm" — 프로젝트관리 화면 = 노랑 띠 + 먹색 글자(㉯ 확정 2026-08-11) -->
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>전 프로젝트 진도 표 — 실앱 v1(읽기 전용)</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+    <a class="homebtn" href="pm-list.html">대장</a>
+  </div>
+</header>
+<main>
+  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인은 <b>PG0·PG4·PG5 = 대표이사</b> · 그 밖 = <b>부대표</b>. (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
+  <div class="mk-note" id="ribbon"></div>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <b>전 프로젝트 진도 표</b></div>
+  <div class="mk-note" id="calcNote"></div>
+  <div id="state"></div>
+  <div id="tableBox"></div>
+  <div class="mk-note" id="footNote"></div>
+</main>
+<footer class="mk">프로젝트관리 실앱 v1 · 전 프로젝트 진도 12열 · 조회 전용</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script>
+(async function () {
+  document.getElementById('ribbon').innerHTML =
+    '<b>실앱(조회 전용)</b> — 부대표 지시 「전 프로젝트 진도 관리를 프로젝트 관리 시스템상에서 확인할 것」 · 근거 판정 <b>MST2-20260820_28 §5</b>.';
+  document.getElementById('calcNote').innerHTML =
+      '<b>이 표는 정합 여부를 계산하지 않습니다.</b> 뷰 <b>pm_v_gate_consistency</b> 의 <b>verdict</b> 를 그대로 표시합니다. '
+    + '<b>★불일치를 숨기는 필터는 두지 않습니다.</b>';
+
+  await pmFillSession();
+
+  function n0(v){ return (v===null||v===undefined) ? 0 : Number(v); }
+  function cnt(arr, code){ var c=0; for (var i=0;i<arr.length;i++) if (arr[i].project_code===code) c++; return c; }
+
+  try {
+    var projects = await pmFetchProjects();
+    if (!projects.length) {
+      document.getElementById('state').innerHTML = pmStateBox('B', null, '대장에 등재된 프로젝트');
+      return;
+    }
+    var defs   = await pmFetchGateDefs();
+    var gates  = await pmFetchProjectGates();
+    var tasks  = await pmFetchTasks();
+    var recs   = await pmFetchRecords();
+    var mils   = await pmFetchMilestones();
+
+    /* ★정합은 뷰가 정본이다. 뷰가 없으면 ★없다고 적는다 — 손으로 세지 않는다. */
+    var cons = null, consErr = null;
+    try { cons = await pmFetchGateConsistency(); }
+    catch (e) { consErr = e; }
+
+    var nGate = defs.length || 7;
+    var rows = projects.map(function (p) {
+      var code = p.code || p.project_code;
+      var myGates = gates.filter(function (g) { return g.project_code === code; });
+      var passedMain = myGates.filter(function (g) { return !g.is_subgate && g.status === '통과'; }).length;
+      var myTasks = tasks.filter(function (t) { return t.project_code === code; });
+      var withProg = myTasks.filter(function (t) { return t.progress !== null && t.progress !== undefined; });
+      var avg = withProg.length
+        ? (withProg.reduce(function (a, t) { return a + Number(t.progress); }, 0) / withProg.length)
+        : null;
+      var c = cons ? cons.filter(function (x) { return x.project_code === code; })[0] : null;
+      return {
+        code: code,
+        name: p.name || p.project_name || '',
+        /* ★번호 2번째 글자는 2026-08-24 부터 ★부서(Q·M·C·D) 입니다 — ★유형이 아닙니다.
+           예전 번호(PRJ-D-·PRJ-G-)에서는 유형이었으므로, 번호로 유형을 짐작하지 않습니다.
+           type_char 는 NOT NULL 이라 이 자리는 원래 비지 않습니다. */
+        type: p.type_char || '?',
+        status: p.status,
+        gate: p.current_gate || p.gate || '',
+        passedMain: passedMain,
+        nTask: myTasks.length,
+        nProg: withProg.length,
+        avg: avg,
+        nRec: cnt(recs, code),
+        nMil: cnt(mils, code),
+        cons: c
+      };
+    });
+
+    var h = '<table class="prog"><thead><tr>'
+      + '<th>프로젝트</th><th>유형</th><th>상태</th><th>게이트</th>'
+      + '<th>★본게이트 통과</th><th>과업</th><th>진도기재</th><th>평균진도</th>'
+      + '<th>산출물</th><th>★승인</th><th>마일스톤</th><th>★정합</th>'
+      + '</tr></thead><tbody>';
+    rows.forEach(function (r) {
+      var vd = '<span class="none">뷰 없음</span>';
+      if (r.cons) {
+        vd = (r.cons.verdict === '불일치')
+           ? '<span class="vd-bad">불일치 ' + n0(r.cons.issue_count) + '</span>'
+           : '<span class="vd-ok">정합</span>';
+      }
+      h += '<tr>'
+        + '<td><b>' + pmEsc(r.code) + '</b><br><span class="none">' + pmEsc(r.name) + '</span></td>'
+        + '<td>' + pmEsc(r.type) + '</td>'
+        + '<td>' + pmVal(r.status) + '</td>'
+        + '<td>' + pmVal(r.gate) + '</td>'
+        + '<td class="num">' + (r.passedMain === 0 ? '<span class="zero">0</span>' : r.passedMain) + ' / ' + nGate + '</td>'
+        + '<td class="num">' + r.nTask + '</td>'
+        + '<td class="num">' + r.nProg + '</td>'
+        /* ★척도 — pm_tasks_progress_check = CHECK (progress >= 0 AND progress <= 1)
+           ★DB 는 0~1 로 담는다. 화면은 ×100 해서 % 로 적는다.
+           ★그냥 찍으면 0.67 이 「0.67 %」가 되어 ★진도를 100배 낮게 보여 준다. */
+        + '<td class="num">' + (r.avg === null ? '<span class="none">—</span>' : (r.avg * 100).toFixed(2) + ' %') + '</td>'
+        + '<td class="num">' + (r.nRec === 0 ? '<span class="zero">0</span>' : r.nRec) + '</td>'
+        /* ★승인 — ★2026-08-22 실측: pm_approvals ★표는 있고 ★0행이다(24열·CHECK 12·FK 4).
+           ★종전 문면 「표가 아직 없다」는 ★만들 때는 참말이었으나 ★지금은 거짓이다 —
+           ★판정 MST2-20260822_68 §8 이 금지한 「0행을 없음으로 읽기」를 ★이 화면이 범하고 있었다.
+           ★이 화면은 ★아직 세지 않는다. ★그래서 「0」이라 적지 않고 ★「미집계」라 적는다 —
+           ★0(센 결과가 0) 과 ★미집계(세지 않음) 는 ★다른 말이다. */
+        + '<td class="notab">미집계</td>'
+        + '<td class="num">' + (r.nMil === 0 ? '<span class="zero">0</span>' : r.nMil) + '</td>'
+        + '<td>' + vd + '</td>'
+        + '</tr>';
+      if (r.cons && r.cons.verdict === '불일치' && r.cons.issues && r.cons.issues.length) {
+        h += '<tr><td colspan="12" class="issues">' + r.cons.issues.map(pmEsc).join('<br>') + '</td></tr>';
+      }
+    });
+    h += '</tbody></table>';
+    document.getElementById('tableBox').innerHTML = h;
+
+    var nBad = cons ? cons.filter(function (x) { return x.verdict === '불일치'; }).length : null;
+    document.getElementById('footNote').innerHTML =
+        '<b>★승인 열</b> — <b>pm_approvals</b> 표는 <b>있습니다</b>(2026-08-22 실측 · <b>0행</b> · 24열 · CHECK 12 · FK 4). '
+      + '<b>이 화면이 아직 세지 않아 「미집계」로 둡니다</b> — <b>0</b>(세어 보니 0)과 <b>미집계</b>(세지 않음)는 다른 말입니다.<br>'
+      + '<b class="zero">★문면 정정</b> — 종전 이 자리에 「표가 아직 없습니다」라고 적혀 있었습니다. '
+      + '<b>만들 때는 참말이었고 지금은 거짓입니다</b>(표가 그 뒤에 생겼습니다). '
+      + '<b>0행을 「없음」으로 읽지 않는다</b>(판정 MST2-20260822_68 §8) · 낡은 실측을 그대로 인용하지 않는다(C-31).<br>'
+      + '<b>★본게이트 통과</b> — 서브게이트는 세지 않습니다. 본게이트 행만 셉니다.<br>'
+      + '<b>★평균진도 척도</b> — DB 는 <b>0~1</b> 로 담습니다(<b>pm_tasks_progress_check</b>). 화면이 ×100 해서 % 로 적습니다.<br>'
+      + (consErr
+          ? '<b class="zero">★정합 열</b> — 뷰 <b>pm_v_gate_consistency</b> 를 읽지 못했습니다(D-7 미적용 또는 권한). <b>손으로 세지 않고 「뷰 없음」으로 둡니다.</b>'
+          : '<b>★정합 열</b> — 뷰가 정본입니다(판정 MST2-20260818_15 §5). 현재 <b class="zero">불일치 ' + nBad + '건</b> · 사유는 각 행 아래에 그대로 폅니다.');
+  } catch (e) {
+    document.getElementById('state').innerHTML =
+      pmStateBox(pmIsAuthProblem(e) ? 'A' : 'B', e, '전 프로젝트 진도');
+  }
+})();
+</script>
+</body>
+</html>

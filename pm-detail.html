@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>프로젝트 상세 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ════ 헤더 계약 (판정 20260816_03 §2) — 근거·선행조건은 list.html 주석 참조 ════
+     ★common.js SYS 에 'project' 미등록 → 등재가 선행(제작창 소관). 값은 추측하지 않았다. -->
+<header id="edmsHeader" data-system="project"></header>
+
+<!-- ★header class="mk pm" — 프로젝트관리 화면 = 노랑 띠 + 먹색 글자(㉯ 확정 2026-08-11) -->
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>프로젝트 상세 — 실앱 v1(읽기 전용)</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+    <a class="homebtn" href="pm-list.html">대장</a>
+  </div>
+</header>
+<main>
+  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인은 <b>PG0·PG4·PG5 = 대표이사</b> · 그 밖 = <b>부대표</b>. (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
+  <div class="mk-note" id="ribbon"></div>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <a href="pm-list.html">프로젝트 대장</a> &nbsp;›&nbsp; <b id="crumbCode">상세</b></div>
+
+  <div id="state"></div>
+
+  <div id="wrap" style="display:none">
+    <!-- ① 머리 -->
+    <div class="panel">
+      <h2 id="ttl">상세</h2>
+      <div class="dl-grid" id="head"></div>
+      <div id="holdBox"></div>
+    </div>
+
+    <!-- ② 일정 -->
+    <div class="panel">
+      <h2>일정</h2>
+      <div class="dl-grid" id="sched"></div>
+      <div id="schedNote"></div>
+    </div>
+
+    <!-- ③ 성립요건 -->
+    <div class="panel">
+      <h2>성립요건 <span class="float" id="reqSum"></span></h2>
+      <div id="req"></div>
+    </div>
+
+    <!-- ④ 게이트 -->
+    <div class="panel">
+      <h2>게이트 <span class="float" id="gateSum"></span></h2>
+      <div id="gates"></div>
+    </div>
+
+    <!-- ⑤ 산출물 -->
+    <div class="panel">
+      <h2>산출물 · 기록 <span class="float" id="recSum"></span></h2>
+      <div class="banner info" id="recGuide"></div>
+      <div id="records"></div>
+    </div>
+
+    <!-- ⑥ 연결 -->
+    <div class="panel">
+      <h2>연결 <span class="float" id="lnkSum"></span></h2>
+      <div id="links"></div>
+    </div>
+  </div>
+</main>
+<footer class="mk">프로젝트관리 실앱 v1 · 상세 · 조회 전용</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script>
+function qp(n) { var m = new RegExp('[?&]' + n + '=([^&]+)').exec(location.search); return m ? decodeURIComponent(m[1]) : ''; }
+function row(k, v) { return '<div class="dl-row"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
+
+(async function () {
+  var code = qp('code');
+  document.getElementById('ribbon').innerHTML =
+    '<b>실앱(조회 전용)</b> — 편집 정책 미적용. 이 화면은 DB 를 읽기만 합니다.';
+  document.getElementById('crumbCode').textContent = code || '상세';
+  await pmFillSession();
+
+  if (!code) {
+    document.getElementById('state').innerHTML =
+      '<div class="banner warn"><b>프로젝트 코드가 없습니다</b> — 대장에서 행을 클릭해 진입하십시오. '
+      + '<code>pm-detail.html?code=PRJ-…</code></div>';
+    return;
+  }
+
+  var projects, readiness, gateDefs, gates, records, links;
+  try {
+    projects  = await pmFetchProjects();
+    gateDefs  = await pmFetchGateDefs();
+    gates     = await pmFetchProjectGates(code);
+    readiness = await pmFetchReadiness();
+    links     = await pmFetchLinks();
+  } catch (e) {
+    /* ★A — 권한 없음. 「데이터 없음」으로 그리지 않는다 */
+    document.getElementById('state').innerHTML = pmStateBox(pmIsAuthProblem(e) ? 'A' : 'B', e, '프로젝트 상세');
+    return;
+  }
+  /* 산출물은 별도로 잡는다 — M-008 apply 전이면 표가 없을 수 있다 */
+  var recErr = null;
+  try { records = await pmFetchRecords(code); }
+  catch (e) { recErr = e; records = []; }
+
+  var p = null;
+  projects.forEach(function (x) { if (x.project_code === code) p = x; });
+  if (!p) {
+    /* ★B — 조회는 됐고 그 코드가 대장에 없다 */
+    document.getElementById('state').innerHTML =
+      '<div class="empty-state"><span class="ic">·</span>' + PM_MSG.B_EMPTY
+      + ' — 대장에 <b>' + pmEsc(code) + '</b> 가 없습니다.'
+      + '<br><span style="font-size:12px">미채번 프로젝트는 대장 밖입니다(마스터 판정 20260815_17 §1).</span></div>';
+    return;
+  }
+  document.getElementById('wrap').style.display = '';
+
+  /* ── ① 머리 ── */
+  document.getElementById('ttl').innerHTML = pmEsc(p.project_code) + ' <small style="font-weight:normal">'
+    + pmEsc(p.project_name) + '</small>';
+  document.getElementById('head').innerHTML =
+      row('코드', pmEsc(p.project_code))
+    + row('명칭', pmEsc(p.project_name))
+    + row('유형', pmVal(p.type))
+    + row('상태', '<span class="rst rst-' + pmEsc(p.status) + '">' + pmEsc(p.status) + '</span>')
+    + row('생애주기', pmVal(p.lifecycle))
+    + row('현 게이트', p.gate ? '<span class="pgb pgb-' + (p.gate === 'PG-1' ? 'm1' : p.gate.replace('PG','')) + '">'
+          + pmEsc(p.gate) + '</span>' : pmVal(null))
+    + row('담당자', pmVal(p.owner))
+    /* ★판정 MST2-20260822_80 : 「보유부서」 = ★보관 책임 부서 · ★담당 부서가 아니다.
+       ★이 칸은 pm_projects.owner_dept — ★주관(담당) 부서다. ★두 값은 ★다를 수 있다.
+       ★실증 : CFSPS 는 이 칸이 QT 인데, 보관 규칙(판정 81)으로는 G15 가 아니므로 MT 다.
+       ★그래서 ★이름을 바꾸지 않고 ★「보관 부서가 아니다」를 ★같은 칸에 적는다. */
+    + row('주관 부서', pmVal(p.dept)
+        + ' <span style="font-weight:400;color:#8a5a00">★보관 책임 부서가 아닙니다</span>')
+    + row('보관 부서', '<span style="font-weight:400;color:#8a5a00">이 화면에서는 세지 않습니다</span>'
+        + ' — 보관 축의 정본은 <b>기록철</b>입니다(판정 MST2-20260822_83 §4 · EDMS_운영창 소관).');
+  /* Annex D — 보류·잠정종료는 사유·재개조건이 있어야 한다 */
+  document.getElementById('holdBox').innerHTML =
+    (p.hold_reason || p.resume_cond)
+      ? '<div class="banner warn"><b>보류·잠정종료 사유</b> ' + pmVal(p.hold_reason)
+        + '<br><b>재개(이행) 조건</b> ' + pmVal(p.resume_cond) + '</div>' : '';
+
+  /* ── ② 일정 ── */
+  document.getElementById('sched').innerHTML =
+      row('착수(계획)', pmDate(p.start))
+    + row('마감(계획)', pmDate(p.end))
+    + row('실제 착수', pmDate(p.actual_start))
+    + row('실제 종료', pmDate(p.actual_end))
+    + row('기준선 확정', pmDate(p.baseline_at))
+    + row('임계경로', pmVal(p.critical));
+  var nPlan = (p.start ? 1 : 0) + (p.end ? 1 : 0);
+  document.getElementById('schedNote').innerHTML = nPlan === 0
+    ? '<div class="banner info"><b>계획 ' + PM_MSG.C_DATE + '</b> — 착수·마감(계획)이 비어 있습니다. '
+      + '확인되지 않은 날짜는 채우지 않습니다(C-44). ★값 미입력이며 「일정 없음」이 아닙니다.</div>'
+    : '';
+
+  /* ── ③ 성립요건 ── */
+  var rd = null;
+  readiness.forEach(function (x) { if (x.project_code === code) rd = x; });
+  if (!rd) {
+    document.getElementById('req').innerHTML = pmStateBox('B', null, '이 프로젝트의 성립요건 행');
+    document.getElementById('reqSum').textContent = '';
+  } else {
+    document.getElementById('reqSum').innerHTML = rd.requirement_unmet
+      ? '<span class="req-ic req-no">미충족</span>' : '<span class="req-ic req-ok">충족</span>';
+    document.getElementById('req').innerHTML =
+        '<div class="dl-grid">'
+      + row('② 부속서', (rd.has_annex ? '<span class="req-ic req-ok">있음</span>' : '<span class="req-ic req-no">없음</span>')
+            + ' ' + pmVal(p.annex_no))
+      + row('③ PG0 착수 승인', (rd.has_pg0 ? '<span class="req-ic req-ok">있음</span>' : '<span class="req-ic req-no">없음</span>')
+            + ' ' + pmDate(p.pg0_at))
+      + '</div>'
+      + '<div class="hint">① 코드 채번은 열이 아닙니다 — 대장에 있다는 것이 채번 완료를 뜻합니다'
+      + '(<code>project_code</code> NOT NULL·PK · M-005).</div>';
+  }
+
+  /* ── ④ 게이트 ── */
+  document.getElementById('gateSum').textContent = gates.length + '행';
+  if (!gates.length) {
+    document.getElementById('gates').innerHTML = pmStateBox('B', null, '이 프로젝트의 게이트 인스턴스');
+  } else {
+    var GC = { '통과':'gc-pass','조건부':'gc-cond','부결':'gc-reject','미도달':'gc-none',
+               '진행':'gc-wait','보류':'gc-wait','사전삭제':'gc-del' };
+    var dmap = {};
+    gateDefs.forEach(function (d) { dmap[d.gate_code] = d; });
+    var h = '<div class="table-wrap"><table class="std" style="min-width:820px"><thead><tr>'
+          + '<th class="sticky-col c1">게이트</th><th>상태</th><th>검토</th><th>승인</th>'
+          + '<th>통과일</th><th>승인자(실적)</th><th>잔여 조건</th></tr></thead><tbody>';
+    gates.sort(function (a, b) { return (dmap[a.gate_code] ? dmap[a.gate_code].seq : 99) - (dmap[b.gate_code] ? dmap[b.gate_code].seq : 99); });
+    gates.forEach(function (g) {
+      var d = dmap[g.gate_code] || {};
+      h += '<tr><td class="sticky-col c1"><b>' + pmEsc(g.gate_code) + '</b> '
+        +  pmVal(d.gate_name)
+        +  (d.ceo_only ? ' <span class="ceo-mark">대표이사 전권</span>' : '')
+        +  (g.is_subgate ? '<br><span class="gcell gc-sub">' + pmVal(g.native_gate_name) + '</span>' : '')
+        +  '</td>'
+        +  '<td><span class="gcell ' + (g.approver_type === '외부' ? 'gc-ext' : (GC[g.status] || 'gc-none')) + '">'
+        +  pmEsc(g.status) + '</span>'
+        +  (g.approver_type === '외부' ? '<br><span class="gc-note">외부 심사</span>' : '') + '</td>'
+        +  '<td>' + pmVal(d.reviewer) + '</td>'
+        +  '<td>' + pmVal(d.approver) + '</td>'
+        +  '<td>' + pmDate(g.passed_at) + '</td>'
+        +  '<td>' + pmVal(g.approver) + '</td>'
+        +  '<td style="white-space:normal">' + pmVal(g.open_items) + '</td></tr>';
+    });
+    document.getElementById('gates').innerHTML = h + '</tbody></table></div>'
+      + '<div class="hint">결재선 3단계 — <b>작성</b> = 담당자(' + pmVal(p.owner) + ') · '
+      + '<b>검토·승인</b> = <code>pm_gate_defs</code> 값. 화면에 박지 않습니다(M-007).</div>';
+  }
+
+  /* ── ⑤ 산출물 — ★Draft 를 정본처럼 보이게 하지 않는다 ── */
+  document.getElementById('recGuide').innerHTML =
+      '상태 값역 <b>Draft · 승인 · 보관 · 발번불요</b> — '
+    + '<span class="req-ic req-no">원고 · 검토 전</span> 는 <b>정본이 아닙니다</b>(마스터 검토 전·발번 전). '
+    + '<span class="req-ic req-ok">정본</span> 은 승인분입니다. '
+    + '★<b>「미발번」(관리번호 없음)과 「원고」(검토 전)는 다른 축</b>이며 따로 표시합니다.';
+  document.getElementById('recSum').textContent = records.length + '행';
+  if (recErr) {
+    document.getElementById('records').innerHTML =
+      pmStateBox(pmIsAuthProblem(recErr) ? 'A' : 'B', recErr, '산출물·기록');
+  } else if (!records.length) {
+    /* ★B — M-008 apply 전이면 0행이 정상 */
+    document.getElementById('records').innerHTML =
+      '<div class="empty-state"><span class="ic">·</span>' + PM_MSG.B_EMPTY + ' — 이 프로젝트에 연결된 산출물·기록'
+      + '<br><span style="font-size:12px"><code>pm_records</code> 0행. M-008 적재 전이면 정상입니다.</span></div>';
+  } else {
+    var rh = '<div class="table-wrap"><table class="std" style="min-width:900px"><thead><tr>'
+           + '<th class="sticky-col c1">FR</th><th>제목</th><th>상태</th><th>관리번호</th>'
+           + '<th>문서번호</th><th>정본 위치</th><th>담긴 게이트</th></tr></thead><tbody>';
+    var gname = {};
+    gates.forEach(function (g) { gname[g.gate_instance_id] = g.gate_code; });
+    records.forEach(function (r) {
+      var draft = r.status === 'Draft';
+      rh += '<tr' + (draft ? ' class="unmet"' : '') + '>'
+        +  '<td class="sticky-col c1">' + pmVal(r.fr_type) + '</td>'
+        +  '<td class="title-cell" style="white-space:normal">' + pmVal(r.title) + '</td>'
+        +  '<td>' + pmRecStatus(r.status) + '</td>'
+        +  '<td>' + pmMgmtNo(r.mgmt_no) + '</td>'
+        +  '<td>' + pmVal(r.doc_no) + '</td>'
+        +  '<td style="white-space:normal">' + pmVal(r.file_path) + '</td>'
+        +  '<td>' + pmVal(gname[r.gate_instance_id]) + '</td></tr>';
+    });
+    var nDraft = records.filter(function (r) { return r.status === 'Draft'; }).length;
+    document.getElementById('records').innerHTML = rh + '</tbody></table></div>'
+      + (nDraft ? '<div class="banner crit"><b>원고 ' + nDraft + '건</b> — 마스터 검토 전·발번 전입니다. '
+                + '<b>정본으로 취급하지 마십시오.</b></div>' : '');
+  }
+
+  /* ── ⑥ 연결 ── */
+  var mine = links.filter(function (l) { return l.from === code || l.to === code; });
+  document.getElementById('lnkSum').textContent = mine.length + '건';
+  if (!mine.length) {
+    document.getElementById('links').innerHTML = pmStateBox('B', null, '이 프로젝트에 걸린 연결');
+  } else {
+    document.getElementById('links').innerHTML = '<div class="lnk-list">' + mine.map(function (l) {
+      var out = l.from === code, other = out ? l.to : l.from, nm = null;
+      projects.forEach(function (x) { if (x.project_code === other) nm = x.project_name; });
+      return '<div class="lnk-item"><span class="lt">' + pmVal(l.link_type) + '</span> '
+        + '<span style="color:#8894a8;font-size:11px">' + (out ? '나가는' : '들어오는') + '</span>'
+        + '<span class="pj">' + pmEsc(code) + (out ? ' → ' : ' ← ') + pmEsc(other)
+        + (nm ? ' — ' + pmEsc(nm) : '') + '</span>'
+        + '<div class="nt">' + pmVal(l.note) + '</div></div>';
+    }).join('') + '</div>';
+  }
+})();
+</script>
+</body>
+</html>

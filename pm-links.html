@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>연결 보기 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ★header class="mk pm" — 프로젝트관리 화면 = 노랑 띠 + 먹색 글자(㉯ 확정 2026-08-11) -->
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>연결 보기 — 실앱 v1(읽기 전용)</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+    <a class="homebtn" href="pm-list.html">대장</a>
+  </div>
+</header>
+<main>
+  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인은 <b>PG0·PG4·PG5 = 대표이사</b> · 그 밖 = <b>부대표</b>. (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
+  <div class="mk-note" id="ribbon"></div>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; 프로젝트 대장 &nbsp;›&nbsp; <b>연결 보기</b></div>
+
+  <div id="state"></div>
+
+  <div class="panel" id="panel" style="display:none">
+    <h2>연결 보기 <span class="float" id="mgmtTop"></span></h2>
+    <div class="filters"><select id="pick"></select></div>
+    <div id="banner"></div>
+    <div id="body"></div>
+    <div class="legend">
+      <span class="k">연결 유형 — 기술근거 · 선행의존 · 자원공유 · 산출물공급 · 일정제약</span>
+      <span class="k">근거 : 절차서 Rev1.00 §2 d) 「연결 관계는 프로젝트 등록대장에 기재한다(SHALL)」</span>
+    </div>
+  </div>
+</main>
+<footer class="mk">프로젝트관리 실앱 v1 · 연결은 1급 개념(N:N) · 조회 전용</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script>
+var PROJECTS = [], LINKS = [], FOCUS = null;
+
+function nameOf(code) {
+  for (var i = 0; i < PROJECTS.length; i++) if (PROJECTS[i].project_code === code) return PROJECTS[i].project_name;
+  return null;   /* ★대장 밖 코드일 수 있다 — 지어내지 않는다 */
+}
+function item(l, dir) {
+  var other = dir === 'out' ? l.to : l.from;
+  var nm = nameOf(other);
+  return '<div class="lnk-item">'
+    + '<span class="lt">' + pmVal(l.link_type) + '</span> '
+    + '<span style="color:#8894a8;font-size:11px">' + (dir === 'out' ? '나가는' : '들어오는') + '</span>'
+    + '<span class="pj">' + pmEsc(other) + (nm ? ' — ' + pmEsc(nm) : '') + '</span>'
+    + '<div class="nt">' + pmVal(l.note) + '</div></div>';   /* ★note NULL → 「미입력」 (C) */
+}
+
+function render() {
+  var banner = document.getElementById('banner'), body = document.getElementById('body');
+
+  /* ★B — 조회는 됐고 0행 */
+  if (!LINKS.length) {
+    banner.innerHTML = '';
+    body.innerHTML = pmStateBox('B', null, '이 시스템에 등재된 프로젝트 간 연결');
+    return;
+  }
+  var outs = LINKS.filter(function (l) { return l.from === FOCUS; });
+  var ins  = LINKS.filter(function (l) { return l.to   === FOCUS; });
+
+  banner.innerHTML = '<div class="banner info"><b>' + pmEsc(FOCUS) + ' ' + pmEsc(nameOf(FOCUS) || '') + '</b> 기준 — '
+    + '나가는 <b>' + outs.length + '건</b> · 들어오는 <b>' + ins.length + '건</b> (전체 연결 ' + LINKS.length + '건)</div>';
+
+  body.innerHTML = '<div class="lnk-cols">'
+    + '<div><div class="sec-title">들어오는 연결 (' + ins.length + ')</div><div class="lnk-list">'
+    +   (ins.length ? ins.map(function (l) { return item(l, 'in'); }).join('')
+                    : '<div class="nt" style="color:#8894a8;padding:8px">' + PM_MSG.B_EMPTY + '</div>')
+    + '</div></div>'
+    + '<div><div class="sec-title">나가는 연결 (' + outs.length + ')</div><div class="lnk-list">'
+    +   (outs.length ? outs.map(function (l) { return item(l, 'out'); }).join('')
+                     : '<div class="nt" style="color:#8894a8;padding:8px">' + PM_MSG.B_EMPTY + '</div>')
+    + '</div></div></div>'
+    + '<div class="sec-title">전체 연결 ' + LINKS.length + '건 — ★방향 표기</div>'
+    + '<div class="lnk-list">' + LINKS.map(function (l) {
+        return '<div class="lnk-item"><span class="lt">' + pmVal(l.link_type) + '</span> '
+          + '<span class="pj">' + pmEsc(l.from) + ' &nbsp;→&nbsp; ' + pmEsc(l.to) + '</span>'
+          + '<div class="nt">' + pmVal(l.note) + '</div></div>';
+      }).join('') + '</div>';
+}
+
+(async function () {
+  document.getElementById('ribbon').innerHTML =
+    '<b>실앱(조회 전용)</b> — 편집 정책 미적용. 연결 편집은 프로젝트 관리자·관리자 권한이며 아직 열려 있지 않습니다.';
+  document.getElementById('mgmtTop').innerHTML =
+    '<span class="rec-lock">조회 전용 — 편집은 프로젝트 관리자·관리자</span>';
+  await pmFillSession();
+  try {
+    PROJECTS = await pmFetchProjects();
+    LINKS    = await pmFetchLinks();
+  } catch (e) {
+    /* ★A — 권한 없음. 「데이터 없음」으로 그리지 않는다 */
+    document.getElementById('state').innerHTML =
+      pmStateBox(pmIsAuthProblem(e) ? 'A' : 'B', e, '연결');
+    return;
+  }
+  var sel = document.getElementById('pick');
+  sel.innerHTML = PROJECTS.map(function (p) {
+    return '<option value="' + pmEsc(p.project_code) + '">' + pmEsc(p.project_code) + ' ' + pmEsc(p.project_name) + '</option>';
+  }).join('');
+  /* 기준 = 연결이 가장 많은 프로젝트 (데이터에서 세어 고른다 — 코드에 박지 않는다) */
+  var cnt = {};
+  LINKS.forEach(function (l) { cnt[l.from] = (cnt[l.from] || 0) + 1; cnt[l.to] = (cnt[l.to] || 0) + 1; });
+  FOCUS = PROJECTS.length ? PROJECTS[0].project_code : null;
+  PROJECTS.forEach(function (p) { if ((cnt[p.project_code] || 0) > (cnt[FOCUS] || 0)) FOCUS = p.project_code; });
+  sel.value = FOCUS;
+  sel.addEventListener('change', function () { FOCUS = sel.value; render(); });
+
+  document.getElementById('panel').style.display = '';
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>게이트 현황 보드 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ════ 헤더 계약 (판정 20260816_03 §2) — 근거·선행조건은 list.html 주석 참조 ════
+     ★common.js SYS 에 'project' 미등록 → 등재가 선행(제작창 소관). 값은 추측하지 않았다. -->
+<header id="edmsHeader" data-system="project"></header>
+
+<!-- ★header class="mk pm" — 프로젝트관리 화면 = 노랑 띠 + 먹색 글자(㉯ 확정 2026-08-11) -->
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>게이트 현황 보드 — 실앱 v1(읽기 전용)</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+    <a class="homebtn" href="pm-list.html">대장</a>
+  </div>
+</header>
+<main>
+  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인은 <b>PG0·PG4·PG5 = 대표이사</b> · 그 밖 = <b>부대표</b>. (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
+  <div class="mk-note" id="ribbon"></div>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <b>게이트 현황 보드</b></div>
+
+  <!-- ★목업 문면 그대로 승계 — 화면은 통과 여부를 계산하지 않는다(SHALL NOT) -->
+  <div class="mk-note" id="calcNote"></div>
+
+  <div id="state"></div>
+
+  <div class="panel" id="panel" style="display:none">
+    <h2>게이트 현황 보드 <span class="float" id="mgmtTop"></span></h2>
+    <div id="banner"></div>
+    <div class="table-wrap">
+      <table class="gboard" id="gbTable">
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="sec-title">개발형 판정 근거 — <code>pm_v_gate_d_pass</code> <span id="dpCnt"></span></div>
+    <div id="dpass"></div>
+  </div>
+</main>
+<footer class="mk">프로젝트관리 실앱 v1 · 셀 = 해당 (프로젝트, 게이트)의 최신 판정 · 조회 전용</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script>
+/* pm_project_gates.status 7값 → 목업 .gc-* 클래스 승계 */
+var GC = { '통과':'gc-pass', '조건부':'gc-cond', '부결':'gc-reject', '미도달':'gc-none',
+           '진행':'gc-wait', '보류':'gc-wait', '사전삭제':'gc-del' };
+
+function cellHtml(cells) {
+  /* ★셀이 없는 (프로젝트, 게이트) 조합 = 미도달 — 목업과 동일 */
+  if (!cells || !cells.length) return '<span class="gcell gc-none">미도달</span>';
+  return cells.map(function (g) {
+    var cls = GC[g.status] || 'gc-none';
+    if (g.approver_type === '외부') cls = 'gc-ext';
+    var h = '<span class="gcell ' + cls + '">' + pmEsc(g.status) + '</span>';
+    if (g.approver_type === '외부')
+      h += '<span class="gc-note">외부 심사 · 접수는 외부 절차</span>';
+    if (g.is_subgate)
+      h += '<span class="gcell gc-sub">' + pmEsc(g.native_gate_name || '서브게이트') + '</span>';
+    else if (g.native_gate_name)
+      h += '<span class="gc-note">원문 명칭 · ' + pmEsc(g.native_gate_name) + '</span>';
+    if (g.passed_at) h += '<span class="gc-note">통과 ' + pmEsc(g.passed_at) + '</span>';
+    /* ★M-41 (판정 MST2-20260822_84 §4) — 같은 낱말 「승인」이 이 화면에서 두 뜻이었다.
+       ★열 머리 = pm_gate_defs.approver  = ★정의(누가 승인하는가)
+       ★이 칸   = pm_project_gates.approver = ★실적(실제로 누가 했는가)
+       ★둘이 다를 때 어긋남인지 기록인지 가릴 수 없어, 낱말을 갈랐다. */
+    if (g.approver)  h += '<span class="gc-note">승인자(실적) ' + pmEsc(g.approver) + '</span>';
+    if (g.open_items) h += '<span class="gc-note">잔여 · ' + pmEsc(g.open_items) + '</span>';
+    return h;
+  }).join('');
+}
+
+function render(defs, projects, inst, dpass) {
+  /* ── 열 머리 = pm_gate_defs ── */
+  /* ★M-007 결재선 3단계 — 검토·승인을 2줄로 함께 보인다(판정 20260816_02 §6 ㉠).
+     「검토자 숨기면 SoD 확인 불가」. 값은 pm_gate_defs 에서 읽는다 — 화면에 박지 않는다.
+     ★「대표이사 전권」 배지는 is_ceo_authority 로만 그린다(approver 문자열로 판단하지 않는다). */
+  var th = '<th class="pj">프로젝트<br><span style="font-weight:normal;font-size:10px">작성 = 담당자(owner)</span></th>';
+  defs.forEach(function (d) {
+    th += '<th>' + pmEsc(d.gate_code) + '<br><span style="font-weight:normal;font-size:10px">'
+        + pmEsc(d.gate_name) + '</span>'
+        + '<br><span style="font-weight:normal;font-size:10px">검토(정의) ' + pmVal(d.reviewer) + '</span>'
+        + '<br><span style="font-weight:normal;font-size:10px">승인(정의) ' + pmVal(d.approver) + '</span>'
+        + (d.ceo_only ? '<br><span class="ceo-mark">대표이사 전권</span>' : '')
+        + '</th>';
+  });
+  document.getElementById('thead').innerHTML = th;
+
+  /* ── 행 = 대장 프로젝트 ── */
+  var idx = {};
+  inst.forEach(function (g) {
+    var k = g.project_code + '|' + g.gate_code;
+    (idx[k] = idx[k] || []).push(g);
+  });
+  var tb = '';
+  projects.forEach(function (p) {
+    tb += '<tr><td class="pj"><b>' + pmEsc(p.project_code) + '</b><br>'
+        + '<span style="font-size:11px;color:#777">' + pmEsc(p.project_name) + '</span> '
+        + '<span class="rst rst-' + pmEsc(p.status) + '">' + pmEsc(p.status) + '</span>'
+        + '<br><span style="font-size:10px;color:#8894a8">작성 ' + pmVal(p.owner) + '</span></td>';
+    defs.forEach(function (d) { tb += '<td>' + cellHtml(idx[p.project_code + '|' + d.gate_code]) + '</td>'; });
+    tb += '</tr>';
+  });
+  document.getElementById('tbody').innerHTML = tb;
+
+  document.getElementById('banner').innerHTML =
+      '<div class="banner info">프로젝트 <b>' + projects.length + '건</b> × 게이트 <b>' + defs.length + '개</b> · '
+    + '게이트 인스턴스 <b>' + inst.length + '행</b>'
+    + (defs.hasReviewer ? '' : ' · <b>검토자 열 없음</b> — <code>pm_gate_defs.reviewer</code> 는 M-007 apply 후 생깁니다')
+    + '</div>';
+
+  document.getElementById('legend').innerHTML =
+      '<span class="k"><span class="gcell gc-pass">통과</span></span>'
+    + '<span class="k"><span class="gcell gc-cond">조건부</span></span>'
+    + '<span class="k"><span class="gcell gc-reject">부결</span></span>'
+    + '<span class="k"><span class="gcell gc-none">미도달</span> 셀 없음 = 미도달</span>'
+    + '<span class="k"><span class="gcell gc-wait">진행·보류</span></span>'
+    + '<span class="k"><span class="gcell gc-ext">외부</span> 외부 심사 게이트</span>'
+    + '<span class="k"><span class="gcell gc-sub">서브게이트</span> 상위 셀 안에 원문 명칭</span>';
+
+  /* ── 판정 근거 뷰 — ★표시만. passed 전건 false 를 「부결」로 쓰지 않는다 ── */
+  document.getElementById('dpCnt').textContent = '(' + dpass.length + '행)';
+  if (!dpass.length) {
+    document.getElementById('dpass').innerHTML = pmStateBox('B', null, '개발형 게이트 판정 행');
+  } else {
+    var nT = dpass.filter(function (r) { return r.passed === true; }).length;
+    var h = '<div class="banner warn">판정 <b>' + dpass.length + '행</b> 중 <code>passed = true</code> <b>' + nT + '행</b>. '
+          + '★<code>passed = false</code> 는 <b>「부결」이 아닙니다</b> — 아직 충족되지 않았다는 뜻이며 '
+          + '사유는 아래 <code>reason</code> 문자열 그대로입니다. 이 화면은 통과 여부를 다시 계산하지 않습니다.</div>'
+          + '<div class="table-wrap"><table class="std" style="min-width:760px"><thead><tr>'
+          + '<th class="sticky-col c1">프로젝트</th><th>게이트</th><th>seq</th><th>passed</th><th>reason(원문)</th>'
+          + '</tr></thead><tbody>';
+    dpass.forEach(function (r) {
+      h += '<tr><td class="sticky-col c1">' + pmEsc(r.project_code) + '</td>'
+        +  '<td>' + pmEsc(r.gate_code) + '</td><td>' + pmEsc(r.seq) + '</td>'
+        +  '<td><span class="req-ic ' + (r.passed ? 'req-ok' : 'req-part') + '">'
+        +  (r.passed ? 'true' : 'false') + '</span></td>'
+        +  '<td class="title-cell" style="white-space:normal">' + pmVal(r.reason) + '</td></tr>';
+    });
+    document.getElementById('dpass').innerHTML = h + '</tbody></table></div>';
+  }
+  document.getElementById('panel').style.display = '';
+}
+
+(async function () {
+  document.getElementById('ribbon').innerHTML =
+    '<b>실앱(조회 전용)</b> — 편집 정책 미적용. 게이트 상신은 프로젝트 관리자 권한이며 아직 열려 있지 않습니다.';
+  /* ★목업 문면 그대로 */
+  document.getElementById('calcNote').innerHTML =
+      '<b>이 보드는 통과 여부를 계산하지 않습니다.</b> 뷰 <b>pm_v_gate_d_pass</b> 가 반환한 값을 표시만 합니다. '
+    + '계산식 정본은 <b>W-SOP-G152100 / G152200 Rev1.00 Annex E-2</b> 이며 화면·사양에 재서술하지 않습니다(SHALL NOT).';
+  document.getElementById('mgmtTop').innerHTML =
+    '<span class="rec-lock">조회 전용 — 상신은 프로젝트 관리자</span>';
+  await pmFillSession();
+  try {
+    var defs     = await pmFetchGateDefs();
+    var projects = await pmFetchProjects();
+    var inst     = await pmFetchProjectGates();
+    var dpass    = await pmFetchGateDPass();
+    if (!projects.length) {
+      document.getElementById('state').innerHTML = pmStateBox('B', null, '대장에 등재된 프로젝트');
+      return;
+    }
+    render(defs, projects, inst, dpass);
+  } catch (e) {
+    /* ★A — 권한 없음. 「데이터 없음」으로 그리지 않는다 */
+    document.getElementById('state').innerHTML =
+      pmStateBox(pmIsAuthProblem(e) ? 'A' : 'B', e, '게이트 현황');
+  }
+})();
+</script>
+</body>
+</html>
