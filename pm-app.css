@@ -379,3 +379,46 @@ table.std th.sticky-col { background:#2A2824; }
 /* ★승인 위치 안내 — 지시 MST2-20260820_23 §6 ㉳ (부대표께서 PG0 을 클릭하려 하셨습니다) */
 .mk-note.approval-note { color:#7B241C; background:#fdecea; border-color:#e2b3ad; font-weight:700; }
 .mk-note.approval-note .tmp { font-weight:400; color:#8a5a00; }
+
+/* ▼▼ 1층 과제 입력 화면(S1) 추가 블록 — 새 클래스만 더한다. 기존 9화면에 영향 0 ▼▼ */
+.form { max-width:760px; }
+.form .fld { margin-bottom:16px; }
+.form .fld > label { display:block; font-size:12px; color:#555; font-weight:700; margin-bottom:5px; }
+.form .fld .hint { font-size:11px; color:#999; font-weight:400; margin-left:6px; }
+.form input[type=text], .form select, .form textarea {
+  width:100%; padding:10px 12px; border:1.5px solid #d5dbe7; border-radius:8px;
+  font-size:14px; font-family:inherit; outline:none; background:#fff; color:#2A2824; box-sizing:border-box;
+}
+.form input[type=text]:focus, .form select:focus, .form textarea:focus { border-color:#E2AD33; }
+.form input[readonly], .form .ro {
+  background:#f4f6fa; color:#666; border-style:dashed; cursor:not-allowed;
+}
+.form .row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.form .err { display:none; font-size:12px; color:#c0392b; margin-top:5px; font-weight:700; }
+.form .fld.bad input, .form .fld.bad select, .form .fld.bad textarea { border-color:#c0392b; background:#fffafa; }
+.form .fld.bad .err { display:block; }
+
+/* 성립 3요건 상자 */
+.reqbox { border:1.5px solid #d5dbe7; border-radius:9px; padding:14px 16px; background:#fcfdff; }
+.reqbox .cap { font-size:12px; font-weight:700; color:#4579BD; margin-bottom:10px; }
+.reqbox label { display:flex; align-items:center; gap:8px; font-size:13.5px; color:#2A2824;
+  padding:7px 0; cursor:pointer; }
+.reqbox input[type=checkbox] { width:17px; height:17px; accent-color:#4579BD; cursor:pointer; }
+
+/* 판정 표시 — 자동 계산 결과. 사람이 못 고친다 */
+.verdict { border-radius:9px; padding:13px 16px; font-size:13.5px; line-height:1.6; margin-top:6px; }
+.verdict .big { font-size:16px; font-weight:800; }
+.verdict.proj { background:#eef3fb; border:1.5px solid #4579BD; color:#4579BD; }
+.verdict.rout { background:#f2f4f7; border:1.5px solid #b9c2d2; color:#5a6b86; }
+.verdict .auto { font-size:11px; font-weight:400; opacity:.8; margin-left:6px; }
+
+/* 번호 미리보기 */
+.codeprev { background:#fdf6e3; border:1px solid #e8d59a; border-radius:8px; padding:10px 14px;
+  font-size:13px; color:#8a5a00; }
+.codeprev b { font-size:15px; letter-spacing:.5px; }
+
+.form-actions { display:flex; gap:10px; justify-content:flex-end; align-items:center;
+  border-top:1px solid #e3e8f0; padding-top:16px; margin-top:22px; }
+.form-actions .spacer { flex:1; font-size:12px; color:#999; }
+.btn.big:disabled { background:#c9cdd4; color:#fff; cursor:not-allowed; }
+/* ▲▲ 1층 과제 입력 화면(S1) 추가 블록 끝 ▲▲ */

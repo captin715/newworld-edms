@@ -88,3 +88,88 @@ async function pmSha256(file) {
   return Array.prototype.map.call(new Uint8Array(d), function (b) {
     return ('0' + b.toString(16)).slice(-2); }).join('');
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   ★1층 과제(INI) 쓰기 — 화면정의서 V3.2 S1 ⑪ [저장]
+   · ★판정(decision)을 화면이 정하지 않는다. '미판정'으로 보내면 ★DB 트리거가 정한다.
+     화면은 3요건 체크를 그대로 올릴 뿐이다(요소 ⑧「자동 계산」).
+   · ★번호도 화면이 만들지 않는다. pm_next_initiative_code(부서) 가 발급한다.
+   · ★삭제 함수를 두지 않는다.
+   ════════════════════════════════════════════════════════════════════ */
+async function pmCreateInitiative(o) {
+  /* ① 번호 발급 — ★여기서 처음 시퀀스를 소비한다(미리보기는 소비하지 않는다) */
+  var c = await edmsClient.rpc('pm_next_initiative_code', { p_dept: o.owner_dept_char });
+  if (c.error) throw await pmErr('pm_next_initiative_code', c.error);
+
+  var row = {
+    initiative_code     : c.data,
+    initiative_name     : o.initiative_name,
+    owner_dept_char     : o.owner_dept_char,
+    owner               : o.owner || null,
+    owner_uid           : o.owner_uid || null,
+    origin              : o.origin || '내부',
+    req_over_1month     : !!o.req_over_1month,
+    req_separate_budget : !!o.req_separate_budget,
+    req_multi_dept      : !!o.req_multi_dept,
+    decision            : '미판정',       /* ★DB 가 정한다 */
+    decision_basis      : (o.decision_basis && o.decision_basis.trim()) ? o.decision_basis.trim() : null,
+    remark              : o.remark || null
+  };
+  var r = await edmsClient.from('pm_initiatives').insert(row).select().single();
+  if (r.error) {
+    var e = await pmErr('pm_initiatives(insert)', r.error);
+    e.attemptedCode = c.data;   /* ★탄 번호를 숨기지 않는다 — 실패해도 그 번호는 다시 안 나온다 */
+    throw e;
+  }
+  return r.data;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ★1층 서류 쓰기 — S4 착수 승인서 · S5 결과 검증서 · S6 종료보고서
+   · 서류는 pm_initiative_docs, 결재는 pm_approvals. ★상태를 두 곳에 적지 않는다.
+   · 필수 칸은 ★DB CHECK 가 판정한다. 화면은 미리 알려 줄 뿐 최종 판정자가 아니다.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* 서류 저장 (없으면 만들고 있으면 고친다) */
+async function pmSaveInitiativeDoc(o) {
+  var row = Object.assign({}, o.fields, {
+    initiative_code: o.initiative_code,
+    doc_type       : o.doc_type,
+    seq            : o.seq || 1,
+    status         : o.status || '작성중',
+    updated_at     : new Date().toISOString()
+  });
+  var r;
+  if (o.doc_id) {
+    r = await edmsClient.from('pm_initiative_docs').update(row).eq('doc_id', o.doc_id).select().single();
+  } else {
+    r = await edmsClient.from('pm_initiative_docs').insert(row).select().single();
+  }
+  if (r.error) throw await pmErr('pm_initiative_docs(' + (o.doc_id ? 'update' : 'insert') + ')', r.error);
+  return r.data;
+}
+
+/* ★상신 — 서류를 「상신」으로 굳히고 결재를 만든다.
+   ★서류가 먼저다. 서류가 CHECK 에 걸리면 결재를 만들지 않는다(빈 결재 방지). */
+async function pmSubmitInitiativeDoc(o) {
+  var saved = await pmSaveInitiativeDoc(Object.assign({}, o, { status: '상신' }));
+  var a = await edmsClient.from('pm_approvals').insert({
+    initiative_code : o.initiative_code,
+    entity_type     : o.doc_type,
+    entity_ref      : String(saved.doc_id),
+    title           : o.doc_type + ' · ' + o.initiative_code,
+    status          : '작성중',
+    drafter_id      : o.drafter_id || null,
+    approver_id     : o.approver_id || null,
+    owner_dept_code : o.owner_dept_code || null
+  }).select().single();
+  if (a.error) {
+    var e = await pmErr('pm_approvals(1층 insert)', a.error);
+    e.docSaved = saved.doc_id;   /* ★서류는 저장됐다는 사실을 숨기지 않는다 */
+    throw e;
+  }
+  var link = await edmsClient.from('pm_initiative_docs')
+    .update({ approval_id: a.data.approval_id }).eq('doc_id', saved.doc_id).select().single();
+  if (link.error) throw await pmErr('pm_initiative_docs(approval 연결)', link.error);
+  return link.data;
+}

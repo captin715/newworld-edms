@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>과제 등록·판정 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ════════════════════════════════════════════════════════════════════
+     S1 과제 등록·판정 — 화면정의서 V3.6 (부대표 전판 승인 2026-08-25)
+     요소 11개 : ①사용자 ②과제명 ③주관부서 ④담당자 ⑤갈래 ⑥등록일
+                 ⑦3요건 ⑧판정(자동) ⑨판정근거(조건부) ⑩번호미리보기 ⑪저장
+     들어오는 길 : S2 [새 과제]
+     나가는 길   : ⑪ 저장 → S3 과제 상세 / 취소 → S2
+     기계가 막는 것 : ②④ 공란 · ⑨ 조건부 공란 — 저장 불가
+     ★판정과 번호는 이 화면이 정하지 않는다. DB 트리거·발급 함수가 정한다.
+     ════════════════════════════════════════════════════════════════════ -->
+<header id="edmsHeader" data-system="project"></header>
+
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>과제 등록·판정 — 1층</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+  </div>
+</header>
+
+<main>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <a href="pm-ini-list.html">과제 대장</a> &nbsp;›&nbsp; <b>과제 등록·판정</b></div>
+
+  <div id="state"></div>
+
+  <div class="panel" id="panel" style="display:none">
+    <h2>과제 등록 · 1층</h2>
+    <div class="count-info">
+      성립 3요건 중 <b>하나라도</b> 해당하면 프로젝트입니다. 판정은 요건에서 <b>자동으로</b> 나오며 사람이 고르지 않습니다.
+    </div>
+
+    <form class="form" id="f" novalidate>
+
+      <!-- ② 과제명 -->
+      <div class="fld" id="fld-name">
+        <label for="i-name">과제명 <span class="hint">필수</span></label>
+        <input type="text" id="i-name" maxlength="200" autocomplete="off"
+               placeholder="예) 바닥 평탄도 자체 측정법 표준화">
+        <div class="err" id="e-name">과제명을 적어 주십시오.</div>
+      </div>
+
+      <div class="row2">
+        <!-- ③ 주관 부서 -->
+        <div class="fld" id="fld-dept">
+          <label for="i-dept">주관 부서 <span class="hint">필수 · 번호에 들어갑니다</span></label>
+          <select id="i-dept"><option value="">— 고르십시오 —</option></select>
+          <div class="err" id="e-dept">주관 부서를 고르십시오.</div>
+        </div>
+        <!-- ④ 담당자 -->
+        <div class="fld" id="fld-owner">
+          <label for="i-owner">담당자 <span class="hint">필수 · 이 과제를 끌고 가는 사람</span></label>
+          <select id="i-owner" disabled><option value="">— 부서를 먼저 고르십시오 —</option></select>
+          <div class="err" id="e-owner">담당자를 고르십시오.</div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <!-- ⑤ 갈래 -->
+        <div class="fld">
+          <label for="i-origin">갈래</label>
+          <select id="i-origin">
+            <option value="내부">내부 — 우리가 스스로 시작하는 일</option>
+            <option value="외부">외부 — 공고·수주에서 시작하는 일</option>
+          </select>
+        </div>
+        <!-- ⑥ 등록일 -->
+        <div class="fld">
+          <label for="i-regdate">등록일 <span class="hint">자동 · 사람이 고치지 않습니다</span></label>
+          <input type="text" id="i-regdate" readonly>
+        </div>
+      </div>
+
+      <!-- ⑦ 성립 3요건 -->
+      <div class="fld">
+        <label>성립 3요건 <span class="hint">하나라도 해당하면 프로젝트</span></label>
+        <div class="reqbox">
+          <div class="cap">해당하는 것에 표시하십시오</div>
+          <label><input type="checkbox" id="r1"> 기간이 <b>1개월</b>을 넘는다</label>
+          <label><input type="checkbox" id="r2"> <b>별도 예산</b>이 든다</label>
+          <label><input type="checkbox" id="r3"> <b>2개 부서 이상</b>이 함께한다</label>
+        </div>
+      </div>
+
+      <!-- ⑧ 판정 표시 (자동) -->
+      <div class="fld">
+        <label>판정 <span class="hint">요건에서 자동으로 나옵니다 — 고를 수 없습니다</span></label>
+        <div class="verdict rout" id="verdict">
+          <span class="big">경상 업무</span><span class="auto">자동 계산</span><br>
+          <span id="verdict-msg">요건에 하나도 걸리지 않았습니다. QEMS 부적합 절차에서 처리합니다.</span>
+        </div>
+      </div>
+
+      <!-- ⑨ 판정 근거 -->
+      <div class="fld" id="fld-basis">
+        <label for="i-basis">판정 근거 <span class="hint" id="basis-hint">조건부 필수</span></label>
+        <textarea id="i-basis" rows="2" maxlength="500"
+                  placeholder="예) 공사팀 현장 검증이 함께 붙습니다"></textarea>
+        <div class="err" id="e-basis">이 판정에는 근거가 반드시 있어야 합니다.</div>
+      </div>
+
+      <!-- ⑩ 번호 미리보기 -->
+      <div class="fld">
+        <div class="codeprev" id="codeprev">
+          부여될 번호 &nbsp; <b id="code-txt">— 부서를 고르면 표시됩니다 —</b>
+          <span class="hint">표시만 · 실번호는 저장할 때 발급됩니다</span>
+        </div>
+      </div>
+
+      <!-- ⑪ 저장 -->
+      <div class="form-actions">
+        <span class="spacer" id="foot-note"></span>
+        <a class="btn ghost big" href="pm-ini-list.html">취소</a>
+        <button type="submit" class="btn primary big" id="btn-save">저장</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<footer class="mk">프로젝트관리 실앱 v1 · 과제 등록·판정(S1) · 화면정의서 V3.6</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script src="pm-write.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var DEPTS = [];        /* pm_dept_codes 4값 */
+  var CAN_EDIT = false;  /* pm_can_edit() — 화면이 기준을 다시 쓰지 않는다 */
+  var BUSY = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function setBad(fldId, on) {
+    var el = $(fldId);
+    if (el) el.className = on ? 'fld bad' : 'fld';
+  }
+
+  /* ── ⑧ 판정 — ★DB 트리거와 같은 식(하나라도 참). 여기서는 ★보여 주기만 한다.
+        저장할 때는 '미판정'으로 보내고 DB 가 다시 정한다(두 곳이 어긋나도 DB 가 정본). ── */
+  function reqMet() {
+    return $('r1').checked || $('r2').checked || $('r3').checked;
+  }
+
+  function paintVerdict() {
+    var met = reqMet();
+    var box = $('verdict');
+    box.className = 'verdict ' + (met ? 'proj' : 'rout');
+    box.querySelector('.big').textContent = met ? '프로젝트' : '경상 업무';
+    $('verdict-msg').textContent = met
+      ? '요건에 걸렸습니다. 저장하면 2층 프로젝트를 만들 수 있습니다.'
+      : '요건에 하나도 걸리지 않았습니다. QEMS 부적합 절차에서 처리합니다.';
+    /* ⑨ 근거는 프로젝트 판정일 때 필수 */
+    $('basis-hint').textContent = met ? '★필수 — 프로젝트 판정에는 근거가 있어야 합니다' : '요건 미해당이면 비워 두어도 됩니다';
+    if (!met) setBad('fld-basis', false);
+  }
+
+  /* ── ③ 부서 → ④ 담당자 목록 · ⑩ 번호 미리보기 ── */
+  async function onDeptChange() {
+    var ch = $('i-dept').value;
+    var sel = $('i-owner');
+    setBad('fld-dept', false);
+    setBad('fld-owner', false);
+
+    if (!ch) {
+      sel.innerHTML = '<option value="">— 부서를 먼저 고르십시오 —</option>';
+      sel.disabled = true;
+      $('code-txt').textContent = '— 부서를 고르면 표시됩니다 —';
+      return;
+    }
+
+    /* ⑩ 번호 미리보기 — ★시퀀스를 소비하지 않는 함수 */
+    try {
+      var code = await pmPeekInitiativeCode(ch);
+      $('code-txt').textContent = code || '(부서 코드를 확인하지 못했습니다)';
+    } catch (e) {
+      $('code-txt').textContent = '(번호를 미리 보지 못했습니다 — 저장은 됩니다)';
+    }
+
+    /* ④ 담당자 — ★1글자(Q)와 2글자(QT) 표기가 다르다. legacy_code 로 잇는다. */
+    var d = null;
+    DEPTS.forEach(function (x) { if (x.dept_char === ch) d = x; });
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">— 불러오는 중 —</option>';
+    try {
+      var people = await pmFetchPeopleOfDept(d && d.legacy_code);
+      if (!people.length) {
+        /* ★「없음」과 「권한 없음」을 섞지 않는다 */
+        sel.innerHTML = '<option value="">— 이 부서에 등록된 사람이 없습니다 —</option>';
+        sel.disabled = true;
+        $('e-owner').textContent =
+          (d ? d.dept_name : '이 부서') + '에 등록된 사람이 없습니다. 사람 등록 뒤에 과제를 등록하십시오.';
+        return;
+      }
+      var h = '<option value="">— 고르십시오 —</option>';
+      people.forEach(function (p) {
+        h += '<option value="' + pmEsc(p.id) + '" data-name="' + pmEsc(p.name) + '">'
+           + pmEsc(p.name) + (p.role === 'admin' ? ' (관리자)' : '') + '</option>';
+      });
+      sel.innerHTML = h;
+      sel.disabled = false;
+      $('e-owner').textContent = '담당자를 고르십시오.';
+    } catch (e) {
+      sel.innerHTML = '<option value="">— 담당자 목록을 읽지 못했습니다 —</option>';
+      sel.disabled = true;
+      $('e-owner').textContent = '담당자 목록을 읽지 못했습니다 : ' + (e && e.message ? e.message : e);
+      setBad('fld-owner', true);
+    }
+  }
+
+  /* ── ⑪ 저장 ── */
+  async function onSubmit(ev) {
+    ev.preventDefault();
+    if (BUSY) return;
+
+    var name  = $('i-name').value.trim();
+    var dept  = $('i-dept').value;
+    var owner = $('i-owner');
+    var basis = $('i-basis').value.trim();
+    var met   = reqMet();
+    var bad   = false;
+
+    /* ★기계가 막는 것 — ② ④ 공란 · ⑨ 조건부 공란 */
+    setBad('fld-name',  !name);   if (!name)  bad = true;
+    setBad('fld-dept',  !dept);   if (!dept)  bad = true;
+    setBad('fld-owner', !owner.value); if (!owner.value) bad = true;
+    var needBasis = met;          /* 프로젝트 판정이면 근거 필수 */
+    setBad('fld-basis', needBasis && !basis);
+    if (needBasis && !basis) bad = true;
+
+    if (bad) {
+      var first = document.querySelector('.fld.bad input, .fld.bad select, .fld.bad textarea');
+      if (first) first.focus();
+      return;
+    }
+
+    BUSY = true;
+    $('btn-save').disabled = true;
+    $('btn-save').textContent = '저장 중…';
+    $('foot-note').textContent = '';
+
+    try {
+      var opt = owner.options[owner.selectedIndex];
+      var saved = await pmCreateInitiative({
+        initiative_name     : name,
+        owner_dept_char     : dept,
+        owner               : opt ? opt.getAttribute('data-name') : null,
+        owner_uid           : owner.value,
+        origin              : $('i-origin').value,
+        req_over_1month     : $('r1').checked,
+        req_separate_budget : $('r2').checked,
+        req_multi_dept      : $('r3').checked,
+        decision_basis      : basis
+      });
+      /* ★성공 → S3 과제 상세로 이동. 실패하면 이동하지 않는다. */
+      location.href = 'pm-ini-detail.html?code=' + encodeURIComponent(saved.initiative_code);
+    } catch (e) {
+      BUSY = false;
+      $('btn-save').disabled = false;
+      $('btn-save').textContent = '저장';
+      var extra = e && e.attemptedCode
+        ? '<br>발급까지 간 번호 <code>' + pmEsc(e.attemptedCode) + '</code> 는 <b>다시 나오지 않습니다</b>. '
+          + '다시 저장하면 그 다음 번호가 붙습니다.'
+        : '';
+      $('state').innerHTML =
+          '<div class="banner crit"><b>저장하지 못했습니다 — 이동하지 않았습니다</b><br>'
+        + pmEsc(e && e.message ? e.message : String(e))
+        + (e && e.pgCode ? ' <code>' + pmEsc(e.pgCode) + '</code>' : '')
+        + extra + '</div>';
+      window.scrollTo(0, 0);
+    }
+  }
+
+  /* ── 시작 ── */
+  (async function init() {
+    var authed = await pmFillSession();
+
+    /* ⑥ 등록일 — 오늘. 서울 기준 */
+    var now = new Date();
+    var kst = new Date(now.getTime() + (now.getTimezoneOffset() + 540) * 60000);
+    $('i-regdate').value = kst.getFullYear() + '-'
+      + String(kst.getMonth() + 1).padStart(2, '0') + '-'
+      + String(kst.getDate()).padStart(2, '0') + ' (자동)';
+
+    if (!authed) {
+      $('state').innerHTML = pmStateBox('A', { authed: false });
+      return;   /* ★로그인 없이 폼을 보여 주지 않는다 */
+    }
+
+    try {
+      DEPTS = await pmFetchDeptCodes();
+      CAN_EDIT = await pmCanEdit();
+    } catch (e) {
+      $('state').innerHTML =
+        '<div class="banner crit"><b>화면을 준비하지 못했습니다</b><br>'
+        + pmEsc(e && e.message ? e.message : String(e)) + '</div>';
+      return;
+    }
+
+    var h = '<option value="">— 고르십시오 —</option>';
+    DEPTS.forEach(function (d) {
+      h += '<option value="' + pmEsc(d.dept_char) + '">'
+         + pmEsc(d.dept_char) + ' ' + pmEsc(d.dept_name) + '</option>';
+    });
+    $('i-dept').innerHTML = h;
+
+    if (!CAN_EDIT) {
+      /* ★권한이 없으면 저장 버튼을 눌리게 두지 않는다. 이유를 먼저 말한다. */
+      $('state').innerHTML =
+        '<div class="banner warn"><b>과제를 등록할 권한이 없습니다</b><br>'
+      + '1층 과제 등록은 <b>관리자 또는 임원</b>에게 열려 있습니다(<code>pm_can_edit()</code>). '
+      + '아래 칸은 보실 수 있으나 저장은 서버가 거부합니다.</div>';
+      $('btn-save').disabled = true;
+      $('foot-note').textContent = '저장 권한 없음';
+    }
+
+    $('i-dept').addEventListener('change', onDeptChange);
+    ['r1', 'r2', 'r3'].forEach(function (id) {
+      $(id).addEventListener('change', paintVerdict);
+    });
+    ['i-name', 'i-owner', 'i-basis'].forEach(function (id) {
+      $(id).addEventListener('input',  function () { setBad('fld-' + id.slice(2), false); });
+      $(id).addEventListener('change', function () { setBad('fld-' + id.slice(2), false); });
+    });
+    $('f').addEventListener('submit', onSubmit);
+
+    paintVerdict();
+    $('panel').style.display = '';
+  })();
+})();
+</script>
+</body>
+</html>

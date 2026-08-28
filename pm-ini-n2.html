@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>과제 착수 승인서 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ════════════════════════════════════════════════════════════════════
+     S4 과제 착수 승인 (N2 · 대표) — 화면정의서 V3.6
+     요소 7 : ①결재선 ②결과처리 ③제출처·목표일(조건부) ④예상기간 ⑤별도예산 ⑥결재안내 ⑦상신
+     들어오는 길 : S3 서류함 「과제 착수 승인서」
+     나가는 길   : ⑦ 상신 → S3 · 대표 승인 시 N3 열림
+     기계가 막는 것 : ②미지정 · ③(라인데) 공란 — 상신 불가
+     ★최종 판정자는 DB CHECK 입니다. 화면은 미리 알려 줄 뿐입니다.
+     ════════════════════════════════════════════════════════════════════ -->
+<header id="edmsHeader" data-system="project"></header>
+
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>과제 착수 승인서 — 1층 N2</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+  </div>
+</header>
+
+<main>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <a href="pm-ini-list.html">과제 대장</a>
+    &nbsp;›&nbsp; <a id="crumb-back" href="#">과제 상세</a> &nbsp;›&nbsp; <b>과제 착수 승인서</b></div>
+
+  <div id="state"></div>
+
+  <div class="panel" id="panel" style="display:none">
+    <!-- ① 결재선 표시 -->
+    <div class="mk-note approval-note" id="line1">결재선은 <b>현행확정 조직·결재선 참조표</b>가 정합니다 — <b>화면에 값을 박지 않습니다</b>(W-17). 이 화면은 <b>상신까지</b>입니다.</div>
+    <h2 id="ttl">과제 착수 승인서</h2>
+    <div class="count-info" id="sub"></div>
+
+    <form class="form" id="f" novalidate>
+
+      <!-- ② 결과 처리 방식 -->
+      <div class="fld" id="fld-oh">
+        <label>결과 처리 방식 <span class="hint">필수 · 여기서 정한 값이 S5·S6로 이어집니다 (C-4)</span></label>
+        <div class="reqbox">
+          <label><input type="radio" name="oh" value="가 표준화 반영">
+            <b>가 · 표준화 반영</b> — 앞으로 모든 현장에서 쓴다</label>
+          <label><input type="radio" name="oh" value="나 자료 보존">
+            <b>나 · 자료 보존</b> — 이번 한 번 · 결과보고서 + 원데이터</label>
+          <label><input type="radio" name="oh" value="다 후속 이관">
+            <b>다 · 후속 이관</b> — 장비·시스템 필요 → 개발팀·구매</label>
+          <label><input type="radio" name="oh" value="라 결과물 외부 제출">
+            <b>라 · 결과물 외부 제출</b> — 신기술 신청 · KS 제안 · 인증 · 발주기관</label>
+        </div>
+        <div class="err" id="e-oh">결과 처리 방식을 고르십시오 — 착수 때 정해 두는 것이 규칙입니다.</div>
+      </div>
+
+      <!-- ③ 제출처·목표일 (라일 때만) -->
+      <div id="wrap-submit" style="display:none">
+        <div class="row2">
+          <div class="fld" id="fld-to">
+            <label for="i-to">어디에 내는가 <span class="hint">「라」를 고르면 필수</span></label>
+            <input type="text" id="i-to" placeholder="예) 국토교통부 · 건설신기술" autocomplete="off">
+            <div class="err" id="e-to">제출처를 적으십시오.</div>
+          </div>
+          <div class="fld" id="fld-td">
+            <label for="i-td">제출 목표일 <span class="hint">역산 일정의 기준이 됩니다</span></label>
+            <input type="date" id="i-td">
+            <div class="err" id="e-td">제출 목표일을 넣으십시오.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ 예상 기간 -->
+      <div class="row2">
+        <div class="fld">
+          <label for="i-ps">예상 시작</label>
+          <input type="date" id="i-ps">
+        </div>
+        <div class="fld">
+          <label for="i-pe">예상 종료</label>
+          <input type="date" id="i-pe">
+        </div>
+      </div>
+
+      <!-- ⑤ 별도 예산 -->
+      <div class="fld" id="fld-bg">
+        <label for="i-bg">별도 예산 <span class="hint">원 단위 · 콤마는 자동</span></label>
+        <input type="text" id="i-bg" inputmode="numeric" placeholder="0" autocomplete="off">
+        <div class="banner warn" id="bg-warn" style="display:none"></div>
+      </div>
+
+      <!-- ⑥ 결재 안내 -->
+      <div class="mk-note">대표이사 승인 지점입니다. 부대표는 <b>상신까지</b> 합니다.</div>
+
+      <!-- ⑦ 상신 -->
+      <div class="form-actions">
+        <span class="spacer" id="foot-note"></span>
+        <a class="btn ghost big" id="btn-cancel" href="#">취소</a>
+        <button type="button" class="btn view big" id="btn-draft">임시 저장</button>
+        <button type="submit" class="btn primary big" id="btn-submit">대표께 상신</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<footer class="mk">프로젝트관리 실앱 v1 · 과제 착수 승인서(S4) · 화면정의서 V3.6</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script src="pm-write.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var CODE = '', INI = null, DOC = null, BUSY = false;
+
+  function qs(k) {
+    var m = new RegExp('[?&]' + k + '=([^&]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  }
+  function setBad(id, on) { var e = $(id); if (e) e.className = on ? 'fld bad' : 'fld'; }
+  function comma(v) {
+    var n = String(v == null ? '' : v).replace(/[^0-9]/g, '');
+    return n ? n.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
+  }
+  function num(v) { var n = String(v || '').replace(/[^0-9]/g, ''); return n ? Number(n) : null; }
+  function checkedOh() {
+    var r = document.querySelector('input[name=oh]:checked');
+    return r ? r.value : '';
+  }
+
+  /* ③ 「라」일 때만 제출처 영역을 연다 */
+  function paintSubmit() {
+    var isRa = checkedOh() === '라 결과물 외부 제출';
+    $('wrap-submit').style.display = isRa ? '' : 'none';
+    if (!isRa) { setBad('fld-to', false); setBad('fld-td', false); }
+    setBad('fld-oh', false);
+  }
+
+  /* ⑤ ★양방향 경고 — 요건②(별도 예산) 체크인데 0 / 미체크인데 금액 있음 */
+  function paintBudget() {
+    if (!INI) return;
+    var v = num($('i-bg').value);
+    var w = $('bg-warn'), msg = '';
+    if (INI.req_separate_budget && !v) {
+      msg = '성립 3요건에서 <b>별도 예산이 든다</b>에 표시하셨는데 금액이 비어 있습니다.';
+    } else if (!INI.req_separate_budget && v) {
+      msg = '성립 3요건에서 <b>별도 예산</b>에 표시하지 않으셨는데 금액이 적혀 있습니다.';
+    }
+    w.innerHTML = msg + (msg ? ' 어느 쪽이 맞는지 확인해 주십시오 — 막지는 않습니다.' : '');
+    w.style.display = msg ? '' : 'none';
+  }
+
+  function collect() {
+    return {
+      output_handling   : checkedOh() || null,
+      submit_to         : checkedOh() === '라 결과물 외부 제출' ? ($('i-to').value.trim() || null) : null,
+      submit_target_date: checkedOh() === '라 결과물 외부 제출' ? ($('i-td').value || null) : null,
+      planned_start     : $('i-ps').value || null,
+      planned_end       : $('i-pe').value || null,
+      separate_budget   : num($('i-bg').value)
+    };
+  }
+
+  function fail(e, where) {
+    $('state').innerHTML =
+        '<div class="banner crit"><b>' + where + '</b><br>'
+      + pmEsc(e && e.message ? e.message : String(e))
+      + (e && e.pgCode ? ' <code>' + pmEsc(e.pgCode) + '</code>' : '')
+      + (e && e.docSaved ? '<br>서류는 <b>저장되었습니다</b>(임시). 결재만 만들어지지 않았습니다.' : '')
+      + '</div>';
+    window.scrollTo(0, 0);
+  }
+
+  async function save(submitting) {
+    if (BUSY) return;
+
+    if (submitting) {
+      /* ★기계가 막는 것 — ② 미지정 · ③(라인데) 공란 */
+      var bad = false;
+      var oh = checkedOh();
+      setBad('fld-oh', !oh); if (!oh) bad = true;
+      if (oh === '라 결과물 외부 제출') {
+        setBad('fld-to', !$('i-to').value.trim()); if (!$('i-to').value.trim()) bad = true;
+        setBad('fld-td', !$('i-td').value);        if (!$('i-td').value)        bad = true;
+      }
+      if (bad) {
+        var first = document.querySelector('.fld.bad input');
+        if (first) first.focus();
+        return;
+      }
+    }
+
+    BUSY = true;
+    $('btn-submit').disabled = true; $('btn-draft').disabled = true;
+    var label = submitting ? '상신 중…' : '저장 중…';
+    (submitting ? $('btn-submit') : $('btn-draft')).textContent = label;
+
+    try {
+      if (submitting) {
+        await pmSubmitInitiativeDoc({
+          initiative_code: CODE, doc_type: '과제 착수 승인서',
+          doc_id: DOC ? DOC.doc_id : null, fields: collect()
+        });
+      } else {
+        DOC = await pmSaveInitiativeDoc({
+          initiative_code: CODE, doc_type: '과제 착수 승인서',
+          doc_id: DOC ? DOC.doc_id : null, status: '작성중', fields: collect()
+        });
+      }
+      location.href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
+    } catch (e) {
+      BUSY = false;
+      $('btn-submit').disabled = false; $('btn-draft').disabled = false;
+      $('btn-submit').textContent = '대표께 상신'; $('btn-draft').textContent = '임시 저장';
+      fail(e, submitting ? '상신하지 못했습니다 — 이동하지 않았습니다' : '저장하지 못했습니다');
+    }
+  }
+
+  (async function init() {
+    var authed = await pmFillSession();
+    CODE = qs('code');
+    $('crumb-back').href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
+    $('btn-cancel').href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
+
+    if (!CODE) {
+      $('state').innerHTML = '<div class="banner crit"><b>어느 과제인지 지정되지 않았습니다</b><br>'
+        + '<a href="pm-ini-list.html">과제 대장</a>에서 들어오십시오.</div>';
+      return;
+    }
+    if (!authed) { $('state').innerHTML = pmStateBox('A', { authed: false }); return; }
+
+    try {
+      INI = await pmFetchInitiative(CODE);
+      if (!INI) {
+        $('state').innerHTML = '<div class="empty-state"><b>' + pmEsc(CODE) + ' 를 찾지 못했습니다</b></div>';
+        return;
+      }
+      /* ★경상 판정이면 착수 승인서를 쓰지 않는다 */
+      if (INI.decision !== '프로젝트') {
+        $('state').innerHTML = '<div class="banner warn"><b>이 과제는 「' + pmEsc(INI.decision) + '」 판정입니다</b><br>'
+          + '착수 승인서는 <b>프로젝트 판정</b>인 과제에만 씁니다. '
+          + '<a href="pm-ini-detail.html?code=' + encodeURIComponent(CODE) + '">과제 상세로 돌아가기</a></div>';
+        return;
+      }
+      var docs = await pmFetchInitiativeDocs(CODE);
+      docs.forEach(function (d) { if (d.doc_type === '과제 착수 승인서') DOC = d; });
+
+      if (!(await pmCanEdit())) {
+        $('state').innerHTML = '<div class="banner warn"><b>상신 권한이 없습니다</b><br>'
+          + '1층 서류 작성은 <b>관리자 또는 임원</b>에게 열려 있습니다(<code>pm_can_edit()</code>).</div>';
+        $('btn-submit').disabled = true; $('btn-draft').disabled = true;
+        $('foot-note').textContent = '작성 권한 없음';
+      }
+    } catch (e) { fail(e, '화면을 준비하지 못했습니다'); return; }
+
+    $('ttl').textContent = '과제 착수 승인서 · ' + INI.initiative_code;
+    $('sub').innerHTML = pmVal(INI.initiative_name) + ' · ' + pmEsc(INI.owner_dept_char)
+                       + ' · 담당 ' + pmVal(INI.owner);
+
+    if (DOC) {
+      if (DOC.output_handling) {
+        var r = document.querySelector('input[name=oh][value="' + DOC.output_handling + '"]');
+        if (r) r.checked = true;
+      }
+      $('i-to').value = DOC.submit_to || '';
+      $('i-td').value = DOC.submit_target_date || '';
+      $('i-ps').value = DOC.planned_start || '';
+      $('i-pe').value = DOC.planned_end || '';
+      $('i-bg').value = comma(DOC.separate_budget);
+      if (DOC.status === '상신') {
+        $('state').innerHTML = '<div class="banner info">이 승인서는 <b>이미 상신</b>되었습니다. '
+          + '고쳐 다시 상신하면 새 결재가 붙습니다.</div>';
+      }
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll('input[name=oh]'), function (r) {
+      r.addEventListener('change', paintSubmit);
+    });
+    ['i-to', 'i-td'].forEach(function (id) {
+      $(id).addEventListener('input',  function () { setBad('fld-' + id.slice(2), false); });
+      $(id).addEventListener('change', function () { setBad('fld-' + id.slice(2), false); });
+    });
+    $('i-bg').addEventListener('input', function () {
+      var p = $('i-bg').selectionStart, before = $('i-bg').value.length;
+      $('i-bg').value = comma($('i-bg').value);
+      $('i-bg').selectionStart = $('i-bg').selectionEnd = Math.max(0, p + ($('i-bg').value.length - before));
+      paintBudget();
+    });
+    $('btn-draft').addEventListener('click', function () { save(false); });
+    $('f').addEventListener('submit', function (ev) { ev.preventDefault(); save(true); });
+
+    paintSubmit();
+    paintBudget();
+    $('panel').style.display = '';
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>과제 상세 · 허브 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ════════════════════════════════════════════════════════════════════
+     S3 과제 상세 · 허브 — 화면정의서 V3.6
+     · S1 저장이 도착하는 자리다. 여기서 갈래(내부 N / 외부 E)로 갈라진다.
+     · 서류함(⑤)에서 S1·S4·S5·S6 를 연다. 상태는 ★결재에서 온다(서류에 따로 적지 않는다).
+     · 외부 갈래 서류(S7~S13)·S14·L5 는 ★묶음 B 에서 열린다 — 잠근 이유를 화면에 적는다.
+     ════════════════════════════════════════════════════════════════════ -->
+<header id="edmsHeader" data-system="project"></header>
+
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>과제 상세 · 허브 — 1층</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+  </div>
+</header>
+
+<main>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <a href="pm-ini-list.html">과제 대장</a> &nbsp;›&nbsp; <b id="crumb-code">과제 상세</b></div>
+
+  <div id="state"></div>
+
+  <div id="panel" style="display:none">
+
+    <div class="panel">
+      <h2 id="ttl">과제</h2>
+      <div class="count-info" id="sub"></div>
+
+      <div class="cards">
+        <div class="card"><div class="label">판정</div><div class="value" id="c-decision">—</div><div class="sub" id="c-decision-sub"></div></div>
+        <div class="card"><div class="label">갈래</div><div class="value" id="c-origin">—</div><div class="sub">내부 = 우리가 시작 · 외부 = 공고·수주</div></div>
+        <div class="card"><div class="label">상태</div><div class="value" id="c-status">—</div><div class="sub" id="c-status-sub"></div></div>
+        <div class="card"><div class="label">2층 프로젝트</div><div class="value" id="c-prj">0</div><div class="sub">이 과제에서 내려간 것</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>등록 내용</h2>
+      <div class="table-wrap">
+        <table class="std">
+          <tbody id="tb-info"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>성립 3요건</h2>
+      <div class="count-info">판정은 이 셋에서 <b>자동으로</b> 나옵니다 — 사람이 고른 값이 아닙니다.</div>
+      <div id="reqs"></div>
+      <div class="banner info" id="basis-box" style="display:none"></div>
+    </div>
+
+    <div class="panel" id="docs-panel">
+      <h2>이 과제의 서류 <span class="float" id="docs-cnt"></span></h2>
+      <div class="count-info">상태는 <b>결재</b>에서 옵니다 — 서류에 따로 적어 두지 않습니다.</div>
+      <div class="table-wrap">
+        <table class="std">
+          <thead><tr><th style="width:34%">서류</th><th style="width:32%">상태</th><th>열기</th></tr></thead>
+          <tbody id="tb-docs"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>다음으로 <span class="float" id="next-hint"></span></h2>
+      <div id="next-box"></div>
+    </div>
+
+    <div class="panel" id="prj-panel" style="display:none">
+      <h2>2층 프로젝트 <span class="float" id="prj-cnt"></span></h2>
+      <div class="table-wrap">
+        <table class="std">
+          <thead><tr><th>프로젝트 코드</th><th>프로젝트명</th><th>상태</th><th>생애주기</th><th>현 게이트</th><th>주관</th></tr></thead>
+          <tbody id="tb-prj"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="mk">프로젝트관리 실앱 v1 · 과제 상세·허브(S3) · 화면정의서 V3.6</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  function qs(k) {
+    var m = new RegExp('[?&]' + k + '=([^&]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  }
+
+  function row(label, val, note) {
+    return '<tr><th style="width:170px;text-align:left;background:#f7f9fc">' + pmEsc(label) + '</th>'
+         + '<td>' + val + (note ? ' <span class="rec-lock">' + pmEsc(note) + '</span>' : '') + '</td></tr>';
+  }
+
+  function reqLine(ok, text) {
+    return '<div style="display:flex;align-items:center;gap:9px;padding:8px 2px;font-size:13.5px">'
+         + '<span class="req-ic ' + (ok ? 'req-ok' : 'req-no') + '">' + (ok ? 'O' : 'X') + '</span>'
+         + '<span style="' + (ok ? 'font-weight:700' : 'color:#8a93a5') + '">' + text + '</span></div>';
+  }
+
+  (async function init() {
+    var authed = await pmFillSession();
+    var code = qs('code');
+
+    if (!code) {
+      $('state').innerHTML = '<div class="banner crit"><b>어느 과제인지 지정되지 않았습니다</b><br>'
+        + '주소에 <code>?code=INI-…</code> 가 필요합니다. '
+        + '<a href="pm-ini-list.html">과제 대장</a>에서 행을 눌러 들어오십시오.</div>';
+      return;
+    }
+    $('crumb-code').textContent = code;
+
+    var ini;
+    try {
+      ini = await pmFetchInitiative(code);
+    } catch (e) {
+      /* ★「없음」과 「권한 없음」을 섞지 않는다 */
+      $('state').innerHTML = pmIsAuthProblem(e)
+        ? pmStateBox('A', e)
+        : '<div class="banner crit"><b>읽지 못했습니다</b><br>' + pmEsc(e.message) + '</div>';
+      return;
+    }
+
+    if (!ini) {
+      $('state').innerHTML =
+          '<div class="empty-state"><b>' + pmEsc(code) + ' 를 찾지 못했습니다</b><br>'
+        + (authed
+            ? '번호가 맞는지 확인해 주십시오. 지운 것이 아니라 <b>없는 번호</b>입니다.'
+            : '로그인 세션이 없어 서버가 <b>0행</b>으로 답했을 수 있습니다 — 없는 것과 다릅니다.')
+        + '</div>';
+      return;
+    }
+
+    /* ── 머리 카드 ── */
+    var isPrj = ini.decision === '프로젝트';
+    $('ttl').textContent = ini.initiative_code + '  ' + (ini.initiative_name || '');
+    $('sub').innerHTML = '등록 ' + pmVal((ini.created_at || '').slice(0, 10))
+                       + ' · 작성 ' + pmVal(ini.created_by);
+    $('c-decision').textContent = ini.decision;
+    $('c-decision-sub').textContent = ini.req_met
+        ? '3요건 중 해당 있음 — 자동'
+        : '3요건 해당 없음 — 자동';
+    $('c-origin').textContent = ini.origin;
+    $('c-status').textContent = ini.status;
+    $('c-status-sub').textContent = ini.decision_at
+        ? '판정 ' + String(ini.decision_at).slice(0, 10) + ' · ' + pmVal(ini.decision_by)
+        : '판정 시각 없음';
+
+    /* ── 등록 내용 ── */
+    $('tb-info').innerHTML =
+        row('과제 번호', '<b>' + pmEsc(ini.initiative_code) + '</b>', '발급 뒤에는 바뀌지 않습니다')
+      + row('과제명',   pmVal(ini.initiative_name))
+      + row('주관 부서', pmEsc(ini.owner_dept_char), '번호 가운데 글자')
+      + row('담당자',   pmVal(ini.owner), '담당별 현황·내 할 일의 기준')
+      + row('갈래',     pmEsc(ini.origin))
+      + row('판정',     '<b>' + pmEsc(ini.decision) + '</b>', '요건에서 자동')
+      + row('판정 일시', pmDate((ini.decision_at || '').slice(0, 16).replace('T', ' ')))
+      + row('판정자',   pmVal(ini.decision_by))
+      + row('결과 처리', pmVal(ini.output_handling), '산출물을 어떻게 할까 — S4에서 정합니다')
+      + row('반복 횟수', String(ini.repeat_count || 1) + '회',
+             (ini.repeat_count >= 3 ? '★3회 이상 — 승격 신호' : '3회가 되면 승격 신호가 뜹니다'));
+
+    /* ── 성립 3요건 ── */
+    $('reqs').innerHTML =
+        reqLine(ini.req_over_1month,     '기간이 1개월을 넘는다')
+      + reqLine(ini.req_separate_budget, '별도 예산이 든다')
+      + reqLine(ini.req_multi_dept,      '2개 부서 이상이 함께한다');
+    if (ini.decision_basis) {
+      $('basis-box').style.display = '';
+      $('basis-box').innerHTML = '<b>판정 근거</b><br>' + pmEsc(ini.decision_basis);
+    }
+
+    /* ── 다음으로 ── */
+    var nb = '';
+    if (isPrj) {
+      $('next-hint').textContent = ini.origin === '내부' ? '내부 갈래 N' : '외부 갈래 E';
+      nb = ini.origin === '내부'
+        ? '<div class="banner info"><b>내부 과제</b>입니다 — 다음은 <b>S4 착수 승인</b>(대표 결재)입니다.<br>'
+          + '착수가 승인되면 <b>S14 내려보내기</b>로 2층 프로젝트를 만듭니다.</div>'
+        : '<div class="banner info"><b>외부 과제</b>입니다 — 다음은 <b>S7 공고 적합성 검토</b>입니다.<br>'
+          + '적합 판정 뒤 대응표·제출 전 점검을 거쳐 수주가 끝나면 협약 조건으로 넘어갑니다.</div>';
+      nb += '<div class="mk-note">S4·S5·S6 는 <b>열려 있습니다</b>. '
+          + 'S14 내려보내기와 L5 예산·비목은 <b>묶음 B에서 열립니다</b> — '
+          + '반쯤 만들어 두면 반드시 누군가 씁니다(부대표 지시 2026-08-24).</div>'
+          + '<div class="actions-cell" style="gap:8px">'
+          + (ini.origin === '내부'
+              ? '<a class="btn view" href="pm-ini-n2.html?code=' + encodeURIComponent(code) + '">착수 승인서 쓰기 (S4)</a>'
+                + '<a class="btn view" href="pm-ini-n5.html?code=' + encodeURIComponent(code) + '">결과 검증서 (S5)</a>'
+                + '<a class="btn view" href="pm-ini-n7.html?code=' + encodeURIComponent(code) + '">종료보고서 (S6)</a>'
+              : '<button class="btn view" disabled title="묶음 B에서 열림">공고 적합성 검토 (S7)</button>')
+          + '<button class="btn view" disabled title="묶음 B에서 열림">2층 내려보내기 (S14)</button>'
+          + '<button class="btn view" disabled title="묶음 B에서 열림">예산·비목 (L5)</button>'
+          + '</div>';
+    } else {
+      $('next-hint').textContent = '경상 업무';
+      nb = '<div class="banner warn"><b>경상 업무</b>로 판정되었습니다 — 2층 프로젝트를 만들지 않습니다.<br>'
+         + 'QEMS 부적합 절차에서 처리하십시오. 같은 건이 <b>3회</b> 반복되면 승격 신호가 뜹니다'
+         + ' (현재 <b>' + (ini.repeat_count || 1) + '회</b>).</div>';
+    }
+    $('next-box').innerHTML = nb;
+
+    /* ── 서류함 (S3 ⑤) ── */
+    try {
+      var docs = await pmFetchInitiativeDocs(code);
+      var appr = await pmFetchInitiativeApprovals(code);
+      var byType = {}, apprByType = {};
+      docs.forEach(function (d) { byType[d.doc_type] = d; });
+      appr.forEach(function (a) { if (!apprByType[a.entity_type]) apprByType[a.entity_type] = a; });
+
+      var ROWS = [
+        ['과제 등록·판정서', 'pm-ini-new.html',  true],
+        ['과제 착수 승인서', 'pm-ini-n2.html',   isPrj],
+        ['결과 검증서',     'pm-ini-n5.html',   isPrj],
+        ['종료보고서',      'pm-ini-n7.html',   isPrj]
+      ];
+      var h = '', nDone = 0;
+      ROWS.forEach(function (r) {
+        var name = r[0], page = r[1], open = r[2];
+        var st, cls = '';
+        if (name === '과제 등록·판정서') { st = '완료'; cls = 'dstat-green'; nDone++; }
+        else if (!open) { st = '경상 판정이라 쓰지 않습니다'; cls = 'dstat-gray'; }
+        else if (apprByType[name]) { st = '결재 ' + apprByType[name].status; cls = 'dstat-blue'; nDone++; }
+        else if (byType[name]) { st = byType[name].status === '상신' ? '상신됨' : '작성 중'; cls = 'dstat-orange'; }
+        else { st = '—'; cls = 'dstat-gray'; }
+        h += '<tr' + (open ? ' data-page="' + page + '" style="cursor:pointer"' : '') + '>'
+           + '<td><b>' + pmEsc(name) + '</b></td>'
+           + '<td><span class="dstat ' + cls + '">' + pmEsc(st) + '</span></td>'
+           + '<td>' + (open ? '<span class="btn view">열기</span>'
+                            : '<span class="rec-lock">잠김</span>') + '</td></tr>';
+      });
+      /* ★외부 갈래 서류는 묶음 B 배포 전까지 잠금 — 빈칸으로 두면 왜 안 보이는지 알 수 없다 */
+      h += '<tr><td><b>외부 갈래 서류 (S7~S13)</b></td>'
+         + '<td><span class="dstat dstat-gray">묶음 B에서 열림</span></td>'
+         + '<td><span class="rec-lock">잠김</span></td></tr>';
+      $('tb-docs').innerHTML = h;
+      $('docs-cnt').textContent = nDone + '건 진행';
+      Array.prototype.forEach.call($('tb-docs').querySelectorAll('tr[data-page]'), function (tr) {
+        tr.addEventListener('click', function () {
+          location.href = tr.getAttribute('data-page') + '?code=' + encodeURIComponent(code);
+        });
+      });
+    } catch (e) {
+      $('tb-docs').innerHTML = '<tr><td colspan="3">서류함을 읽지 못했습니다 — ' + pmEsc(e.message) + '</td></tr>';
+    }
+
+    /* ── 2층 프로젝트 목록 ── */
+    try {
+      var prj = await pmFetchProjectsOfInitiative(code);
+      $('c-prj').textContent = prj.length;
+      if (prj.length) {
+        var h = '';
+        prj.forEach(function (p) {
+          h += '<tr data-code="' + pmEsc(p.project_code) + '" style="cursor:pointer">'
+             + '<td><b>' + pmEsc(p.project_code) + '</b></td>'
+             + '<td>' + pmVal(p.project_name) + '</td>'
+             + '<td>' + pmVal(p.status) + '</td>'
+             + '<td>' + pmVal(p.lifecycle_phase) + '</td>'
+             + '<td>' + pmVal(p.current_gate) + '</td>'
+             + '<td>' + pmVal(p.owner) + '</td></tr>';
+        });
+        $('tb-prj').innerHTML = h;
+        $('prj-cnt').textContent = prj.length + '건';
+        $('prj-panel').style.display = '';
+        Array.prototype.forEach.call($('tb-prj').querySelectorAll('tr[data-code]'), function (tr) {
+          tr.addEventListener('click', function () {
+            location.href = 'pm-detail.html?code=' + encodeURIComponent(tr.getAttribute('data-code'));
+          });
+        });
+      }
+    } catch (e) {
+      $('c-prj').textContent = '?';
+    }
+
+    $('panel').style.display = '';
+  })();
+})();
+</script>
+</body>
+</html>

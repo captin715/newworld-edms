@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>과제 대장 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ════════════════════════════════════════════════════════════════════
+     S2 과제 대장 — 화면정의서 V3.6
+     · S1 로 들어가는 자리이자, S3 로 나가는 자리다.
+     · 1층(과제 INI)과 2층(프로젝트 PRJ)은 다른 대장이다 — 섞지 않는다.
+     ════════════════════════════════════════════════════════════════════ -->
+<header id="edmsHeader" data-system="project"></header>
+
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>과제 대장 — 1층</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+  </div>
+</header>
+
+<main>
+  <div class="mk-note">이 대장은 <b>1층 과제(INI)</b>입니다. 2층 <b>프로젝트(PRJ)</b>는
+    <a href="pm-list.html">프로젝트 대장</a>에 있습니다 — 서로를 대신하지 않습니다.</div>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <b>과제 대장</b></div>
+
+  <div id="state"></div>
+
+  <div class="panel" id="panel" style="display:none">
+    <h2>과제 대장 <span class="float" id="cnt"></span></h2>
+
+    <div class="toolbar-row">
+      <label><input type="checkbox" id="only-prj"> 프로젝트 판정만 보기</label>
+      <span class="spacer" style="flex:1"></span>
+      <a class="btn primary big" id="btn-new" href="pm-ini-new.html">+ 새 과제</a>
+    </div>
+    <div class="count-info" id="sub"></div>
+
+    <div class="table-wrap">
+      <table class="std">
+        <thead><tr>
+          <th class="sticky-col c1">과제 번호</th><th>과제명</th><th>주관</th><th>담당자</th>
+          <th>갈래</th><th>판정</th><th>3요건</th><th>상태</th><th>등록일</th>
+        </tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer class="mk">프로젝트관리 실앱 v1 · 과제 대장(S2) · 화면정의서 V3.6</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var ROWS = [];
+
+  function reqCell(r) {
+    function t(ok, label) {
+      return '<span class="req-ic ' + (ok ? 'req-ok' : 'req-no') + '">' + label + (ok ? ' O' : ' X') + '</span>';
+    }
+    return '<span style="display:inline-flex;gap:3px;flex-wrap:wrap">'
+         + t(r.req_over_1month, '기간') + t(r.req_separate_budget, '예산') + t(r.req_multi_dept, '부서') + '</span>';
+  }
+
+  function render() {
+    var only = $('only-prj').checked;
+    var rows = only ? ROWS.filter(function (r) { return r.decision === '프로젝트'; }) : ROWS;
+    var h = '';
+    rows.forEach(function (r) {
+      var isPrj = r.decision === '프로젝트';
+      /* ★미판정은 경상이 아닙니다. 세 값을 눈으로도 가릅니다. */
+      var dcls = isPrj ? 'dstat-blue' : (r.decision === '경상' ? 'dstat-gray' : 'dstat-orange');
+      h += '<tr data-code="' + pmEsc(r.initiative_code) + '" title="상세 열기 — ' + pmEsc(r.initiative_code) + '">'
+         + '<td class="sticky-col c1"><b>' + pmEsc(r.initiative_code) + '</b></td>'
+         + '<td class="title-cell">' + pmVal(r.initiative_name) + '</td>'
+         + '<td>' + pmEsc(r.owner_dept_char) + '</td>'
+         + '<td>' + pmVal(r.owner) + '</td>'
+         + '<td>' + pmEsc(r.origin) + '</td>'
+         + '<td><span class="dstat ' + dcls + '">' + pmVal(r.decision) + '</span></td>'
+         + '<td>' + reqCell(r) + '</td>'
+         + '<td>' + pmVal(r.status) + '</td>'
+         + '<td>' + pmVal((r.created_at || '').slice(0, 10)) + '</td>'
+         + '</tr>';
+    });
+    $('tb').innerHTML = h;
+    $('cnt').textContent = rows.length + '건' + (only ? ' (전체 ' + ROWS.length + ')' : '');
+
+    /* ★종전에는 「프로젝트가 아닌 것」을 전부 경상으로 셌습니다.
+       미판정(아직 안 본 것)과 경상(보고 아니라고 한 것)은 다릅니다. 세 칸으로 셉니다.
+       값역 : pm_initiatives.decision = 미판정 · 경상 · 프로젝트 (CHECK 실측) */
+    function cntOf(v) { return ROWS.filter(function (r) { return r.decision === v; }).length; }
+    var nPrj = cntOf('프로젝트'), nExp = cntOf('경상'), nUnd = cntOf('미판정');
+    var nEtc = ROWS.length - nPrj - nExp - nUnd;
+    $('sub').textContent = '프로젝트 ' + nPrj + ' · 경상 ' + nExp + ' · 미판정 ' + nUnd
+                         + (nEtc ? ' · 값역 밖 ' + nEtc : '')
+                         + ' (합 ' + ROWS.length + ') — 미판정은 경상이 아닙니다. '
+                         + '판정은 성립 3요건에서 나옵니다';
+
+    Array.prototype.forEach.call($('tb').querySelectorAll('tr[data-code]'), function (tr) {
+      tr.addEventListener('click', function () {
+        location.href = 'pm-ini-detail.html?code=' + encodeURIComponent(tr.getAttribute('data-code'));
+      });
+    });
+  }
+
+  (async function init() {
+    var authed = await pmFillSession();
+    try {
+      ROWS = await pmFetchInitiatives();
+    } catch (e) {
+      $('state').innerHTML = pmIsAuthProblem(e)
+        ? pmStateBox('A', e)
+        : '<div class="banner crit"><b>[실패] 조회하지 못했습니다</b><br>' + pmEsc(e.message)
+          + (e.pgCode ? ' <code>' + pmEsc(e.pgCode) + '</code>' : '') + '</div>';
+      return;
+    }
+
+    /* ★저장 권한이 없으면 [새 과제]를 눌리게 두지 않는다 */
+    try {
+      if (authed && !(await pmCanEdit())) {
+        var b = $('btn-new');
+        b.removeAttribute('href');
+        b.style.opacity = '.5';
+        b.style.pointerEvents = 'none';
+        b.title = '과제 등록 권한이 없습니다 (관리자 또는 임원)';
+      }
+    } catch (e) { /* 권한 확인 실패는 화면을 막지 않는다 */ }
+
+    if (!ROWS.length) {
+      $('state').innerHTML =
+          '<div class="empty-state"><b>아직 등록된 과제가 없습니다</b><br>'
+        + '[+ 새 과제]로 첫 과제를 등록하시면 여기에 쌓입니다.</div>'
+        + (authed ? ''
+                  : '<div class="banner warn">로그인 세션 <b>★없음(anon)</b> — '
+                  + 'RLS 는 권한이 없을 때 오류가 아니라 <b>0행</b>으로 답합니다. '
+                  + '「없음」이 아니라 <b>권한 없음</b>일 수 있습니다.</div>');
+      $('panel').style.display = '';
+      $('tb').innerHTML = '';
+      $('cnt').textContent = '0건';
+      $('sub').textContent = '';
+      return;
+    }
+
+    $('only-prj').addEventListener('change', render);
+    render();
+    $('panel').style.display = '';
+  })();
+})();
+</script>
+</body>
+</html>

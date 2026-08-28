@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>종료보고서 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ════════════════════════════════════════════════════════════════════
+     S6 종료보고 (N7 · 대표) — 화면정의서 V3.6
+     요소 6 : ①결재선 ②종료조건8 ③결과요약 ④후속이관 ⑤해당없음사유 ⑥상신
+     기계가 막는 것 : ② 미충족 1건이라도 있으면 상신 불가 · ⑤ 사유 공란 불가
+     ════════════════════════════════════════════════════════════════════ -->
+<header id="edmsHeader" data-system="project"></header>
+
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>종료보고서 — 1층 N7</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+  </div>
+</header>
+
+<main>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <a href="pm-ini-list.html">과제 대장</a>
+    &nbsp;›&nbsp; <a id="crumb-back" href="#">과제 상세</a> &nbsp;›&nbsp; <b>종료보고서</b></div>
+
+  <div id="state"></div>
+
+  <div class="panel" id="panel" style="display:none">
+    <div class="mk-note approval-note">결재선은 <b>현행확정 조직·결재선 참조표</b>가 정합니다 — <b>화면에 값을 박지 않습니다</b>(W-17). 이 화면은 <b>상신까지</b>입니다. 승인되면 과제 상태가 「종결」이 됩니다.</div>
+    <h2 id="ttl">종료보고서</h2>
+    <div class="count-info" id="sub"></div>
+
+    <form class="form" id="f" novalidate>
+
+      <!-- ② 종료 조건 8 -->
+      <div class="fld" id="fld-cc">
+        <label>종료 조건 8 <span class="hint">여덟 가지를 모두 판정하십시오 — 미충족이 하나라도 있으면 상신할 수 없습니다</span></label>
+        <div class="reqbox" id="cc-box"></div>
+        <div class="banner warn" id="cc-sum" style="margin-top:8px"></div>
+        <div class="err" id="e-cc">여덟 가지를 모두 판정하십시오.</div>
+      </div>
+
+      <!-- ⑤ 해당없음 사유 -->
+      <div class="fld" id="fld-na" style="display:none">
+        <label for="i-na">해당없음 사유 <span class="hint">★해당없음으로 두신 항목마다 한 줄씩</span></label>
+        <textarea id="i-na" rows="2" maxlength="500" placeholder="예) ⑤ 예산 정산 — 별도 예산이 없는 과제입니다"></textarea>
+        <div class="err" id="e-na">해당없음으로 두시려면 사유가 반드시 있어야 합니다.</div>
+      </div>
+
+      <!-- ③ 결과 요약 -->
+      <div class="fld" id="fld-rs">
+        <label for="i-rs">결과 요약 <span class="hint">필수 · 무엇을 얻었는가</span></label>
+        <textarea id="i-rs" rows="3" maxlength="1000" placeholder="예) 바닥 평탄도 자체 측정법을 표준화했다"></textarea>
+        <div class="err" id="e-rs">결과 요약을 적으십시오.</div>
+      </div>
+
+      <!-- ④ 후속 이관 항목 -->
+      <div class="fld" id="fld-fu">
+        <label for="i-fu">후속 — 표준화 축으로 넘길 것 <span class="hint" id="fu-hint">결과 처리가 「가」면 필수</span></label>
+        <input type="text" id="i-fu" maxlength="300" placeholder="예) 사내표준 개정안 1건" autocomplete="off">
+        <div class="err" id="e-fu">결과 처리를 「가 표준화 반영」으로 정하셨으므로 넘길 것을 적으셔야 합니다.</div>
+      </div>
+
+      <div class="form-actions">
+        <span class="spacer" id="foot-note"></span>
+        <a class="btn ghost big" id="btn-cancel" href="#">취소</a>
+        <button type="button" class="btn view big" id="btn-draft">임시 저장</button>
+        <button type="submit" class="btn primary big" id="btn-submit">대표께 상신</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<footer class="mk">프로젝트관리 실앱 v1 · 종료보고서(S6) · 화면정의서 V3.6</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script src="pm-write.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var CODE = '', INI = null, DOC = null, N2 = null, N5 = null, BUSY = false;
+
+  /* 종료 조건 8 — 화면정의서 S6 ② 그대로 */
+  var COND = [
+    '결과 검증이 끝났다',
+    '아래층(2층 프로젝트)이 전부 끝났다',
+    '결과 처리를 실제로 했다',
+    '원데이터를 넣어 뒀다',
+    '예산 정산이 끝났다',
+    '대표께 미리 보고드렸다',
+    '참여한 사람 기록을 남겼다',
+    '남은 숙제를 적었다'
+  ];
+  var VALS = ['충족', '미충족', '해당없음'];
+
+  function qs(k) {
+    var m = new RegExp('[?&]' + k + '=([^&]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  }
+  function setBad(id, on) { var e = $(id); if (e) e.className = on ? 'fld bad' : 'fld'; }
+  function ccVal(i) {
+    var r = document.querySelector('input[name=cc' + i + ']:checked');
+    return r ? r.value : '';
+  }
+  function counts() {
+    var c = { 충족: 0, 미충족: 0, 해당없음: 0, 미판정: 0 };
+    for (var i = 1; i <= 8; i++) {
+      var v = ccVal(i);
+      if (!v) c.미판정++; else c[v]++;
+    }
+    return c;
+  }
+  function needFollowup() {
+    var oh = (N5 && N5.redesignated_handling) || (N2 && N2.output_handling) || '';
+    return oh === '가 표준화 반영';
+  }
+  function paint() {
+    var c = counts();
+    var box = $('cc-sum');
+    if (c.미판정) {
+      box.className = 'banner warn';
+      box.innerHTML = '아직 <b>' + c.미판정 + '건</b>을 판정하지 않으셨습니다.';
+    } else if (c.미충족) {
+      box.className = 'banner crit';
+      box.innerHTML = '미충족 <b>' + c.미충족 + '건</b> — <b>상신할 수 없습니다.</b> 먼저 처리하시거나 「해당없음」으로 두고 사유를 적으십시오.';
+    } else {
+      box.className = 'banner info';
+      box.innerHTML = '충족 ' + c.충족 + '건 · 해당없음 ' + c.해당없음 + '건 — <b>상신할 수 있습니다.</b>';
+    }
+    $('fld-na').style.display = c.해당없음 ? '' : 'none';
+    if (!c.해당없음) setBad('fld-na', false);
+
+    var nf = needFollowup();
+    $('fu-hint').textContent = nf
+      ? '★필수 — 결과 처리가 「가 표준화 반영」입니다'
+      : '결과 처리가 「가」가 아니면 비워 두어도 됩니다';
+    if (!nf) setBad('fld-fu', false);
+
+    $('btn-submit').disabled = (c.미충족 > 0) || (c.미판정 > 0);
+    $('foot-note').textContent = c.미충족 ? '미충족 ' + c.미충족 + '건 — 상신 불가' : '';
+    setBad('fld-cc', false);
+  }
+  function collect() {
+    var o = {
+      close_na_reason: counts().해당없음 ? ($('i-na').value.trim() || null) : null,
+      result_summary : $('i-rs').value.trim() || null,
+      followup_item  : $('i-fu').value.trim() || null
+    };
+    for (var i = 1; i <= 8; i++) o['close_c' + i] = ccVal(i) || null;
+    return o;
+  }
+  function fail(e, where) {
+    $('state').innerHTML = '<div class="banner crit"><b>' + where + '</b><br>'
+      + pmEsc(e && e.message ? e.message : String(e))
+      + (e && e.pgCode ? ' <code>' + pmEsc(e.pgCode) + '</code>' : '') + '</div>';
+    window.scrollTo(0, 0);
+  }
+
+  async function save(submitting) {
+    if (BUSY) return;
+    if (submitting) {
+      var bad = false, c = counts();
+      if (c.미판정 || c.미충족) { setBad('fld-cc', true); bad = true; }
+      if (c.해당없음 && !$('i-na').value.trim()) { setBad('fld-na', true); bad = true; }
+      if (!$('i-rs').value.trim()) { setBad('fld-rs', true); bad = true; }
+      if (needFollowup() && !$('i-fu').value.trim()) { setBad('fld-fu', true); bad = true; }
+      if (bad) {
+        var first = document.querySelector('.fld.bad input, .fld.bad textarea');
+        if (first) first.focus();
+        return;
+      }
+    }
+    BUSY = true;
+    $('btn-submit').disabled = true; $('btn-draft').disabled = true;
+    try {
+      if (submitting) {
+        await pmSubmitInitiativeDoc({
+          initiative_code: CODE, doc_type: '종료보고서',
+          doc_id: DOC ? DOC.doc_id : null, fields: collect()
+        });
+      } else {
+        DOC = await pmSaveInitiativeDoc({
+          initiative_code: CODE, doc_type: '종료보고서',
+          doc_id: DOC ? DOC.doc_id : null, status: '작성중', fields: collect()
+        });
+      }
+      location.href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
+    } catch (e) {
+      BUSY = false;
+      $('btn-draft').disabled = false;
+      paint();
+      fail(e, submitting ? '상신하지 못했습니다 — 이동하지 않았습니다' : '저장하지 못했습니다');
+    }
+  }
+
+  (async function init() {
+    var authed = await pmFillSession();
+    CODE = qs('code');
+    $('crumb-back').href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
+    $('btn-cancel').href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
+
+    if (!CODE) { $('state').innerHTML = '<div class="banner crit"><b>어느 과제인지 지정되지 않았습니다</b></div>'; return; }
+    if (!authed) { $('state').innerHTML = pmStateBox('A', { authed: false }); return; }
+
+    /* 종료 조건 8 그리기 */
+    var h = '';
+    COND.forEach(function (t, i) {
+      var n = i + 1;
+      h += '<div style="padding:7px 0;border-bottom:1px solid #eef1f6">'
+         + '<div style="font-size:13.5px;color:#2A2824;margin-bottom:4px">'
+         + '<b>' + '①②③④⑤⑥⑦⑧'.charAt(i) + '</b> ' + t + '</div>'
+         + '<div style="display:flex;gap:14px">';
+      VALS.forEach(function (v) {
+        h += '<label style="font-size:12.5px;padding:0"><input type="radio" name="cc' + n + '" value="' + v + '"> ' + v + '</label>';
+      });
+      h += '</div></div>';
+    });
+    $('cc-box').innerHTML = h;
+
+    try {
+      INI = await pmFetchInitiative(CODE);
+      if (!INI) { $('state').innerHTML = '<div class="empty-state"><b>' + pmEsc(CODE) + ' 없음</b></div>'; return; }
+      var docs = await pmFetchInitiativeDocs(CODE);
+      docs.forEach(function (d) {
+        if (d.doc_type === '종료보고서') DOC = d;
+        if (d.doc_type === '과제 착수 승인서') N2 = d;
+        if (d.doc_type === '결과 검증서') N5 = d;
+      });
+      if (!(await pmCanEdit())) {
+        $('state').innerHTML = '<div class="banner warn"><b>상신 권한이 없습니다</b> — 관리자 또는 임원만 상신할 수 있습니다.</div>';
+        $('btn-draft').disabled = true;
+        $('foot-note').textContent = '작성 권한 없음';
+      }
+    } catch (e) { fail(e, '화면을 준비하지 못했습니다'); return; }
+
+    $('ttl').textContent = '종료보고서 · ' + INI.initiative_code;
+    var oh = (N5 && N5.redesignated_handling) || (N2 && N2.output_handling);
+    $('sub').innerHTML = pmVal(INI.initiative_name) + ' · 결과 처리 '
+                       + (oh ? '<b>' + pmEsc(oh) + '</b>' : '<span class="masked">미지정</span>')
+                       + (N5 && N5.redesignated_handling ? ' <span class="site-badge">S5에서 재지정</span>' : '');
+
+    if (DOC) {
+      for (var i = 1; i <= 8; i++) {
+        var v = DOC['close_c' + i];
+        if (v) { var r = document.querySelector('input[name=cc' + i + '][value="' + v + '"]'); if (r) r.checked = true; }
+      }
+      $('i-na').value = DOC.close_na_reason || '';
+      $('i-rs').value = DOC.result_summary || '';
+      $('i-fu').value = DOC.followup_item || '';
+      if (DOC.status === '상신') {
+        $('state').innerHTML = '<div class="banner info">이 종료보고서는 <b>이미 상신</b>되었습니다.</div>';
+      }
+    }
+
+    for (var n = 1; n <= 8; n++) {
+      Array.prototype.forEach.call(document.querySelectorAll('input[name=cc' + n + ']'), function (r) {
+        r.addEventListener('change', paint);
+      });
+    }
+    ['i-na', 'i-rs', 'i-fu'].forEach(function (id) {
+      $(id).addEventListener('input', function () { setBad('fld-' + id.slice(2), false); });
+    });
+    $('btn-draft').addEventListener('click', function () { save(false); });
+    $('f').addEventListener('submit', function (ev) { ev.preventDefault(); save(true); });
+
+    paint();
+    $('panel').style.display = '';
+  })();
+})();
+</script>
+</body>
+</html>

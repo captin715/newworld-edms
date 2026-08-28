@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>결과 검증서 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ════════════════════════════════════════════════════════════════════
+     S5 결과 검증 (N5 · 부대표) — 화면정의서 V3.6
+     요소 7 : ①결재선 ②지정처리표시 ③2층결과 ④검증판정 ⑤재지정 ⑥재지정사유 ⑦확정
+     기계가 막는 것 : ④ 미충족인데 사유 공란 · ⑤ 바꿨는데 ⑥ 공란 — 확정 불가
+     ════════════════════════════════════════════════════════════════════ -->
+<header id="edmsHeader" data-system="project"></header>
+
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>결과 검증서 — 1층 N5</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+  </div>
+</header>
+
+<main>
+  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <a href="pm-ini-list.html">과제 대장</a>
+    &nbsp;›&nbsp; <a id="crumb-back" href="#">과제 상세</a> &nbsp;›&nbsp; <b>결과 검증서</b></div>
+
+  <div id="state"></div>
+
+  <div class="panel" id="panel" style="display:none">
+    <div class="mk-note approval-note">이 화면은 <b>검증 판정</b> 지점입니다 — 누가 판정하는지는 <b>현행확정 조직·결재선 참조표</b>가 정합니다(W-17 · <b>화면에 값을 박지 않습니다</b>).</div>
+    <h2 id="ttl">결과 검증서</h2>
+    <div class="count-info" id="sub"></div>
+
+    <form class="form" id="f" novalidate>
+
+      <!-- ② 착수 때 지정한 결과 처리 (되살려 보여 줌) -->
+      <div class="fld">
+        <label>착수 때 지정한 결과 처리 <span class="hint">S4에서 정한 값 · 다시 찾아보지 않으셔도 됩니다</span></label>
+        <div class="codeprev" id="oh-designated">—</div>
+      </div>
+
+      <!-- ③ 2층에서 올라온 결과 -->
+      <div class="fld">
+        <label>2층에서 올라온 결과</label>
+        <div id="prj-box"></div>
+      </div>
+
+      <!-- ④ 검증 판정 -->
+      <div class="fld" id="fld-vr">
+        <label>검증 판정 <span class="hint">필수</span></label>
+        <div class="reqbox">
+          <label><input type="radio" name="vr" value="충족"><b>충족</b> — 결과가 요건을 채웠다</label>
+          <label><input type="radio" name="vr" value="미충족·보완"><b>미충족 · 보완</b> — 과제는 진행 상태로 남습니다</label>
+        </div>
+        <div class="err" id="e-vr">검증 판정을 고르십시오.</div>
+      </div>
+
+      <!-- 미충족 사유 -->
+      <div class="fld" id="fld-vreason" style="display:none">
+        <label for="i-vreason">미충족 사유 <span class="hint">★미충족이면 필수</span></label>
+        <textarea id="i-vreason" rows="2" maxlength="500" placeholder="무엇이 모자랐는지"></textarea>
+        <div class="err" id="e-vreason">미충족 판정에는 사유가 반드시 있어야 합니다.</div>
+      </div>
+
+      <!-- ⑤ 결과 처리 재지정 -->
+      <div class="fld">
+        <label for="i-redes">결과 처리 재지정 <span class="hint">지정과 다르면 사유 칸이 열립니다</span></label>
+        <select id="i-redes">
+          <option value="">지정대로 둡니다</option>
+          <option value="가 표준화 반영">가 · 표준화 반영</option>
+          <option value="나 자료 보존">나 · 자료 보존</option>
+          <option value="다 후속 이관">다 · 후속 이관</option>
+          <option value="라 결과물 외부 제출">라 · 결과물 외부 제출</option>
+        </select>
+      </div>
+
+      <!-- ⑥ 재지정 사유 -->
+      <div class="fld" id="fld-rreason" style="display:none">
+        <label for="i-rreason">바뀐 사유 <span class="hint">★재지정 시 필수 · 종료보고서에 그대로 실립니다</span></label>
+        <textarea id="i-rreason" rows="2" maxlength="500" placeholder="왜 바꾸는가"></textarea>
+        <div class="err" id="e-rreason">바꾸시려면 사유가 반드시 있어야 합니다.</div>
+      </div>
+
+      <div class="form-actions">
+        <span class="spacer" id="foot-note"></span>
+        <a class="btn ghost big" id="btn-cancel" href="#">취소</a>
+        <button type="button" class="btn view big" id="btn-draft">임시 저장</button>
+        <button type="submit" class="btn primary big" id="btn-submit">검증 확정</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<footer class="mk">프로젝트관리 실앱 v1 · 결과 검증서(S5) · 화면정의서 V3.6</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script src="pm-write.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var CODE = '', INI = null, DOC = null, N2 = null, BUSY = false;
+
+  function qs(k) {
+    var m = new RegExp('[?&]' + k + '=([^&]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  }
+  function setBad(id, on) { var e = $(id); if (e) e.className = on ? 'fld bad' : 'fld'; }
+  function checkedVr() {
+    var r = document.querySelector('input[name=vr]:checked');
+    return r ? r.value : '';
+  }
+  function paint() {
+    $('fld-vreason').style.display = checkedVr() === '미충족·보완' ? '' : 'none';
+    if (checkedVr() !== '미충족·보완') setBad('fld-vreason', false);
+    $('fld-rreason').style.display = $('i-redes').value ? '' : 'none';
+    if (!$('i-redes').value) setBad('fld-rreason', false);
+    setBad('fld-vr', false);
+  }
+  function collect() {
+    return {
+      verify_result        : checkedVr() || null,
+      verify_reason        : checkedVr() === '미충족·보완' ? ($('i-vreason').value.trim() || null) : null,
+      redesignated_handling: $('i-redes').value || null,
+      redesignate_reason   : $('i-redes').value ? ($('i-rreason').value.trim() || null) : null
+    };
+  }
+  function fail(e, where) {
+    $('state').innerHTML = '<div class="banner crit"><b>' + where + '</b><br>'
+      + pmEsc(e && e.message ? e.message : String(e))
+      + (e && e.pgCode ? ' <code>' + pmEsc(e.pgCode) + '</code>' : '') + '</div>';
+    window.scrollTo(0, 0);
+  }
+
+  async function save(confirming) {
+    if (BUSY) return;
+    if (confirming) {
+      var bad = false;
+      setBad('fld-vr', !checkedVr()); if (!checkedVr()) bad = true;
+      if (checkedVr() === '미충족·보완') {
+        var v = !$('i-vreason').value.trim();
+        setBad('fld-vreason', v); if (v) bad = true;
+      }
+      if ($('i-redes').value) {
+        var r = !$('i-rreason').value.trim();
+        setBad('fld-rreason', r); if (r) bad = true;
+      }
+      if (bad) {
+        var first = document.querySelector('.fld.bad input, .fld.bad textarea');
+        if (first) first.focus();
+        return;
+      }
+    }
+    BUSY = true;
+    $('btn-submit').disabled = true; $('btn-draft').disabled = true;
+    try {
+      if (confirming) {
+        await pmSubmitInitiativeDoc({
+          initiative_code: CODE, doc_type: '결과 검증서',
+          doc_id: DOC ? DOC.doc_id : null, fields: collect()
+        });
+      } else {
+        DOC = await pmSaveInitiativeDoc({
+          initiative_code: CODE, doc_type: '결과 검증서',
+          doc_id: DOC ? DOC.doc_id : null, status: '작성중', fields: collect()
+        });
+      }
+      location.href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
+    } catch (e) {
+      BUSY = false;
+      $('btn-submit').disabled = false; $('btn-draft').disabled = false;
+      fail(e, confirming ? '확정하지 못했습니다 — 이동하지 않았습니다' : '저장하지 못했습니다');
+    }
+  }
+
+  (async function init() {
+    var authed = await pmFillSession();
+    CODE = qs('code');
+    $('crumb-back').href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
+    $('btn-cancel').href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
+
+    if (!CODE) {
+      $('state').innerHTML = '<div class="banner crit"><b>어느 과제인지 지정되지 않았습니다</b></div>';
+      return;
+    }
+    if (!authed) { $('state').innerHTML = pmStateBox('A', { authed: false }); return; }
+
+    try {
+      INI = await pmFetchInitiative(CODE);
+      if (!INI) { $('state').innerHTML = '<div class="empty-state"><b>' + pmEsc(CODE) + ' 없음</b></div>'; return; }
+      var docs = await pmFetchInitiativeDocs(CODE);
+      docs.forEach(function (d) {
+        if (d.doc_type === '결과 검증서') DOC = d;
+        if (d.doc_type === '과제 착수 승인서') N2 = d;
+      });
+      var prj = await pmFetchProjectsOfInitiative(CODE);
+
+      /* ② 착수 때 지정한 값 */
+      $('oh-designated').innerHTML = N2 && N2.output_handling
+        ? '<b>' + pmEsc(N2.output_handling) + '</b>'
+        : '<span class="masked">아직 지정되지 않았습니다 — 착수 승인서(S4)에서 먼저 정하십시오</span>';
+
+      /* ③ 2층 결과 */
+      if (!prj.length) {
+        $('prj-box').innerHTML = '<div class="empty-state">이 과제에서 내려간 <b>2층 프로젝트가 없습니다</b><br>'
+          + '검증할 결과가 아직 올라오지 않았습니다.</div>';
+      } else {
+        var h = '';
+        prj.forEach(function (p) {
+          h += '<div class="codeprev" style="margin-bottom:6px;cursor:pointer" data-code="' + pmEsc(p.project_code) + '">'
+             + '<b>' + pmEsc(p.project_code) + '</b> · ' + pmVal(p.project_name)
+             + ' · ' + pmVal(p.status) + ' · 현 게이트 ' + pmVal(p.current_gate) + '</div>';
+        });
+        $('prj-box').innerHTML = h;
+        Array.prototype.forEach.call($('prj-box').querySelectorAll('[data-code]'), function (d) {
+          d.addEventListener('click', function () {
+            location.href = 'pm-detail.html?code=' + encodeURIComponent(d.getAttribute('data-code'));
+          });
+        });
+      }
+
+      if (!(await pmCanEdit())) {
+        $('state').innerHTML = '<div class="banner warn"><b>검증 권한이 없습니다</b> — 관리자 또는 임원만 확정할 수 있습니다.</div>';
+        $('btn-submit').disabled = true; $('btn-draft').disabled = true;
+        $('foot-note').textContent = '작성 권한 없음';
+      }
+    } catch (e) { fail(e, '화면을 준비하지 못했습니다'); return; }
+
+    $('ttl').textContent = '결과 검증서 · ' + INI.initiative_code;
+    $('sub').innerHTML = pmVal(INI.initiative_name) + ' · 담당 ' + pmVal(INI.owner);
+
+    if (DOC) {
+      if (DOC.verify_result) {
+        var r = document.querySelector('input[name=vr][value="' + DOC.verify_result + '"]');
+        if (r) r.checked = true;
+      }
+      $('i-vreason').value = DOC.verify_reason || '';
+      $('i-redes').value   = DOC.redesignated_handling || '';
+      $('i-rreason').value = DOC.redesignate_reason || '';
+      if (DOC.status === '상신') {
+        $('state').innerHTML = '<div class="banner info">이 검증서는 <b>이미 확정</b>되었습니다.</div>';
+      }
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll('input[name=vr]'), function (r) {
+      r.addEventListener('change', paint);
+    });
+    $('i-redes').addEventListener('change', paint);
+    ['i-vreason', 'i-rreason'].forEach(function (id) {
+      $(id).addEventListener('input', function () {
+        setBad(id === 'i-vreason' ? 'fld-vreason' : 'fld-rreason', false);
+      });
+    });
+    $('btn-draft').addEventListener('click', function () { save(false); });
+    $('f').addEventListener('submit', function (ev) { ev.preventDefault(); save(true); });
+
+    paint();
+    $('panel').style.display = '';
+  })();
+})();
+</script>
+</body>
+</html>

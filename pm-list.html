@@ -28,7 +28,7 @@
   </div>
 </header>
 <main>
-  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인은 <b>PG0·PG4·PG5 = 대표이사</b> · 그 밖 = <b>부대표</b>. (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
+  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). 결재선은 <b>현행확정 조직·결재선 참조표</b>가 정본입니다. (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
   <div class="mk-note" id="ribbon"></div>
   <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <b>프로젝트 대장</b></div>
 
@@ -100,7 +100,7 @@ function render(rows, gates) {
   /* 상세 진입 — 행 전체가 클릭 대상(table.std tbody tr { cursor:pointer } 승계) */
   Array.prototype.forEach.call(tb.querySelectorAll('tr[data-code]'), function (tr) {
     tr.addEventListener('click', function () {
-      location.href = 'detail.html?code=' + encodeURIComponent(tr.getAttribute('data-code'));
+      location.href = 'pm-detail.html?code=' + encodeURIComponent(tr.getAttribute('data-code'));
     });
   });
   document.getElementById('cnt').textContent = rows.length + '건';
@@ -183,8 +183,15 @@ function fail(e) {
     if (!rows.length) {
       document.getElementById('state').innerHTML =
           (arc.length
-            ? '<div class="banner info">준비단계 시험분 <b>' + arc.length + '건</b>이 폐기보관되었습니다. '
-              + '지워지지 않았고 아래 폐기보관함에서 보실 수 있습니다.</div>'
+            ? '<div class="banner info"><b>대장이 비어 있는 것이 지금은 맞는 상태입니다.</b> '
+              + '정식 등록분(과제 → 3요건 판정 → 착수 승인 → 내려보내기)이 아직 없습니다.<br>'
+              + '준비단계 시험분 <b>' + arc.length + '건</b>은 폐기보관되었습니다 — '
+              + '<b>지워지지 않았고 재등록 대상</b>입니다. 아래 폐기보관함에서 보실 수 있습니다.<br>'
+              + '<span style="font-size:12px;color:#8a5a00">재등록 묶음은 <b>확정되었습니다</b> — '
+              + '<b>5과제 / 7프로젝트</b> · 근거 <b>부대표 직접 확정</b> '
+              + '(간트·대장 개편안 <b>V2.6</b> §2-5 · 미결 #11 종결). '
+              + '시점은 <b>묶음 A 배포 직후</b> · CFSPS는 재등록하지 않습니다(완료종료 · 기록 보존).<br>'
+              + '<b>되살리기는 없습니다</b> — 다시 쓰려면 과제 등록부터 새로 (옛 번호는 돌아오지 않습니다).</span></div>'
             : '')
         + '<div class="empty-state"><b>아직 등록된 프로젝트가 없습니다</b><br>'
         + '1층 과제에서 프로젝트 판정을 받으면 여기에 내려옵니다.</div>'

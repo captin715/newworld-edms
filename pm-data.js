@@ -339,3 +339,106 @@ async function pmFillSession() {
            b.className = 'role-badge ' + (authed ? 'admin' : 'general'); }
   return authed;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   ★1층 과제(INI) 조회 — 화면정의서 V3.2 S1·S2·S3
+   · 여기도 SELECT 전용이다. 쓰기는 pm-write.js.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* 부서 기준표 4값 — S1 ③ 주관 부서 선택칸 */
+async function pmFetchDeptCodes() {
+  var r = await edmsClient.from('pm_dept_codes')
+    .select('dept_char,dept_name,legacy_code,active')
+    .eq('active', true)
+    .order('dept_char', { ascending: true });
+  if (r.error) throw await pmErr('pm_dept_codes', r.error);
+  return r.data || [];
+}
+
+/* S1 ④ 담당자 — ★이 부서 사람만.
+   ★두 표기가 다르다 : pm_dept_codes.dept_char 는 1글자(Q), edms_profiles.dept_code 는 2글자(QT).
+     legacy_code 가 그 다리다. 화면이 임의로 「Q + T」를 만들지 않는다.
+   ★0명일 수 있다(개발팀 D). 그때 「없음」과 「권한없음」을 섞지 않는다 — 호출한 쪽이 구별한다. */
+async function pmFetchPeopleOfDept(legacyCode) {
+  var q = edmsClient.from('edms_profiles').select('id,name,role,dept_code,is_exec,is_ceo');
+  if (legacyCode) q = q.eq('dept_code', legacyCode);
+  var r = await q.order('name', { ascending: true });
+  if (r.error) throw await pmErr('edms_profiles(dept)', r.error);
+  return r.data || [];
+}
+
+/* S1 ⑩ 번호 미리보기 — ★시퀀스를 소비하지 않는 전용 함수를 부른다.
+   ★pm_next_initiative_code 를 부르면 미리보기만 해도 번호가 탄다(실측 확인). */
+async function pmPeekInitiativeCode(deptChar) {
+  var r = await edmsClient.rpc('pm_peek_initiative_code', { p_dept: deptChar });
+  if (r.error) throw await pmErr('pm_peek_initiative_code', r.error);
+  return r.data;
+}
+
+/* S2 과제 대장 · S3 과제 상세 */
+async function pmFetchInitiatives() {
+  var r = await edmsClient.from('pm_initiatives')
+    .select('initiative_code,initiative_name,owner_dept_char,owner,origin,'
+          + 'req_over_1month,req_separate_budget,req_multi_dept,req_met,'
+          + 'decision,decision_basis,decision_at,decision_by,output_handling,'
+          + 'repeat_group_key,repeat_count,status,ceo_start_approved_at,ceo_end_approved_at,'
+          + 'remark,created_by,created_at')
+    .order('initiative_code', { ascending: false });
+  if (r.error) throw await pmErr('pm_initiatives', r.error);
+  return r.data || [];
+}
+
+async function pmFetchInitiative(code) {
+  var r = await edmsClient.from('pm_initiatives')
+    .select('initiative_code,initiative_name,owner_dept_char,owner,origin,'
+          + 'req_over_1month,req_separate_budget,req_multi_dept,req_met,'
+          + 'decision,decision_basis,decision_at,decision_by,output_handling,'
+          + 'repeat_group_key,repeat_count,status,ceo_start_approved_at,ceo_end_approved_at,'
+          + 'remark,created_by,created_at')
+    .eq('initiative_code', code).maybeSingle();
+  if (r.error) throw await pmErr('pm_initiatives(one)', r.error);
+  return r.data;           /* ★없으면 null — 화면이 「없음」과 「권한없음」을 구별한다 */
+}
+
+/* 이 과제에 딸린 2층 프로젝트 (S3 허브에서 보여 준다) */
+async function pmFetchProjectsOfInitiative(code) {
+  var r = await edmsClient.from('pm_projects')
+    .select('project_code,project_name,status,lifecycle_phase,current_gate,owner,owner_dept')
+    .eq('initiative_code', code).is('archived_at', null)
+    .order('project_code', { ascending: true });
+  if (r.error) throw await pmErr('pm_projects(of initiative)', r.error);
+  return r.data || [];
+}
+
+/* ★내가 쓸 수 있는가 — pm_can_edit() 과 같은 기준(admin 또는 임원).
+   ★화면이 기준을 다시 쓰지 않는다. DB 함수를 그대로 부른다. */
+async function pmCanEdit() {
+  var r = await edmsClient.rpc('pm_can_edit');
+  if (r.error) throw await pmErr('pm_can_edit', r.error);
+  return r.data === true;
+}
+
+/* ── 1층 서류 (S4·S5·S6) 조회 ───────────────────────────────────────── */
+async function pmFetchInitiativeDocs(code) {
+  var r = await edmsClient.from('pm_initiative_docs')
+    .select('doc_id,initiative_code,doc_type,seq,status,output_handling,submit_to,submit_target_date,'
+          + 'planned_start,planned_end,separate_budget,verify_result,verify_reason,'
+          + 'redesignated_handling,redesignate_reason,'
+          + 'close_c1,close_c2,close_c3,close_c4,close_c5,close_c6,close_c7,close_c8,'
+          + 'close_na_reason,result_summary,followup_item,approval_id,created_by,created_at')
+    .eq('initiative_code', code)
+    .order('doc_id', { ascending: true });
+  if (r.error) throw await pmErr('pm_initiative_docs', r.error);
+  return r.data || [];
+}
+
+/* 이 과제에 걸린 결재 (1층) — 서류함의 「상태」는 여기서 온다. 서류 표에 다시 적지 않는다. */
+async function pmFetchInitiativeApprovals(code) {
+  var r = await edmsClient.from('pm_v_my_approvals')
+    .select('approval_id,initiative_code,entity_type,title,status,drafter_name,approver_name,'
+          + 'submitted_at,approved_at,my_turn,created_at')
+    .eq('initiative_code', code)
+    .order('created_at', { ascending: false });
+  if (r.error) throw await pmErr('pm_v_my_approvals(1층)', r.error);
+  return r.data || [];
+}
