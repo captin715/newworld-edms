@@ -410,6 +410,19 @@ async function pmFetchProjectsOfInitiative(code) {
   return r.data || [];
 }
 
+/* ★아직 1층 과제에 안 붙은 2층 프로젝트 — S3 「연결」 자리가 고를 목록.
+   ★근거 : 판정 MST2-20260830-008 §4-② 「묶음 B 를 기다리지 말고 S3 에 연결 한 자리를 임시로 연다」
+   ★실측 2026-08-30 : pm_projects 7행 ★전건 initiative_code IS NULL — 003 만의 일이 아닙니다.
+   ★보관된 것(archived_at)은 뺍니다 — 끝난 것을 새로 붙일 일은 없습니다. */
+async function pmFetchUnlinkedProjects() {
+  var r = await edmsClient.from('pm_projects')
+    .select('project_code,project_name,status,type_char')
+    .is('initiative_code', null).is('archived_at', null)
+    .order('project_code', { ascending: true });
+  if (r.error) throw await pmErr('pm_projects(unlinked)', r.error);
+  return r.data || [];
+}
+
 /* ★내가 쓸 수 있는가 — pm_can_edit() 과 같은 기준(admin 또는 임원).
    ★화면이 기준을 다시 쓰지 않는다. DB 함수를 그대로 부른다. */
 async function pmCanEdit() {

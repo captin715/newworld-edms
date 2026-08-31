@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>진입경로 — 프로젝트관리 실앱 v1</title>
+<link rel="stylesheet" href="pm-app.css">
+</head>
+<body>
+<!-- ════════════════════════════════════════════════════════════════════
+     X0 진입경로 — 화면정의서 V3.7 슬라이드 12 (요소 7개) · 슬라이드 8 공통규칙 여덟
+     · 착수 지시 MST2-20260828-024
+     · ★색은 묻지 않는다 — CI 화면표준 V1.1 이 정본이다 (#E2AD33 · #2A2824 · #4579BD · #F5F2EA)
+     · ★대문은 갈래가 아니다 (요소 7) — 종전 다섯 갈래에서 「관리」 안에 들어가 있던 대문을 뺐다.
+     · ★빈 링크를 걸지 않는다 (지시 §4) — 없는 화면은 자리만 두고 「준비 중」으로 잠근다.
+     · ★DB 쓰기 0 — 이 화면은 pm_can_edit() 을 부르는 것 말고는 아무 것도 하지 않는다.
+     ════════════════════════════════════════════════════════════════════ -->
+<header id="edmsHeader" data-system="project"></header>
+
+<!-- ★공통규칙 1 — 헤더 노랑(#E2AD33) + 먹색(#2A2824) -->
+<header class="mk pm">
+  <h1>프로젝트관리 시스템 <small>진입경로 — 들어오는 문 (X0)</small></h1>
+  <div class="userbox">
+    <span id="who">세션 확인 중…</span>
+    <span class="role-badge" id="roleBadge">—</span>
+  </div>
+</header>
+
+<main>
+  <!-- ★공통규칙 5·6 — 결재선과 기준 시점을 화면 머리에 명기한다 -->
+  <div class="mk-note approval-note">
+    이 화면은 <b>들어오는 문</b>입니다 — <b>결재가 없습니다</b>. 게이트 승인자는
+    <b>게이트 정의(pm_gate_defs)</b>가 정하며 <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지).
+    <b>갈래의 정본</b>은 <b>화면정의서 V3.7 슬라이드 12</b>(X0)이고,
+    색은 <b>CI 화면표준 V1.1</b>입니다. <b>1회 로그인 · 세션 공유</b> — 시스템을 오갈 때 다시 로그인하지 않습니다.
+  </div>
+  <div class="crumbs">뉴월드 EDMS &nbsp;›&nbsp; <b>프로젝트관리 시스템</b></div>
+
+  <div id="state"></div>
+
+  <!-- ═══ 요소 1 · 시스템 타일 3장 ═══ -->
+  <div class="panel">
+    <h2>시스템 <span class="float" style="font-size:12px;color:#8894a8">1회 로그인 · 세션 공유</span></h2>
+    <div class="pm-tiles">
+      <a class="pm-tile sys-docs" href="docs.html">
+        <div class="t-title">문서관리 시스템</div>
+        <div class="t-desc">양식·절차서의 제정과 개정. 문서 축입니다.</div>
+        <div class="t-go">들어가기 →</div>
+      </a>
+      <a class="pm-tile sys-recs" href="records.html">
+        <div class="t-title">기록관리 시스템</div>
+        <div class="t-desc">양식으로 쓴 기록의 등재와 보관. 기록 축입니다.</div>
+        <div class="t-go">들어가기 →</div>
+      </a>
+      <span class="pm-tile sys-prj focus" id="tile-prj">
+        <div class="t-title">프로젝트관리 시스템</div>
+        <div class="t-desc">과제와 프로젝트. <b>지금 이 화면</b>입니다.</div>
+        <div class="t-go">아래 갈래 넷에서 고르십시오</div>
+        <div class="t-mgmt" id="tile-prj-perm">권한 확인 중…</div>
+      </span>
+    </div>
+    <div class="count-info">
+      세 시스템은 <b>서로를 대신하지 않습니다</b>(W-16) — 축을 섞어 인용하면 무효입니다.
+    </div>
+  </div>
+
+  <!-- ═══ 요소 2~5 · 갈래 넷 ═══ -->
+  <div class="panel">
+    <h2>갈래 넷 <span class="float" style="font-size:12px;color:#8894a8">대문은 갈래가 아닙니다</span></h2>
+
+    <!-- ── 갈래 ① 1층 과제 ── -->
+    <div class="lane" id="lane1">
+      <div class="lane-h"><span class="lane-no">①</span> 1층 과제 <span class="lane-sub">INI — 아직 프로젝트가 아닌 것</span></div>
+      <div class="lane-btns">
+        <a class="btn primary big" href="pm-ini-list.html">과제 대장 <span class="scr">S2</span></a>
+        <a class="btn ghost big" id="btn-s1" href="pm-ini-new.html">+ 새 과제 <span class="scr">S1</span></a>
+      </div>
+      <div class="lane-note" id="lane1-note">새 과제는 <b>S1</b>에서 등록하고, 등록된 것은 <b>S2 대장</b>에 쌓입니다.
+        판정은 <b>성립 3요건</b>에서 자동으로 나옵니다 — 사람이 고르지 않습니다.</div>
+    </div>
+
+    <!-- ── 갈래 ② 2층 프로젝트 ── -->
+    <div class="lane" id="lane2">
+      <div class="lane-h"><span class="lane-no">②</span> 2층 프로젝트 <span class="lane-sub">PRJ — 착수 승인 뒤 내려온 것</span></div>
+      <div class="lane-btns">
+        <a class="btn primary big" href="pm-list.html">프로젝트 대장 <span class="scr">L1</span></a>
+      </div>
+      <div class="lane-note">1층 과제(INI)와 2층 프로젝트(PRJ)는 <b>다른 대장</b>입니다 — 섞지 않습니다.</div>
+    </div>
+
+    <!-- ── 갈래 ③ 조망 ── -->
+    <div class="lane" id="lane3">
+      <div class="lane-h"><span class="lane-no">③</span> 조망 <span class="lane-sub">전 프로젝트를 한눈에</span></div>
+      <table class="x0-tbl">
+        <thead><tr><th>화면</th><th>무엇을 보는가</th><th class="w-now">지금</th></tr></thead>
+        <tbody id="tb-view"></tbody>
+      </table>
+    </div>
+
+    <!-- ── 갈래 ④ 관리 ── -->
+    <div class="lane" id="lane4">
+      <div class="lane-h"><span class="lane-no">④</span> 관리 <span class="lane-sub">바탕이 되는 값</span></div>
+      <table class="x0-tbl">
+        <thead><tr><th>화면</th><th>무엇을 하는가</th><th class="w-now">지금</th></tr></thead>
+        <tbody id="tb-admin"></tbody>
+      </table>
+      <div class="lane-note">★<b>대문은 갈래가 아닙니다.</b> 종전에는 이 「관리」 안에 대문이 들어가 다섯 갈래였습니다 —
+        대문은 <b>들어오는 문</b>이지 갈 곳이 아니므로 뺐습니다(V3.7 슬라이드 12 요소 7).</div>
+    </div>
+  </div>
+
+  <!-- ═══ 요소 6 · 권한 안내 ═══ -->
+  <div class="panel">
+    <h2>권한 안내 <span class="float" style="font-size:12px;color:#8894a8">표시 전용 — 고칠 수 없습니다</span></h2>
+    <div id="perm-box"><div class="banner info">권한을 확인하는 중입니다…</div></div>
+    <div class="count-info">
+      ★<b>잠긴 이유를 글로 적습니다.</b> 회색으로만 두면 다음 사람이 「고장」으로 읽고,
+      고장으로 읽으면 우회할 길을 찾습니다.
+    </div>
+  </div>
+
+  <!-- 공통규칙 여덟 가운데 이 화면에 해당하지 않는 것도 적는다 — 빈칸으로 두지 않는다 -->
+  <div class="mk-note">
+    <b>이 화면에 해당하지 않는 공통 규칙</b> — ②금액 칸·④자동 값의 입력 금지·⑦칸 옆 오류 표시는
+    <b>이 화면에 입력 칸이 없어</b> 걸리는 자리가 없습니다. ⑧읽기/쓰기 셋 가운데
+    이 화면은 <b>내부 조회</b>뿐입니다. ③급 구분은 아래 자물쇠 색으로 씁니다 —
+    <b class="lv-stop">빨강 = 지금 갈 수 없음</b> · <b class="lv-warn">주황 = 갈 수는 있으나 알아 두실 것</b>.
+  </div>
+</main>
+
+<footer class="mk">프로젝트관리 실앱 v1 · 진입경로(X0) · 화면정의서 V3.7 슬라이드 12 · 지시 MST2-20260828-024</footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="edms-config.js"></script>
+<script src="pm-data.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ════════════════════════════════════════════════════════════════
+     ★지금 있는 화면과 아직 없는 화면을 한 자리에서 적는다.
+       here  = 이 배포에 실제로 파일이 있는 것만 true.
+       ★없는 것에 빈 링크를 걸지 않는다 (지시 §4).
+     ★번호(L2·L6…)는 화면정의서 V3.7 제3부 목차가 정본이다.
+       옛 08-18 화면(간트·게이트 현황 보드·진도 표·연결 보기)은 그 목차의
+       번호를 아직 받지 않았다 — ★번호를 여기서 지어 붙이지 않는다.
+     ════════════════════════════════════════════════════════════════ */
+  var VIEW = [
+    { no:'L2', name:'전사 간트',            what:'전 프로젝트의 일정을 한 줄씩',        file:null },
+    { no:'L3', name:'내 할 일 · 결재함',     what:'나에게 걸린 것만',                    file:null },
+    { no:'L4', name:'지연 · 위험 보드',      what:'늦은 것과 늦을 것',                   file:null },
+    { no:'L5', name:'예산 · 비목 현황',      what:'쓴 것과 남은 것',                     file:null },
+    { no:'L6', name:'게이트 보드',           what:'전 프로젝트 × 전 게이트 격자',        file:null }
+  ];
+  var ADMIN = [
+    { no:'H1', name:'휴무일 관리',           what:'영업일 셈의 바탕. 날짜 계산이 여기서 나옵니다', file:null },
+    { no:'X1', name:'참여자 초대 · 권한',    what:'초대는 계정을 만드는 일과 다릅니다',            file:null }
+  ];
+  /* ★번호를 아직 받지 않은 옛 화면 — 있는 것은 있다고 적는다(규칙 9) */
+  var OLD = [
+    { name:'간트 (일정 · 임계경로)', file:'pm-gantt.html' },
+    { name:'게이트 현황 보드',       file:'pm-gates.html' },
+    { name:'전 프로젝트 진도 표',    file:'pm-progress.html' },
+    { name:'연결 보기',              file:'pm-links.html' }
+  ];
+
+  function rowsOf(list, tbId) {
+    var h = '';
+    list.forEach(function (s) {
+      var cell = s.file
+        ? '<a class="btn" href="' + pmEsc(s.file) + '">열기</a>'
+        : '<span class="lock-tag lv-stop" title="아직 만들지 않았습니다">🔒 준비 중</span>';
+      h += '<tr><td><b>' + pmEsc(s.no) + '</b> ' + pmEsc(s.name) + '</td>'
+         + '<td>' + pmEsc(s.what) + '</td>'
+         + '<td>' + cell + '</td></tr>';
+    });
+    $(tbId).innerHTML = h;
+  }
+  rowsOf(VIEW, 'tb-view');
+  rowsOf(ADMIN, 'tb-admin');
+
+  /* 옛 화면 줄 — 조망 갈래 아래에 따로 붙인다. 번호를 지어 붙이지 않는다. */
+  (function () {
+    var h = '<div class="lane-note"><b>번호가 아직 붙지 않은 옛 화면</b>(08-18 판) — '
+          + '화면정의서 V3.7 제3부 목차에 아직 번호가 없습니다. '
+          + '<b>번호를 여기서 지어 붙이지 않고</b>, 있는 그대로 이름으로 답니다.<br>';
+    OLD.forEach(function (s, i) {
+      h += (i ? ' · ' : '') + '<a href="' + pmEsc(s.file) + '">' + pmEsc(s.name) + '</a>';
+    });
+    h += '</div>';
+    var d = document.createElement('div');
+    d.innerHTML = h;
+    $('lane3').appendChild(d.firstChild);
+  })();
+
+  /* ════════════════════════════════════════════════════════════════
+     요소 6 · 권한 안내 — pm_can_edit() 을 그대로 부른다.
+     ★화면이 기준을 다시 쓰지 않는다 (W-17 · 값 V3.0 권한판정).
+     ★막히면 왜 막혔는지 사람 눈까지 알린다 (M-49 · 조용한 실패 0건).
+     ════════════════════════════════════════════════════════════════ */
+  function lockS1(why, tail) {
+    var b = $('btn-s1');
+    if (!b) return;
+    /* ★href 를 지웁니다 — 빈 링크(href="#")를 걸지 않습니다. 눌러도 아무 데도 가지 않습니다. */
+    b.removeAttribute('href');
+    b.setAttribute('data-locked', '1');
+    b.classList.add('is-locked');
+    b.title = why;
+    $('lane1-note').innerHTML =
+        '<span class="lv-stop">🔒 <b>[+ 새 과제]가 잠겼습니다</b> — ' + pmEsc(why) + '</span><br>'
+      + tail;
+  }
+
+  (async function init() {
+    var authed = await pmFillSession();
+
+    if (!authed) {
+      $('state').innerHTML = pmStateBox('A');
+      $('tile-prj-perm').textContent = '로그인 세션 없음 — 관리 동작이 잠깁니다';
+      $('perm-box').innerHTML =
+          '<div class="banner crit"><b class="lv-stop">[차단] 로그인 세션이 없습니다</b><br>'
+        + '지금은 <code>anon</code> 역할입니다. RLS 는 권한이 없을 때 <b>오류가 아니라 0행</b>으로 답합니다 — '
+        + '화면이 비어 보여도 <b>「없음」이 아니라 「권한 없음」</b>일 수 있습니다.<br>'
+        + '<b>먼저 로그인하십시오.</b></div>';
+      lockS1('로그인 세션이 없습니다',
+        '★<b>대장도 비어 보일 수 있습니다</b> — anon 은 RLS 가 0행으로 답합니다. '
+      + '「없음」이 아니라 <b>「권한 없음」</b>입니다.');
+      return;
+    }
+
+    var can = null, err = null;
+    try { can = await pmCanEdit(); } catch (e) { err = e; }
+
+    if (err) {
+      /* ★권한 확인이 실패한 것을 「권한 없음」으로 바꿔 적지 않는다 — 다른 사실이다 */
+      $('tile-prj-perm').textContent = '권한을 확인하지 못했습니다';
+      $('perm-box').innerHTML =
+          '<div class="banner warn"><b class="lv-warn">[경고] 권한을 확인하지 못했습니다</b><br>'
+        + pmEsc(err.message) + (err.pgCode ? ' <code>' + pmEsc(err.pgCode) + '</code>' : '') + '<br>'
+        + '★<b>권한이 없다는 뜻이 아닙니다</b> — 물어보지 못했다는 뜻입니다. '
+        + '조회 화면은 그대로 열려 있습니다.</div>';
+      lockS1('권한을 확인하지 못했습니다 (권한이 없다는 뜻이 아닙니다)',
+        '과제 대장(S2)은 <b>그대로 열려 있습니다</b>. 잠긴 것은 <b>등록</b>뿐입니다.');
+      return;
+    }
+
+    if (can) {
+      $('tile-prj-perm').textContent = '관리 동작 이용 가능 — 과제 등록 · 서류 작성 · 상신';
+      $('perm-box').innerHTML =
+          '<div class="banner info"><b>이 계정은 과제를 등록할 수 있습니다.</b><br>'
+        + '기준은 <code>pm_can_edit()</code> 하나입니다 — '
+        + '<code>role=\'admin\'</code> 또는 <code>is_exec</code> 또는 <code>can_use_pm</code>. '
+        + '<b>화면이 기준을 다시 쓰지 않습니다</b>(W-17).<br>'
+        + '★<b>승인권자 계정으로는 등록을 누르지 마십시오.</b> 작성자가 로그인 계정으로 박히고 '
+        + '<b>되돌릴 수 없습니다</b> — 승인권자가 작성자가 되면 그 승인은 무효입니다.</div>';
+    } else {
+      $('tile-prj-perm').textContent = '조회 전용 — 관리 동작이 잠깁니다';
+      $('perm-box').innerHTML =
+          '<div class="banner warn"><b class="lv-warn">[잠김] 이 계정은 과제를 등록할 수 없습니다.</b><br>'
+        + '기준은 <code>pm_can_edit()</code> 하나입니다 — '
+        + '<code>role=\'admin\'</code> 또는 <code>is_exec</code> 또는 <code>can_use_pm</code>. '
+        + '셋 가운데 <b>어느 것도 참이 아닙니다</b>.<br>'
+        + '<b>여는 길</b> — 관리자가 <code>edms_profiles.can_use_pm</code> 을 켜면 열립니다. '
+        + '<b>조회는 그대로 열려 있습니다</b> — 대장과 조망은 보실 수 있습니다.</div>';
+      lockS1('이 계정은 과제 등록 권한이 없습니다 (can_use_pm 이 꺼져 있습니다)',
+        '과제 대장(S2)은 <b>읽을 수 있습니다</b>. 잠긴 것은 <b>등록</b>뿐입니다.');
+    }
+  })();
+})();
+</script>
+</body>
+</html>

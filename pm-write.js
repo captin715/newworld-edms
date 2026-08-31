@@ -173,3 +173,46 @@ async function pmSubmitInitiativeDoc(o) {
   if (link.error) throw await pmErr('pm_initiative_docs(approval 연결)', link.error);
   return link.data;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   ★2층 프로젝트를 1층 과제에 붙이기 / 떼기 — S3 「연결」 자리 (임시)
+   ★판정 MST2-20260830-008 §4-② · ★정본 길은 S14 내려보내기(묶음 B)입니다.
+     이 자리는 ★S14 가 열릴 때까지의 임시 우회입니다 — 화면에도 그렇게 적혀 있습니다.
+   ★손으로 붙인 것은 ★손으로 뗄 수 있어야 합니다. 그래서 둘을 함께 냅니다
+     — 되돌릴 수 없는 걸음을 만들지 않습니다.
+   ★권한은 DB 가 정합니다 — pm_projects UPDATE 정책 = pm_can_edit() (실측 2026-08-30).
+     화면이 기준을 다시 쓰지 않습니다(W-17).
+   ★쓰는 칸은 initiative_code ★하나뿐입니다. 다른 칸은 건드리지 않습니다.
+   ════════════════════════════════════════════════════════════════════════ */
+async function pmLinkProjectToInitiative(projectCode, initiativeCode) {
+  if (!projectCode || !initiativeCode) throw new Error('[연결] 프로젝트와 과제를 모두 골라 주십시오');
+  var r = await edmsClient.from('pm_projects')
+    .update({ initiative_code: initiativeCode })
+    .eq('project_code', projectCode)
+    .is('initiative_code', null)            /* ★이미 붙은 것을 말없이 옮기지 않습니다 */
+    .select('project_code,initiative_code');
+  if (r.error) throw await pmErr('pm_projects(연결)', r.error);
+  /* ★0행이 돌아오는 두 경우를 가릅니다 — 권한 없음 / 그 사이 누가 먼저 붙임 */
+  if (!r.data || !r.data.length) {
+    var e = new Error('[연결] 붙이지 못했습니다 — 권한이 없거나, 그 사이 다른 사람이 먼저 붙였습니다. '
+                    + '화면을 새로 고쳐 지금 상태를 보십시오.');
+    e.where = 'pm_projects(연결)';
+    throw e;
+  }
+  return r.data[0];
+}
+
+async function pmUnlinkProject(projectCode) {
+  if (!projectCode) throw new Error('[연결 해제] 프로젝트를 고르지 못했습니다');
+  var r = await edmsClient.from('pm_projects')
+    .update({ initiative_code: null })
+    .eq('project_code', projectCode)
+    .select('project_code,initiative_code');
+  if (r.error) throw await pmErr('pm_projects(연결 해제)', r.error);
+  if (!r.data || !r.data.length) {
+    var e = new Error('[연결 해제] 떼지 못했습니다 — 권한이 없을 수 있습니다.');
+    e.where = 'pm_projects(연결 해제)';
+    throw e;
+  }
+  return r.data[0];
+}
