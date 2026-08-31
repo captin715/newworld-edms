@@ -15,6 +15,7 @@
 <header id="edmsHeader" data-system="project"></header>
 
 <header class="mk pm">
+  <a class="mk-home" href="index.html" title="대문으로 돌아갑니다"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"/></svg>대문</a>
   <h1>프로젝트관리 시스템 <small>종료보고서 — 1층 N7</small></h1>
   <div class="userbox">
     <span id="who">세션 확인 중…</span>
@@ -23,13 +24,13 @@
 </header>
 
 <main>
-  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <a href="pm-ini-list.html">과제 대장</a>
-    &nbsp;›&nbsp; <a id="crumb-back" href="#">과제 상세</a> &nbsp;›&nbsp; <b>종료보고서</b></div>
+  <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <a href="pm-ini-list.html">과제 대장</a>
+    &nbsp;›&nbsp; <a id="crumb-back" href="pm-ini-list.html">과제 상세</a> &nbsp;›&nbsp; <b>종료보고서</b></div>
 
   <div id="state"></div>
 
   <div class="panel" id="panel" style="display:none">
-    <div class="mk-note approval-note">결재선은 <b>현행확정 조직·결재선 참조표</b>가 정합니다 — <b>화면에 값을 박지 않습니다</b>(W-17). 이 화면은 <b>상신까지</b>입니다. 승인되면 과제 상태가 「종결」이 됩니다.</div>
+    <div class="mk-note approval-note">상신 <b>부대표</b> → 승인 <b>대표이사</b> · 승인되면 과제 상태가 「종결」이 됩니다.</div>
     <h2 id="ttl">종료보고서</h2>
     <div class="count-info" id="sub"></div>
 
@@ -180,8 +181,12 @@
     $('btn-submit').disabled = true; $('btn-draft').disabled = true;
     try {
       if (submitting) {
+        /* ★결함 6번 — 결재선 세 값을 실어 보냅니다 (지시 MST2-20260830-014 §1).
+           ★작성자와 승인자는 pm-write.js 가 ★DB 에서 읽습니다 — 화면이 적지 않습니다(W-17).
+           ★주관 부서만 화면이 아는 값이라 함께 넘깁니다(과제의 한 글자 → 두 글자는 DB 표가 옮깁니다). */
         await pmSubmitInitiativeDoc({
           initiative_code: CODE, doc_type: '종료보고서',
+          owner_dept_char: INI ? INI.owner_dept_char : null,
           doc_id: DOC ? DOC.doc_id : null, fields: collect()
         });
       } else {

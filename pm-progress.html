@@ -25,6 +25,7 @@
 
 <!-- ★header class="mk pm" — 프로젝트관리 화면 = 노랑 띠 + 먹색 글자(㉯ 확정 2026-08-11) -->
 <header class="mk pm">
+  <a class="mk-home" href="index.html" title="대문으로 돌아갑니다"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"/></svg>대문</a>
   <h1>프로젝트관리 시스템 <small>전 프로젝트 진도 표 — 실앱 v1(읽기 전용)</small></h1>
   <div class="userbox">
     <span id="who">세션 확인 중…</span>
@@ -35,7 +36,7 @@
 <main>
   <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
   <div class="mk-note" id="ribbon"></div>
-  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <b>전 프로젝트 진도 표</b></div>
+  <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <b>전 프로젝트 진도 표</b></div>
   <div class="mk-note" id="calcNote"></div>
   <div id="state"></div>
   <div id="tableBox"></div>

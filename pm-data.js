@@ -423,6 +423,84 @@ async function pmFetchUnlinkedProjects() {
   return r.data || [];
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   결재선 세 값을 ★DB 에서 읽어 옵니다 — 결함 6번 (지시 MST2-20260830-014 §1)
+   ★화면이 결재자를 적지 않습니다 (W-17 · 결재자 하드코딩 금지).
+   ★없으면 null 로 넘기지 않고 ★왜 없는지 말합니다 (M-49 · 조용한 실패 0건).
+     null 결재행이 생기면 pm_v_approval_detail 의 my_turn 이 영영 안 뜹니다 —
+     상신한 사람은 보냈다고 믿고, 승인할 사람은 온 줄을 모릅니다.
+   ★실측 2026-08-31 : pm_approval_lines 는 entity_type='계획서' ★3행뿐입니다.
+     과제서류 3종(착수 승인서·결과 검증서·종료보고서) 줄은 ★아직 없습니다.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* 지금 로그인한 사람의 id — drafter_id 로 씁니다 */
+async function pmCurrentUserId() {
+  var sres = await edmsClient.auth.getSession();
+  var sess = sres && sres.data && sres.data.session;
+  if (!sess || !sess.user || !sess.user.id) {
+    var e = new Error('[작성자] 로그인 세션이 없습니다 — 작성자를 적을 수 없습니다.');
+    e.where = 'auth.getSession'; e.authed = false;
+    throw e;
+  }
+  return sess.user.id;
+}
+
+/* 직위 문면(person_name) → 계정 id.
+   ★edms_profiles.name 에 직위가 앉아 있는 것이 현 단계 정본입니다(부대표 확정 2026-08-27). */
+async function pmProfileIdByName(personName) {
+  if (!personName) return null;
+  var r = await edmsClient.from('edms_profiles').select('id,name').eq('name', personName);
+  if (r.error) throw await pmErr('edms_profiles(이름으로 계정 찾기)', r.error);
+  if (!r.data || !r.data.length) return null;
+  if (r.data.length > 1) {
+    /* ★한 직위에 사람이 둘 이상이면 이름 체계로 옮겨야 합니다(값 V3.0 직위정본.전환조건).
+       ★그때까지는 ★고르지 않고 멈춥니다 — 둘 중 하나를 화면이 고르면 그것이 거짓이 됩니다. */
+    var e = new Error('[결재선] 「' + personName + '」 계정이 ' + r.data.length + '개입니다 — '
+                    + '화면이 고르지 않습니다. 직위+이름 체계로 옮길 때입니다.');
+    e.where = 'edms_profiles(중복)';
+    throw e;
+  }
+  return r.data[0].id;
+}
+
+/* 서류 종류의 결재선 — pm_approval_lines 가 정본입니다.
+   반환 {found:bool, approver_name, approver_id, reviewer_name, reviewer_id, 사유} */
+async function pmDocApprovalLine(docType) {
+  var r = await edmsClient.from('pm_approval_lines')
+    .select('entity_type,step,person_name,source_ref').eq('entity_type', docType);
+  if (r.error) throw await pmErr('pm_approval_lines', r.error);
+  var rows = r.data || [];
+  if (!rows.length) {
+    return { found:false, 사유:'대장(pm_approval_lines)에 「' + docType + '」 결재선이 없습니다' };
+  }
+  function nameOf(step) {
+    var hit = rows.filter(function (x) { return x.step === step; })[0];
+    return hit ? hit.person_name : null;
+  }
+  var apName = nameOf('승인'), rvName = nameOf('검토');
+  if (!apName) {
+    return { found:false, 사유:'「' + docType + '」 결재선에 ★승인 단이 없습니다' };
+  }
+  var apId = await pmProfileIdByName(apName);
+  if (!apId) {
+    return { found:false, 사유:'승인자 「' + apName + '」 의 계정이 edms_profiles 에 없습니다' };
+  }
+  return { found:true, approver_name:apName, approver_id:apId,
+           reviewer_name:rvName, reviewer_id: rvName ? await pmProfileIdByName(rvName) : null,
+           source_ref: rows[0].source_ref || null };
+}
+
+/* 과제의 주관 부서 → pm_approvals.owner_dept_code 가 받는 꼴(두 글자)로.
+   ★실측 CHECK : owner_dept_code IN ('QT','CT','MT','DT')
+   ★과제는 한 글자(Q·M·C·D)로 들고 있어 pm_dept_codes 로 옮깁니다 — 화면이 표를 다시 쓰지 않습니다. */
+async function pmDeptLegacyOf(deptChar) {
+  if (!deptChar) return null;
+  var r = await edmsClient.from('pm_dept_codes')
+    .select('dept_char,legacy_code').eq('dept_char', deptChar);
+  if (r.error) throw await pmErr('pm_dept_codes', r.error);
+  return (r.data && r.data.length) ? r.data[0].legacy_code : null;
+}
+
 /* ★내가 쓸 수 있는가 — pm_can_edit() 과 같은 기준(admin 또는 임원).
    ★화면이 기준을 다시 쓰지 않는다. DB 함수를 그대로 부른다. */
 async function pmCanEdit() {

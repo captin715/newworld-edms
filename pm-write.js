@@ -152,6 +152,44 @@ async function pmSaveInitiativeDoc(o) {
 /* ★상신 — 서류를 「상신」으로 굳히고 결재를 만든다.
    ★서류가 먼저다. 서류가 CHECK 에 걸리면 결재를 만들지 않는다(빈 결재 방지). */
 async function pmSubmitInitiativeDoc(o) {
+  /* ══ 결함 6번 시정 (지시 MST2-20260830-014 §1) ═══════════════════════════
+     ★종전에는 세 값을 || null 로 받아 ★알맹이 없는 결재행을 만들었습니다.
+       pm_v_approval_detail 은 approver_id = auth.uid() 로 「내 차례」를 고르므로
+       ★상신해도 승인하실 분 화면에 뜨지 않습니다.
+       보낸 사람은 보냈다고 믿고, 받을 사람은 온 줄을 모릅니다 — 가장 나쁜 실패입니다.
+     ★그래서 세 값을 ★DB 에서 읽어 싣고, ★못 읽으면 아예 만들지 않습니다.
+     ★값을 화면이 짓지 않습니다 (W-17).
+     ★서류는 이미 저장돼 있습니다 — 상신만 멈춥니다. 쓰신 것은 사라지지 않습니다.
+     ══════════════════════════════════════════════════════════════════════ */
+  var line = await pmDocApprovalLine(o.doc_type);
+  if (!line.found) {
+    var e0 = new Error('[상신] 결재선이 없어 상신하지 않았습니다 — ' + line.사유 + '.\n'
+      + '★임의로 비워 두고 보내면 승인하실 분 화면에 뜨지 않습니다. 그래서 멈췄습니다.\n'
+      + '★쓰신 내용은 저장돼 있습니다 — 결재선이 등재되면 그대로 상신하시면 됩니다.');
+    e0.where = 'pm_approval_lines(결재선 없음)';
+    e0.needsLine = o.doc_type;
+    throw e0;
+  }
+  var drafterId = await pmCurrentUserId();
+  if (drafterId === line.approver_id) {
+    /* ★DB CHECK(drafter_ne_approver)가 어차피 막습니다. 막히기 전에 뜻을 적습니다. */
+    var e1 = new Error('[상신] 작성자와 승인자가 같은 계정입니다 (' + (line.approver_name || '') + ').\n'
+      + '★승인권자가 작성자가 되면 그 승인은 무효입니다. 작성은 실무 계정으로 하십시오.');
+    e1.where = 'W-10/승인권자 자기결재';
+    throw e1;
+  }
+  if (line.reviewer_id && drafterId === line.reviewer_id) {
+    /* ★DB CHECK(w10_drafter_ne_reviewer)가 어차피 막습니다. 막히기 전에 뜻을 적습니다.
+       ★실측 2026-08-31 — 「결과 검증서」의 검토는 품질팀장입니다.
+         품질팀장이 그 서류를 쓰면 여기에 걸립니다. 「고장」이 아니라 규칙입니다. */
+    var e2 = new Error('[상신] 작성자와 검토자가 같은 계정입니다 (' + (line.reviewer_name || '') + ').\n'
+      + '★자기가 쓴 것을 자기가 검토할 수 없습니다 (W-10). 다른 계정으로 작성하십시오.');
+    e2.where = 'W-10/자기검토';
+    throw e2;
+  }
+  var deptCode = o.owner_dept_code || await pmDeptLegacyOf(o.owner_dept_char);
+
+  /* ★서류가 먼저입니다 — 서류가 CHECK 에 걸리면 결재를 만들지 않습니다(빈 결재 방지) */
   var saved = await pmSaveInitiativeDoc(Object.assign({}, o, { status: '상신' }));
   var a = await edmsClient.from('pm_approvals').insert({
     initiative_code : o.initiative_code,
@@ -159,9 +197,10 @@ async function pmSubmitInitiativeDoc(o) {
     entity_ref      : String(saved.doc_id),
     title           : o.doc_type + ' · ' + o.initiative_code,
     status          : '작성중',
-    drafter_id      : o.drafter_id || null,
-    approver_id     : o.approver_id || null,
-    owner_dept_code : o.owner_dept_code || null
+    drafter_id      : drafterId,
+    approver_id     : line.approver_id,
+    reviewer_id     : line.reviewer_id || null,
+    owner_dept_code : deptCode || null
   }).select().single();
   if (a.error) {
     var e = await pmErr('pm_approvals(1층 insert)', a.error);

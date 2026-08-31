@@ -610,6 +610,16 @@ header.edms-nav.docs { background:var(--docs); } header.edms-nav.recs { backgrou
 .gate-tile.docs { background:linear-gradient(135deg,var(--docs),var(--docs-d)); }
 .gate-tile.recs { background:linear-gradient(135deg,#1c5c4f,#154438); }
 .gate-tile.est { background:linear-gradient(135deg,#7a2e5e,#5c2247); }
+/* ★프로젝트관리 — 노랑 (판정 MST2-20260831-003 · 부대표 확정 2026-08-31)
+   ★CI 화면표준 V1.1 이 정본이다. 프로젝트관리 = #E2AD33 노랑 + #2A2824 먹색.
+   ★대문 타일과 안쪽 머리 띠가 같은 색이어야 한다 — X0(pm-entry.html)가 이미 노랑이다.
+   ★.est 를 고치지 않고 ★새 갈래를 더한다 — .gate-tile.est 는 docs-gate.html:55
+     (문서양식 제정 타일)도 쓴다. 그 규칙을 고치면 그 타일까지 노랑이 된다.
+   ★노랑 위에는 먹색만 쓴다 — 흰 글자는 2.05:1 로 읽히지 않는다(SHALL NOT). */
+.gate-tile.prj { background:linear-gradient(135deg,#E2AD33,#C9932A); color:#2A2824; }
+.gate-tile.prj .t-title, .gate-tile.prj .t-desc,
+.gate-tile.prj .t-go,    .gate-tile.prj .t-lock { color:#2A2824; }
+.gate-tile.prj .t-lock { background:rgba(42,40,36,.18); }
 .gate-tile:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(31,56,100,.22); }
 .gate-tile.locked { opacity:.62; cursor:not-allowed; } .gate-tile.locked:hover { transform:none; }
 .gate-tile .t-ico { width:36px; height:36px; }

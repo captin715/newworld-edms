@@ -468,3 +468,34 @@ table.std th.sticky-col { background:#2A2824; }
   .x0-tbl .w-now { width:auto; }
   .lane-btns { flex-direction:column; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   돌아가는 길 — 판정 MST2-20260831-002 §1 (부대표 실물 화면 지적 2026-08-31)
+   ★사람은 들어간 뒤 반드시 나옵니다. 나올 길이 없으면 브라우저 뒤로가기를 쓰고,
+     그러면 화면 상태가 어긋나고 저장 안 된 것이 사라집니다.
+   ★자리와 모양은 라이브 대문·문서관리와 같게 맞춥니다
+     — common.js mountHeader 의 ico('home') + 「대문」 (common.css .nav-btn).
+     같은 일을 하는 단추가 시스템마다 다르게 생기면 그것도 길을 잃게 합니다.
+   ★노랑 머리(#E2AD33) 위이므로 글자·테두리는 ★먹색입니다 — 흰색은 읽히지 않습니다.
+   ══════════════════════════════════════════════════════════════════════ */
+header.mk .mk-home {
+  display:inline-flex; align-items:center; gap:5px; margin-right:12px;
+  padding:5px 11px; border-radius:7px; font-size:12px; text-decoration:none;
+  white-space:nowrap; flex:0 0 auto;
+  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.55); color:#fff;
+}
+header.mk .mk-home:hover { background:rgba(255,255,255,.26); }
+header.mk .mk-home .ico { width:14px; height:14px; }
+/* 노랑 머리 위 — 먹색으로 뒤집습니다 (CI 화면표준 V1.1 · 흰 글자 금지) */
+header.mk.pm .mk-home {
+  background:rgba(42,40,36,.10); border-color:rgba(42,40,36,.45); color:#2A2824;
+}
+header.mk.pm .mk-home:hover { background:rgba(42,40,36,.20); }
+
+/* 빵부스러기 — 마디가 눌리는 것임을 보이게 (판정 §1-나 · §2) */
+.crumbs a { color:#4579BD; text-decoration:underline; }
+.crumbs a:hover { color:#2A2824; }
+
+/* 다음 걸음이 눌리는 것임을 보이게 — 판정 MST2-20260831-002 §2 */
+.go-link { color:#4579BD; text-decoration:underline; }
+table.std tbody tr:hover .go-link { color:#2A2824; }

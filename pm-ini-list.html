@@ -15,6 +15,7 @@
 <header id="edmsHeader" data-system="project"></header>
 
 <header class="mk pm">
+  <a class="mk-home" href="index.html" title="대문으로 돌아갑니다"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"/></svg>대문</a>
   <h1>프로젝트관리 시스템 <small>과제 대장 — 1층</small></h1>
   <div class="userbox">
     <span id="who">세션 확인 중…</span>
@@ -25,7 +26,7 @@
 <main>
   <div class="mk-note">이 대장은 <b>1층 과제(INI)</b>입니다. 2층 <b>프로젝트(PRJ)</b>는
     <a href="pm-list.html">프로젝트 대장</a>에 있습니다 — 서로를 대신하지 않습니다.</div>
-  <div class="crumbs">프로젝트관리 시스템 &nbsp;›&nbsp; <b>과제 대장</b></div>
+  <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <b>과제 대장</b></div>
 
   <div id="state"></div>
 
@@ -38,6 +39,7 @@
       <a class="btn primary big" id="btn-new" href="pm-ini-new.html">+ 새 과제</a>
     </div>
     <div class="count-info" id="sub"></div>
+    <div class="count-info" id="next-hint"></div>
 
     <div class="table-wrap">
       <table class="std">
@@ -79,7 +81,10 @@
       /* ★미판정은 경상이 아닙니다. 세 값을 눈으로도 가릅니다. */
       var dcls = isPrj ? 'dstat-blue' : (r.decision === '경상' ? 'dstat-gray' : 'dstat-orange');
       h += '<tr data-code="' + pmEsc(r.initiative_code) + '" title="상세 열기 — ' + pmEsc(r.initiative_code) + '">'
-         + '<td class="sticky-col c1"><b>' + pmEsc(r.initiative_code) + '</b></td>'
+         /* ★판정 MST2-20260831-002 §2 — 「눌러서 가는 것」임을 사람이 알 수 있게 적습니다.
+            줄 전체가 눌리지만, ★눌린다는 것이 보이지 않으면 아무도 누르지 않습니다.
+            번호를 ★파랑 + 밑줄로 두어 「여기가 다음 걸음」임을 눈으로 알립니다. */
+         + '<td class="sticky-col c1"><b class="go-link">' + pmEsc(r.initiative_code) + '</b></td>'
          + '<td class="title-cell">' + pmVal(r.initiative_name) + '</td>'
          + '<td>' + pmEsc(r.owner_dept_char) + '</td>'
          + '<td>' + pmVal(r.owner) + '</td>'
@@ -103,6 +108,11 @@
                          + (nEtc ? ' · 값역 밖 ' + nEtc : '')
                          + ' (합 ' + ROWS.length + ') — 미판정은 경상이 아닙니다. '
                          + '판정은 성립 3요건에서 나옵니다';
+    /* ★다음 걸음을 글로도 적습니다 — 색만으로는 못 보시는 분이 있습니다 */
+    var hint = document.getElementById('next-hint');
+    if (hint) hint.innerHTML = ROWS.length
+      ? '★<b>과제 번호를 누르면 상세(S3)</b>로 갑니다 — 거기서 <b>착수 승인서(S4)</b>를 씁니다.'
+      : '';
 
     Array.prototype.forEach.call($('tb').querySelectorAll('tr[data-code]'), function (tr) {
       tr.addEventListener('click', function () {
