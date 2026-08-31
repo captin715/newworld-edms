@@ -266,7 +266,9 @@
       + '<textarea id="reasonText" style="width:100%;min-height:70px;padding:10px 12px;border:1.5px solid #d5dbe7;border-radius:7px;font-size:14px;font-family:inherit" placeholder="사유를 입력하세요"></textarea>'
       + '<button class="pw-submit" id="reasonOk">확인</button><div class="pw-msg" id="reasonMsg" style="color:#c0392b"></div></div></div></div>'
       + '<div id="pwModal"><div class="pw-box"><div class="pw-head"><h3>비밀번호 변경</h3><button id="pwClose">닫기</button></div>'
-      + '<div class="pw-body"><label>현재 비밀번호</label><input type="password" id="pwCur" autocomplete="current-password">'
+      + '<div class="pw-body">'
+      + '<input type="text" id="pwWho" name="pw_account" autocomplete="username" readonly tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">'
+      + '<label>현재 비밀번호</label><input type="password" id="pwCur" autocomplete="current-password">'
       + '<label>새 비밀번호</label><input type="password" id="pwNew" autocomplete="new-password">'
       + '<label>새 비밀번호 확인</label><input type="password" id="pwNew2" autocomplete="new-password">'
       + '<div class="pw-note">8자 이상, 영문과 숫자를 섞어 쓰시길 권장합니다. 변경 후 새 비밀번호로 다시 로그인하세요.</div>'
@@ -276,7 +278,8 @@
       html += '<div id="reauthModal"><div class="pw-box"><div class="pw-head"><h3>본인 확인</h3><button id="reauthCancel">닫기</button></div>'
         + '<div class="pw-body"><div class="pw-note" id="reauthWho" style="margin-top:0"></div>'
         + '<div class="pw-note" id="reauthWhy"></div>'
-        + '<label>비밀번호</label><input type="password" id="reauthPw" name="reauth_pw" autocomplete="current-password">'
+        + '<input type="text" id="reauthWhoAcct" name="reauth_account" autocomplete="username" readonly tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">'
+      + '<label>비밀번호</label><input type="password" id="reauthPw" name="reauth_pw" autocomplete="current-password">'
         + '<button class="pw-submit" id="reauthOk">확인</button><div class="pw-msg" id="reauthMsg"></div></div></div></div>'
         + '<div id="idleModal"><div class="pw-box"><div class="pw-head"><h3>자동 로그아웃</h3><button id="idleClose">닫기</button></div>'
         + '<div class="pw-body"><div class="pw-note" style="margin-top:0">1분 뒤 자동으로 로그아웃됩니다.</div>'
@@ -413,6 +416,12 @@
   function bindPw(ctx) {
     var pwBtn = document.getElementById('pwBtn'); if (!pwBtn) return;
     var pwModal = document.getElementById('pwModal');
+    /* ㉯ 초안 — 계정 칸에 ★실제 계정을 넣는다. 빈 칸이면 브라우저가 무시할 수 있다.
+       ★ctx 로 받는다 — 주입 시점에는 window.EDMS.session 이 아직 없다(1차 초안의 결함). */
+    var _acct = (ctx && ctx.session && ctx.session.user && ctx.session.user.email) || '';
+    ['pwWho', 'reauthWhoAcct'].forEach(function (id) {
+      var e = document.getElementById(id); if (e) e.value = _acct;
+    });
     var closePw = function () { pwModal.classList.remove('open'); pwHideAll(); };   /* ★C절: 닫으면 숨김 복귀 */
     ['pwCur', 'pwNew', 'pwNew2'].forEach(pwToggle);                                  /* ★C절: 보기 토글 3칸 */
     pwBtn.addEventListener('click', function () { ['pwCur', 'pwNew', 'pwNew2'].forEach(function (id) { document.getElementById(id).value = ''; }); document.getElementById('pwMsg').textContent = ''; pwModal.classList.add('open'); });
@@ -441,14 +450,17 @@
     var session = sess && sess.data && sess.data.session;
     if (!session) { location.replace('login.html'); return null; }
     var profile = null;
-    try { var pr = await edmsClient.from('edms_profiles').select('name, role, dept').eq('id', session.user.id).maybeSingle(); profile = pr.data; } catch (e) { }
+    try { var pr = await edmsClient.from('edms_profiles').select('name, role, dept, dept_code, is_exec, is_ceo').eq('id', session.user.id).maybeSingle(); profile = pr.data; } catch (e) { }
     var myRole = (profile && profile.role) || 'general';
     var myName = (profile && profile.name) || session.user.email;
     var myDept = (profile && profile.dept) || null;
+    var myDeptCode = (profile && profile.dept_code) || null;
+    var myIsExec = !!(profile && profile.is_exec);   /* 임원 — 역할이 아니라 DB 열 */
+    var myIsCeo  = !!(profile && profile.is_ceo);
     var isAdmin = myRole === 'admin';
     var isSuperOrig = false;
     try { var tr = await edmsClient.from('edms_transition').select('enabled, super_originator_id').maybeSingle(); isSuperOrig = !!(tr.data && tr.data.enabled && tr.data.super_originator_id === session.user.id); } catch (e) { }
-    var ctx = { session: session, profile: profile, myRole: myRole, myName: myName, myDept: myDept, isAdmin: isAdmin, isSuperOrig: isSuperOrig, ROLE_LABEL: ROLE_LABEL, escHtml: escHtml, esc: esc, askReason: askReason, ico: ico, ICONS: ICONS, SYS: SYS };
+    var ctx = { session: session, profile: profile, myRole: myRole, myName: myName, myDept: myDept, myDeptCode: myDeptCode, myIsExec: myIsExec, myIsCeo: myIsCeo, isAdmin: isAdmin, isSuperOrig: isSuperOrig, ROLE_LABEL: ROLE_LABEL, escHtml: escHtml, esc: esc, askReason: askReason, ico: ico, ICONS: ICONS, SYS: SYS };
     injectSharedModals();
     mountHeader(ctx);
     bindViewer(ctx);
@@ -456,6 +468,7 @@
     var lg = document.getElementById('logoutBtn'); if (lg) lg.addEventListener('click', async function () { await edmsClient.auth.signOut(); location.replace('login.html'); });
     // 시스템 스크립트가 쓰는 전역 노출(포팅 코드가 bare 이름 사용)
     window.session = session; window.myRole = myRole; window.myName = myName; window.myDept = myDept;
+    window.myDeptCode = myDeptCode; window.myIsExec = myIsExec; window.myIsCeo = myIsCeo;
     window.isAdmin = isAdmin; window.isSuperOrig = isSuperOrig; window.ROLE_LABEL = ROLE_LABEL;
     window.escHtml = escHtml; window.esc = esc; window.askReason = askReason;
     window.stepper = stepper;                    // ★공통 승격분(판정 20260816_15 §1)

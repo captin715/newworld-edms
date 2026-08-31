@@ -265,8 +265,10 @@ EDMS.ready.then(async function (ctx) {
   document.getElementById("loading").style.display = "none";
   document.getElementById("content").style.display = "";
 
-    // 역할 플래그 (approver=대표/임원, reviewer=품질팀장, admin=관리자)
-    const isExec = myRole === 'approver';
+    // 역할 플래그 (approver=대표이사, reviewer=품질팀장, admin=관리자)
+    // ★임원은 역할이 아니라 DB 열(is_exec)로 판정 — 공사본부장도 임원이다
+    const isExec = myIsExec;                     // 임원 열람
+    const isCeoApprover = myRole === 'approver'; // 대표 2차 승인권 (종전 isExec 의 승인 몫)
     const isQmLead = myRole === 'reviewer';
     const canRegisterRec = isAdmin || isQmLead;          // 기록 등재·대체
     const canVoidRec = isAdmin || isQmLead;              // 기록 폐기
@@ -423,9 +425,9 @@ EDMS.ready.then(async function (ctx) {
       const tiles = [
         { ico: 'list', title: '기록 목록', desc: `부서별 관리함의 기록 낱장 조회·검색 (${cnt}건)`, nav: 'recordPanel', on: true },
         { ico: 'view', title: '기록 열람(상세)', desc: '메타데이터 + 참조복사본 열람(감사 기록)', nav: 'recordPanel', on: true },
-        { ico: 'plus', title: '기록 등재', desc: '문서철(관리함)에 신규 기록 낱장 편철', act: 'reg', on: canRegisterRec, lock: '관리자 권한 필요' },
+        { ico: 'plus', title: '기록 등재', desc: '문서철(관리함)에 신규 기록 낱장 편철', act: 'reg', on: canRegisterRec, lock: '관리자 또는 품질팀장만 등재할 수 있습니다' },
         { ico: 'dist', title: '배포 신청', desc: '기록 상세에서 사본을 정식 경로로 신청', nav: 'distMinePanel', on: !isAdmin, lock: '관리자는 직접 다운로드' },
-        { ico: 'approve', title: '배포 승인', desc: (isExec ? '대표 2차 승인 대기 처리' : '관리자 1차 승인 대기 처리'), nav: 'distApprovalPanel', on: (isAdmin || isExec), lock: '승인권자 전용' },
+        { ico: 'approve', title: '배포 승인', desc: (isCeoApprover ? '대표 2차 승인 대기 처리' : '관리자 1차 승인 대기 처리'), nav: 'distApprovalPanel', on: (isAdmin || isCeoApprover), lock: '승인권자 전용' },
         { ico: 'dept', title: '부서(관리함) 추가', desc: '부서·문서철 신설(코드 C/Q/D/M/G/E/R/S)', nav: 'recDeptPanel', on: isAdmin, lock: '관리자 전용' },
         { ico: 'list', title: '양식 대장', desc: '등재된 양식(W-FR)·문서철번호 조회', nav: 'recFormRegPanel', on: true },
       ];
@@ -1023,7 +1025,7 @@ EDMS.ready.then(async function (ctx) {
 
     // ── (F-1) 배포 승인 대기 ──
     async function loadDistApprovals() {
-      if (!(isAdmin || isExec)) return;
+      if (!(isAdmin || isCeoApprover)) return;
       const panel = document.getElementById('distApprovalPanel'); panel.style.display = '';
       const { data, error } = await edmsClient.from('edms_distributions').select('*').limit(500);
       if (error) { console.warn('배포 승인 대기 조회 실패:', error.message); return; }
@@ -1061,7 +1063,7 @@ EDMS.ready.then(async function (ctx) {
           (p1.map(r => card(r, 'p1')).join('') + toIssue.map(r => card(r, 'issue')).join(''))
           || '<div class="dist-empty">처리 대기 중인 배포 신청이 없습니다.</div>';
       }
-      if (isExec) {
+      if (isCeoApprover) {
         const p2 = rows.filter(r => ['대표승인대기', '관리자승인'].includes(pick(r, ['status'], '')));
         const sec = document.getElementById('daPending2'); sec.style.display = '';
         document.getElementById('daP2Cnt').textContent = `(${p2.length})`;
@@ -1102,7 +1104,7 @@ EDMS.ready.then(async function (ctx) {
     // ── (F-2) 배포대장 ──
     let ledgerRows = [];
     async function loadDistLedger() {
-      if (!(isAdmin || isExec)) return;
+      if (!(isAdmin || isCeoApprover)) return;
       document.getElementById('distLedgerPanel').style.display = '';
       const { data, error } = await edmsClient.from('edms_distributions').select('*').order('created_at', { ascending: false }).limit(1000);
       if (error) { document.getElementById('dlBody').innerHTML = `<tr><td colspan="13" class="dist-empty">배포대장을 불러오지 못했습니다.</td></tr>`; console.warn(error.message); return; }
@@ -1231,12 +1233,12 @@ EDMS.ready.then(async function (ctx) {
     if (canSeeVoidToggle) document.getElementById('recVoidToggleWrap').style.display = '';
     renderGateTiles();
     // 노출 헬퍼를 폴링에서 재사용하도록 상위 스코프에 등록
-    window.__recRefresh = async () => { await loadRecords(); if (!isAdmin) await loadDistMine(); if (isAdmin || isExec) { await loadDistApprovals(); await loadDistLedger(); } };
+    window.__recRefresh = async () => { await loadRecords(); if (!isAdmin) await loadDistMine(); if (isAdmin || isCeoApprover) { await loadDistApprovals(); await loadDistLedger(); } };
     await loadFolders();
     await loadRecords();
     setupDeptAdd();
     if (!isAdmin) await loadDistMine();
-    if (isAdmin || isExec) { await loadDistApprovals(); await loadDistLedger(); }
+    if (isAdmin || isCeoApprover) { await loadDistApprovals(); await loadDistLedger(); }
   
   setInterval(function () { if (document.visibilityState === "visible" && typeof window.__recRefresh === "function") window.__recRefresh(); }, 15000);
 });

@@ -173,7 +173,6 @@ EDMS.ready.then(async function (ctx) {
   // 공통 shell 전역: session·myRole·myName·myDept·isAdmin·isSuperOrig·escHtml·esc·askReason·openViewer·openPdfModal·ROLE_LABEL
   const $ = (id) => document.getElementById(id);
   const myId = session.user.id;
-  const isExec = myRole === 'approver';
   const canEst = myRole !== 'general';          // 진입: 작성·검토·승인 권한자(일반 부서원 잠금)
   const loading = $('loading'), body = $('body');
   loading.style.display = 'none'; body.style.display = '';
