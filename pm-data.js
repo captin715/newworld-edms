@@ -293,10 +293,16 @@ async function pmFetchApprovalDetail(projectCode) {
     .select('approval_id,project_code,project_name,entity_type,entity_ref,title,status,'
           + 'drafter_name,reviewer_name,approver_name,review_comment,approve_comment,reject_reason,'
           + 'drafted_at,submitted_at,reviewed_at,approved_at,body_path,n_attach,max_security,my_turn,'
-          /* ★M-49 (판정 MST2-20260822_92 §1) — 「왜 그렇게 됐는지」를 화면이 볼 수 있어야 한다.
-             ★axis_source='기본값' 이면 축을 대응표에서 못 찾아 유도한 것이고,
-             ★unchecked_notes 는 가드가 「대조하지 못한 것」을 적어 둔 자리다. */
-          + 'axis_code,axis_source,unchecked_notes');
+          /* ★2026-08-31 결함 시정 — ★없는 열 셋을 달라고 해서 이 조회가 ★언제나 실패했습니다.
+             실측 : pm_v_approval_detail 에 axis_code · axis_source · unchecked_notes 가 ★없습니다.
+                    (information_schema 전수 조회 · 0건)
+             ★뜻   결재 목록이 뜬 적이 없습니다. 화면은 목록 대신 오류를 보였습니다.
+                    ★결함 13 「결재함이 빈 채로 선다」의 남은 원인이 이것입니다.
+             ★그 셋은 판정 MST2-20260822_92 §1 이 「뷰에 담자」 한 것인데 ★아직 안 담겼습니다.
+                    담기면 다시 넣습니다 — ★지금은 없는 것을 달라고 하지 않습니다.
+             ★대신 뷰에 ★있는 것을 가져옵니다 — initiative_code · tier · owner_code · owner_name.
+                    이것이 있어야 ★1층 과제 건도 한 자리에서 보입니다. */
+          + 'initiative_code,initiative_name,tier,owner_code,owner_name');
   if (projectCode) q = q.eq('project_code', projectCode);
   var r = await q.order('drafted_at', { ascending: false });
   if (r.error) throw await pmErr('pm_v_approval_detail', r.error);

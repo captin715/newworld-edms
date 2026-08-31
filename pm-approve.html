@@ -47,6 +47,12 @@
   </div>
 </header>
 <main>
+  <div class="mk-note" style="border-color:#e8b931;background:#fdf6e3">
+    ★<b>2026-08-31 임시</b> — 이 화면은 <b>2층 프로젝트 축</b>으로 지었으나,
+    <b>1층 과제서류 건도 함께 보입니다</b>. <b>L3 「내 할 일·결재함」이 서기 전까지의 임시 자리</b>입니다
+    (지시 MST2-20260831-017 §4). <b>줄 첫 칸의 층 배지</b>로 1층·2층을 가르십시오.
+    ★<b>L3 가 서면 1층은 그리로 옮기고 이 화면은 2층으로 돌아갑니다.</b>
+  </div>
   <div class="mk-note approval-note">여기가 <b>프로젝트 축 결재선</b>입니다 — 작성 <b>프로젝트 담당자</b> → 검토 <b>소관 팀장</b> → 승인 <b>부대표</b>. ★<b>축 코드를 적지 않습니다</b> — 축 체계가 확정되기 전까지 코드를 달지 않습니다(폐기값 18 · 2026-08-27). <b>검토 생략은 사유를 적어야 됩니다</b>(동일인일 때 · 판정 MST2-20260822_62 §1). <b>문서 축(양식 제·개정)</b>·<b>기록 축(양식으로 쓴 기록)</b>과 <b>서로를 대신하지 않습니다</b> — 축을 섞어 인용하면 무효입니다(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지) — <b>결재자는 정의와 대조</b>됩니다. (근거: 판정 MST2-20260820_24 §4·§5)</div>
   <div class="mk-note" id="ribbon"></div>
   <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <b>프로젝트 축 결재</b></div>
@@ -131,7 +137,11 @@
       rows.forEach(function (r) {
         var cls = r.status === '승인완료' ? 'done' : (r.status === '반려' ? 'rej' : (r.my_turn ? 'wait' : ''));
         h += '<tr data-row="' + r.approval_id + '" class="' + (r.my_turn ? 'turn' : '') + '">'
-          + '<td>' + pmEsc(r.project_code) + '</td>'
+          /* ★2026-08-31 — 1층 과제 건은 project_code 가 ★비어 있습니다(CHECK: 1층이면 NULL).
+             ★그대로 두면 첫 칸이 빈 줄로 보입니다. 뷰가 주는 owner_code 로 채웁니다.
+             ★층 배지를 함께 답니다 — 한 자리에 모으되 ★섞지 않습니다(W-16). */
+          + '<td><span class="axis">' + pmEsc(r.tier) + '</span><br><b>'
+          + pmEsc(r.owner_code || r.project_code) + '</b></td>'
           + '<td>' + pmEsc(r.entity_type) + '</td>'
           + '<td>' + pmVal(r.entity_ref) + '</td>'
           + '<td>' + pmEsc(r.title) + (r.skip_reason ? '<br><span class="axis">축약사유: ' + pmEsc(r.skip_reason) + '</span>' : '') + '</td>'
@@ -234,17 +244,21 @@
           /* ★M-49 (판정 MST2-20260822_92 §1) — 조용한 실패 0건.
              ★막지 않고 지나간 자리를 DB가 unchecked_notes 에 적어 둔다. 화면은 그것을 숨기지 않는다.
              ★비어 있으면 「전건 대조」라고 적는다 — 빈칸은 「검사 안 함」으로도 읽히기 때문이다. */
-          h += '<div style="margin-top:6px"><b>축</b> ' + pmVal(r.axis_code)
-             + ' <span class="axis">(' + pmVal(r.axis_source) + ')</span>'
-             + (r.axis_source === '기본값'
-                 ? ' <span style="color:#8a5a00">★대응표에서 못 찾아 유도한 값입니다 — 2단 양식이면 틀립니다</span>'
-                 : '')
-             + '</div>';
+          /* ★2026-08-31 — 축 세 값(axis_code·axis_source·unchecked_notes)은 ★뷰에 없습니다.
+             없는 것을 달라고 해서 ★이 화면의 결재 목록이 뜬 적이 없습니다(결함 13).
+             ★지어내지 않습니다 — 대신 ★뷰에 있는 층(tier)과 대상 코드를 보입니다.
+             축 세 값이 뷰에 담기면 그때 이 자리에 되돌립니다. */
+          h += '<div style="margin-top:6px"><b>층</b> ' + pmVal(r.tier)
+             + ' &nbsp;·&nbsp; <b>대상</b> ' + pmVal(r.owner_code) + ' ' + pmVal(r.owner_name)
+             + ' <span class="axis">(축 표시는 뷰에 담긴 뒤 되돌립니다)</span></div>';
+          /* ★2026-08-31 — unchecked_notes 도 ★뷰에 없습니다.
+             ★종전에는 값이 없으면 「없음 — 결재선 전건 대조」라고 적었습니다.
+                그것은 ★거짓입니다 — 대조한 것이 아니라 ★물어보지 못한 것입니다.
+             ★「없다」와 「모른다」를 가릅니다. 열이 담기면 그때 다시 폅니다. */
           h += '<div style="margin-top:4px"><b>대조하지 못한 것</b> '
-             + (r.unchecked_notes
-                 ? '<span style="color:#8a5a00">' + pmEsc(r.unchecked_notes) + '</span>'
-                 : '<span class="axis">없음 — 결재선 전건 대조</span>')
-             + '</div>';
+             + '<span style="color:#8a5a00">확인할 수 없습니다 — '
+             + 'unchecked_notes 열이 아직 뷰(pm_v_approval_detail)에 담기지 않았습니다. '
+             + '「없음」이 아니라 「모름」입니다</span></div>';
           if (!at.length) {
             h += '<div class="noatt" style="margin-top:6px">★첨부 0건입니다 — 근거 없이 누르지 마십시오.</div>';
           } else {

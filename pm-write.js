@@ -210,6 +210,38 @@ async function pmSubmitInitiativeDoc(o) {
   var link = await edmsClient.from('pm_initiative_docs')
     .update({ approval_id: a.data.approval_id }).eq('doc_id', saved.doc_id).select().single();
   if (link.error) throw await pmErr('pm_initiative_docs(approval 연결)', link.error);
+
+  /* ══ 결함 12 시정 — ★상신은 「검토로 보내는 일」입니다 ════════════════════
+     ★종전에는 '작성중' 으로 만들어 두고 끝냈습니다. 그래서 결재가 ★작성중에 갇혔고,
+       그 자리에서 누를 수 있는 것은 「취소」 하나뿐이었습니다.
+     ★사람이 상신을 눌렀는데 다시 한 번 눌러야 하면 그것은 상신이 아닙니다
+       (지시 MST2-20260831-015 §1 ㉮ 채택).
+
+     ★왜 INSERT 에서 곧바로 '검토중' 으로 넣지 않는가 — ★넣을 수 없습니다.
+       실측 2026-08-31 · pm_approval_guard 전이표 :
+           NULL → '작성중'            (INSERT 는 이것만)
+           '작성중' → '검토중'·'취소'·'보류'
+       INSERT 에 '검토중' 을 박으면 ★「허용되지 않은 전이: - → 검토중」 으로 막힙니다.
+     ★그래서 두 걸음입니다. ★그리고 그 편이 옳습니다 —
+       pm_status_transitions 에 ★두 줄이 남아 「만들었다」와 「보냈다」가 따로 보입니다(자취).
+     ★검토중은 reviewer_id 를 요구합니다(가드) — 위에서 이미 실었습니다.
+     ★submitted_at 은 DB 가 찍습니다. 화면이 시각을 적지 않습니다. */
+  var mv = await edmsClient.from('pm_approvals')
+    .update({ status: '검토중' })
+    .eq('approval_id', a.data.approval_id)
+    .select('approval_id,status,submitted_at').single();
+  if (mv.error) {
+    /* ★서류도 결재도 이미 만들어졌습니다. 그 사실을 숨기지 않습니다(M-49).
+       ★사람이 다음에 무엇을 할 수 있는지까지 적습니다. */
+    var e3 = await pmErr('pm_approvals(작성중→검토중)', mv.error);
+    e3.message = '[상신] 결재는 만들어졌으나 ★검토로 보내지 못했습니다.\n'
+      + e3.message + '\n'
+      + '★쓰신 내용과 결재는 남아 있습니다 — 사라지지 않았습니다.\n'
+      + '★지금 상태는 「작성중」입니다. 결재함에서 「검토 요청」으로 이어서 보내실 수 있습니다.';
+    e3.docSaved = saved.doc_id;
+    e3.approvalId = a.data.approval_id;
+    throw e3;
+  }
   return link.data;
 }
 
