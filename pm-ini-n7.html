@@ -8,7 +8,7 @@
 </head>
 <body>
 <!-- ════════════════════════════════════════════════════════════════════
-     S6 종료보고 (N7 · 대표) — 화면정의서 V3.6
+     S6 종료보고 (N7 · 승인 부대표) — 화면정의서 V3.6 · 결재선 판정 MST2-20260901-010
      요소 6 : ①결재선 ②종료조건8 ③결과요약 ④후속이관 ⑤해당없음사유 ⑥상신
      기계가 막는 것 : ② 미충족 1건이라도 있으면 상신 불가 · ⑤ 사유 공란 불가
      ════════════════════════════════════════════════════════════════════ -->
@@ -30,7 +30,7 @@
   <div id="state"></div>
 
   <div class="panel" id="panel" style="display:none">
-    <div class="mk-note approval-note">상신 <b>부대표</b> → 승인 <b>대표이사</b> · 승인되면 과제 상태가 「종결」이 됩니다.</div>
+    <div class="mk-note approval-note">★<b>과제 축</b>(1층) — 작성 <b>과제 담당자</b> → 검토 <b>품질팀장</b> → 승인 <b>부대표</b> · 승인되면 과제 상태가 「종결」이 됩니다. <b>대표이사는 1층에 나오지 않습니다</b> — 2층 게이트 PG0·PG5 에서만 합니다(판정 MST2-20260901-010 §1·§2). ★자리 이름은 <b>pm_approval_lines</b> 가 정합니다(W-17).</div>
     <h2 id="ttl">종료보고서</h2>
     <div class="count-info" id="sub"></div>
 
@@ -69,7 +69,7 @@
         <span class="spacer" id="foot-note"></span>
         <a class="btn ghost big" id="btn-cancel" href="#">취소</a>
         <button type="button" class="btn view big" id="btn-draft">임시 저장</button>
-        <button type="submit" class="btn primary big" id="btn-submit">대표께 상신</button>
+        <button type="submit" class="btn primary big" id="btn-submit">부대표께 상신</button>
       </div>
     </form>
   </div>
@@ -238,7 +238,7 @@
         if (d.doc_type === '결과 검증서') N5 = d;
       });
       if (!(await pmCanEdit())) {
-        $('state').innerHTML = '<div class="banner warn"><b>상신 권한이 없습니다</b> — 관리자 또는 임원만 상신할 수 있습니다.</div>';
+        $('state').innerHTML = '<div class="banner warn"><b>상신 권한이 없습니다</b> — <b>관리자 · 임원 · 프로젝트관리 사용 권한(can_use_pm)</b> 가운데 하나가 있어야 합니다(<code>pm_can_edit()</code> 실측 2026-09-01).</div>';
         $('btn-draft').disabled = true;
         $('foot-note').textContent = '작성 권한 없음';
       }

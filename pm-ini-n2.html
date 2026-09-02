@@ -8,10 +8,10 @@
 </head>
 <body>
 <!-- ════════════════════════════════════════════════════════════════════
-     S4 과제 착수 승인 (N2 · 대표) — 화면정의서 V3.6
+     S4 과제 착수 승인 (N2 · 승인 부대표) — 화면정의서 V3.6 · 결재선 판정 MST2-20260901-010
      요소 7 : ①결재선 ②결과처리 ③제출처·목표일(조건부) ④예상기간 ⑤별도예산 ⑥결재안내 ⑦상신
      들어오는 길 : S3 서류함 「과제 착수 승인서」
-     나가는 길   : ⑦ 상신 → S3 · 대표 승인 시 N3 열림
+     나가는 길   : ⑦ 상신 → S3 · 부대표 승인 시 N3 열림
      기계가 막는 것 : ②미지정 · ③(라인데) 공란 — 상신 불가
      ★최종 판정자는 DB CHECK 입니다. 화면은 미리 알려 줄 뿐입니다.
      ════════════════════════════════════════════════════════════════════ -->
@@ -34,7 +34,7 @@
 
   <div class="panel" id="panel" style="display:none">
     <!-- ① 결재선 표시 -->
-    <div class="mk-note approval-note" id="line1">상신 <b>부대표</b> → 승인 <b>대표이사</b> · 이 화면은 상신까지입니다.</div>
+    <div class="mk-note approval-note" id="line1">★<b>과제 축</b>(1층) — 작성 <b>과제 담당자</b> → 검토 <b>품질팀장</b> → 승인 <b>부대표</b> · 이 화면은 <b>상신까지</b>입니다. <b>대표이사는 1층에 나오지 않습니다</b> — 2층 게이트 PG0·PG5 에서만 합니다(판정 MST2-20260901-010 §1·§2). ★자리 이름은 <b>pm_approval_lines</b> 가 정합니다 — 화면이 결재자를 적지 않습니다(W-17).</div>
     <h2 id="ttl">과제 착수 승인서</h2>
     <div class="count-info" id="sub"></div>
 
@@ -92,14 +92,14 @@
       </div>
 
       <!-- ⑥ 결재 안내 -->
-      <div class="mk-note">대표이사 승인 지점입니다. 부대표는 <b>상신까지</b> 합니다.</div>
+      <div class="mk-note">검토 <b>품질팀장</b> → 승인 <b>부대표</b> · 이 화면은 <b>상신까지</b>입니다.</div>
 
       <!-- ⑦ 상신 -->
       <div class="form-actions">
         <span class="spacer" id="foot-note"></span>
         <a class="btn ghost big" id="btn-cancel" href="#">취소</a>
         <button type="button" class="btn view big" id="btn-draft">임시 저장</button>
-        <button type="submit" class="btn primary big" id="btn-submit">대표께 상신</button>
+        <button type="submit" class="btn primary big" id="btn-submit">부대표께 상신</button>
       </div>
     </form>
   </div>
@@ -219,7 +219,7 @@
     } catch (e) {
       BUSY = false;
       $('btn-submit').disabled = false; $('btn-draft').disabled = false;
-      $('btn-submit').textContent = '대표께 상신'; $('btn-draft').textContent = '임시 저장';
+      $('btn-submit').textContent = '부대표께 상신'; $('btn-draft').textContent = '임시 저장';
       fail(e, submitting ? '상신하지 못했습니다 — 이동하지 않았습니다' : '저장하지 못했습니다');
     }
   }
@@ -255,7 +255,7 @@
 
       if (!(await pmCanEdit())) {
         $('state').innerHTML = '<div class="banner warn"><b>상신 권한이 없습니다</b><br>'
-          + '1층 서류 작성은 <b>관리자 또는 임원</b>에게 열려 있습니다(<code>pm_can_edit()</code>).</div>';
+          + '1층 서류 작성은 <b>관리자 · 임원 · 프로젝트관리 사용 권한(can_use_pm)</b> 가운데 하나에게 열려 있습니다(<code>pm_can_edit()</code> 실측 2026-09-01).</div>';
         $('btn-submit').disabled = true; $('btn-draft').disabled = true;
         $('foot-note').textContent = '작성 권한 없음';
       }

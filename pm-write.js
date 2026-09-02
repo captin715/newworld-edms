@@ -179,14 +179,37 @@ async function pmSubmitInitiativeDoc(o) {
     throw e1;
   }
   if (line.reviewer_id && drafterId === line.reviewer_id) {
-    /* ★DB CHECK(w10_drafter_ne_reviewer)가 어차피 막습니다. 막히기 전에 뜻을 적습니다.
-       ★실측 2026-08-31 — 「결과 검증서」의 검토는 품질팀장입니다.
-         품질팀장이 그 서류를 쓰면 여기에 걸립니다. 「고장」이 아니라 규칙입니다. */
+    /* ★판정 MST2-20260901-010 §5-② 는 「작성자=검토자이면 ★사유(skip_reason)를 적어 검토를 건너뛴다」입니다.
+       ★그러나 2026-09-01 실측 — pm_approvals 에 CHECK 둘이 그대로 있어 ★DB 가 두 길을 다 막습니다.
+         pm_approvals_w10_drafter_ne_reviewer : (drafter_id IS NULL OR reviewer_id IS NULL OR drafter_id <> reviewer_id)
+         pm_approvals_no_skip_for_now         : (skip_reason IS NULL)
+       ★가드 함수(pm_approval_guard)는 §5 대로 이미 고쳐졌으나 CHECK 가 그 앞에서 잘라 냅니다.
+       ★그래서 지금은 ★막습니다 — 「사유를 적으면 된다」고 적으면 ★거짓이 됩니다.
+       ★CHECK 둘이 풀리면 이 자리를 사유 입력으로 바꿉니다. (신고 : PMD → 마스터 2026-09-01) */
     var e2 = new Error('[상신] 작성자와 검토자가 같은 계정입니다 (' + (line.reviewer_name || '') + ').\n'
-      + '★자기가 쓴 것을 자기가 검토할 수 없습니다 (W-10). 다른 계정으로 작성하십시오.');
+      + '★자기가 쓴 것을 자기가 검토할 수 없습니다 (W-10).\n'
+      + '★판정 MST2-20260901-010 §5-② 는 「사유를 적고 건너뛴다」이나, ★DB CHECK 둘'
+      + '(pm_approvals_w10_drafter_ne_reviewer · pm_approvals_no_skip_for_now)이 아직 그대로여서\n'
+      + '★지금은 사유를 적어도 들어가지 않습니다. ★다른 계정으로 작성하십시오.');
     e2.where = 'W-10/자기검토';
     throw e2;
   }
+  /* ★직무분리 셋째 — 검토자 ≠ 승인자 (값 V4.2 · 판정 MST2-20260901-013 §1)
+     ★한 사람이 두 자리를 잡으면 자기가 본 것을 자기가 다시 보는 것이라 결재가 아닙니다.
+     ★가드(pm_approval_guard)가 2026-09-01 부터 막습니다 — 막히기 전에 뜻을 적습니다.
+     ★이 검사는 결재선(pm_approval_lines) 자체가 잘못 세워졌을 때 걸립니다.
+       사람이 고칠 수 있는 자리가 아니므로 ★어디를 고쳐야 하는지까지 적습니다. */
+  if (line.reviewer_id && line.approver_id && line.reviewer_id === line.approver_id) {
+    var e3 = new Error('[상신] 결재선의 검토자와 승인자가 같은 계정입니다 ('
+      + (line.approver_name || '') + ').\n'
+      + '★한 사람이 두 자리를 잡지 않습니다 — 그 결재는 결재가 아닙니다 (값 V4.2 · 직무분리).\n'
+      + '★이것은 「' + o.doc_type + '」의 ★결재선이 잘못 세워진 것입니다 — 상신하는 분이 고칠 수 없습니다.\n'
+      + '★pm_approval_lines 의 「' + o.doc_type + '」 검토·승인 두 줄을 마스터창_02 가 고쳐야 합니다.');
+    e3.where = '직무분리/검토=승인';
+    e3.needsLine = o.doc_type;
+    throw e3;
+  }
+
   var deptCode = o.owner_dept_code || await pmDeptLegacyOf(o.owner_dept_char);
 
   /* ★서류가 먼저입니다 — 서류가 CHECK 에 걸리면 결재를 만들지 않습니다(빈 결재 방지) */
