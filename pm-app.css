@@ -499,3 +499,34 @@ header.mk.pm .mk-home:hover { background:rgba(42,40,36,.20); }
 /* 다음 걸음이 눌리는 것임을 보이게 — 판정 MST2-20260831-002 §2 */
 .go-link { color:#4579BD; text-decoration:underline; }
 table.std tbody tr:hover .go-link { color:#2A2824; }
+
+
+/* ═══ ★내 할 일 띠 — X0 와 L3 가 ★같은 CSS 를 쓴다 (지시 MST2-20260902-019 §3-3)
+   ★사본을 두 벌 만들지 않는다 — 두 벌이면 하나가 늙는다.
+   ★강조는 먹색 #2A2824 굵게. 노랑은 ★배경으로만(판정 MST2-20260902-014 §1).
+   ★폐기값(#4579BD·#2d7d6a)을 새로 심지 않는다(판정 MST2-20260902-001 §2). ═══ */
+.todo-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; }
+.todo-bar .lead { font-size:13px; font-weight:bold; color:#2A2824; align-self:center; margin-right:4px; }
+.todo { display:block; min-width:132px; padding:9px 14px; border:1px solid #d8d5cf; background:#fff;
+        text-decoration:none; color:#2A2824; }
+.todo .k { font-size:12px; color:#5a564c; }
+.todo .v { font-size:19px; font-weight:bold; margin-top:2px; color:#2A2824; }
+.todo.hot  { background:#fffdf6; border-color:#E2AD33; }
+.todo.stop { background:#fbe2e0; border-color:#B03A2E; }
+.todo.stop .v, .todo.stop .k { color:#8c1d13; }
+.todo.zero .v { font-size:15px; font-weight:normal; color:#8a8578; }
+.todo-none { font-size:13px; font-weight:bold; color:#2A2824; align-self:center;
+             background:#f4f2ec; border:1px solid #d8d5cf; padding:10px 16px; }
+.todo-none small { font-weight:normal; color:#5a564c; margin-left:8px; }
+
+
+/* ═══ ★잠정본 띠 — 규약 MST2-20260902-022 §2 (전 화면 공통)
+   ★한 곳에만 둡니다. 두 벌이면 하나가 늙습니다.
+   ★노랑은 배경으로만, 글자는 먹색 굵게(판정 MST2-20260902-014 §1). ═══ */
+.prov { background:#E2AD33; color:#2A2824; padding:9px 18px; font-size:13px; line-height:1.6; }
+.prov b { font-weight:bold; }
+.prov-step { display:inline-block; margin-left:8px; padding:1px 9px; background:#2A2824; color:#fff;
+             font-size:11px; font-weight:bold; }
+.prov-note { display:block; font-size:12px; margin-top:3px; }
+.tag-ask  { display:inline-block; padding:0 6px; background:#2A2824; color:#fff; font-size:11px; font-weight:bold; }
+.tag-site { display:inline-block; padding:0 6px; background:#B03A2E; color:#fff; font-size:11px; font-weight:bold; }

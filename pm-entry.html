@@ -27,6 +27,14 @@
   </div>
 </header>
 
+<!-- ★잠정본 줄 — 규약 MST2-20260902-022 §2. ★이 줄이 없으면 반려됩니다. -->
+<div class="prov">
+  <b>잠정본</b> — 현장 실무자 검증 전입니다. <b>써 보고 고칠 것을 알려 주십시오.</b>
+  <span class="prov-step">잠정</span>
+  <span class="prov-note">L2·L4·L5·L6 은 <b>아직 잠겨 있습니다</b> —
+    <b>L3 하나만</b> 열었습니다(지시 MST2-20260902-019 §4).
+    L2 는 <b>이정표(pm_milestones)가 0행</b>이라 그릴 것이 없습니다 — <b>화면이 아니라 자료 문제</b>입니다.</span>
+</div>
 <main>
   <!-- ★공통규칙 5·6 — 결재선과 기준 시점을 화면 머리에 명기한다 -->
   <div class="mk-note approval-note">
@@ -38,6 +46,14 @@
   <div class="crumbs"><a href="index.html">뉴월드 EDMS</a> &nbsp;›&nbsp; <b>프로젝트관리 시스템</b></div>
 
   <div id="state"></div>
+
+  <!-- ═══ ★내 할 일 띠 — 시스템 타일 ★위 (지시 MST2-20260902-019 §3-3 · 014 §3-3)
+       ★0건이면 「지금 하실 것 없습니다」로 ★분명히 보이게.
+       ★비어 있는 것과 안 불러온 것이 ★같아 보이면 안 됩니다 — 셋을 가려 적습니다. ═══ -->
+  <div class="panel">
+    <h2>내 할 일 <span class="float" style="font-size:12px;color:#5a564c">L3 결재함으로 갑니다</span></h2>
+    <div class="todo-bar" id="todobar"><span class="todo-none">세는 중…</span></div>
+  </div>
 
   <!-- ═══ 요소 1 · 시스템 타일 3장 ═══ -->
   <div class="panel">
@@ -149,7 +165,9 @@
      ════════════════════════════════════════════════════════════════ */
   var VIEW = [
     { no:'L2', name:'전사 간트',            what:'전 프로젝트의 일정을 한 줄씩',        file:null },
-    { no:'L3', name:'내 할 일 · 결재함',     what:'나에게 걸린 것만',                    file:null },
+    /* ★2026-09-02 잠금 해제 — 지시 MST2-20260902-019 §3-1.
+       ★부대표께서 이 화면을 보시고 「다섯이 전부 잠겨 결재함을 찾지 못했다」 하셨습니다. */
+    { no:'L3', name:'내 할 일 · 결재함',     what:'나에게 걸린 것만',                    file:'pm-inbox.html' },
     { no:'L4', name:'지연 · 위험 보드',      what:'늦은 것과 늦을 것',                   file:null },
     { no:'L5', name:'예산 · 비목 현황',      what:'쓴 것과 남은 것',                     file:null },
     { no:'L6', name:'게이트 보드',           what:'전 프로젝트 × 전 게이트 격자',        file:null }
@@ -213,7 +231,50 @@
       + tail;
   }
 
+
+  /* ★내 할 일 띠 — 뷰가 my_turn 을 판정한다. 화면이 다시 세지 않는다.
+     ★셋을 가려 적는다 : 0건 / 로그인 안 됨 / 못 읽음.
+       ★「비어 있는 것」과 「안 불러온 것」이 같아 보이면 안 됩니다(지시 MST2-20260902-014 §3-3). */
+  async function drawTodo() {
+    var b = document.getElementById('todobar');
+    if (!b) return;
+    try {
+      var ss = await edmsClient.auth.getSession();
+      var uid = ss && ss.data && ss.data.session && ss.data.session.user && ss.data.session.user.id;
+      if (!uid) { b.innerHTML = '<span class="todo-none">로그인 뒤에 보입니다'
+        + '<small>내 차례는 로그인한 사람으로만 가려집니다</small></span>'; return; }
+      var r = await edmsClient.from('pm_v_my_approvals')
+        .select('approval_id,status,drafter_id,my_turn');
+      if (r.error) throw r.error;
+      var rows = r.data || [];
+      var mine = rows.filter(function (x) { return x.my_turn; }).length;
+      var sent = rows.filter(function (x) {
+        return x.drafter_id === uid && ['승인완료','취소'].indexOf(x.status) < 0; }).length;
+      var rej  = rows.filter(function (x) {
+        return x.drafter_id === uid && x.status === '반려'; }).length;
+      if (!mine && !sent && !rej) {
+        b.innerHTML = '<span class="todo-none">지금 하실 것 없습니다'
+          + '<small>내 차례 0 · 내가 올린 것 0 · 반려 0</small></span>';
+        return;
+      }
+      var h = '<span class="lead">내 할 일</span>';
+      if (rej) h += '<a class="todo stop" href="pm-inbox.html"><div class="k">반려된 것</div><div class="v">'
+                  + rej + '건</div></a>';
+      h += '<a class="todo ' + (mine ? 'hot' : 'zero') + '" href="pm-inbox.html"><div class="k">내 차례</div>'
+         + '<div class="v">' + (mine ? mine + '건' : '없음') + '</div></a>';
+      h += '<a class="todo ' + (sent ? 'hot' : 'zero') + '" href="pm-inbox.html"><div class="k">내가 올린 것</div>'
+         + '<div class="v">' + (sent ? sent + '건' : '없음') + '</div></a>';
+      if (!rej) h += '<a class="todo zero" href="pm-inbox.html"><div class="k">반려된 것</div><div class="v">없음</div></a>';
+      b.innerHTML = h;
+    } catch (e) {
+      /* ★못 읽은 것을 「0건」으로 적지 않는다 — 조용한 실패 금지(M-49) */
+      b.innerHTML = '<span class="todo-none" style="border-color:#B03A2E;background:#fbe2e0">'
+        + '세지 못했습니다 <small>' + pmEsc((e && e.message) || String(e)) + '</small></span>';
+    }
+  }
+
   (async function init() {
+    drawTodo();
     var authed = await pmFillSession();
 
     if (!authed) {
