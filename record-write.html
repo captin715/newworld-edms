@@ -96,6 +96,16 @@
   .rec-write-foot { flex-direction:column; align-items:flex-start; }
 }
 .rec-write-apv > div, .rec-write-tbl, .rec-write-note { min-width:0; }
+/* ★열람 전용 — 목록표(.rec-std)의 「한 줄·말줄임(…)·고정 폭」을 열람 안에서만 풉니다
+   (부대표 지적 2026-09-27: 세부 목표·성공기준·이해관계자 칸의 글자가 「…」로 잘려 검토가 무의미)
+   ★목록 화면의 표 모양은 그대로 둡니다 — #readBody 안에만 겁니다. */
+#readBody table.rec-std { table-layout:auto; min-width:0; width:100%; }
+#readBody table.rec-std th, #readBody table.rec-std td {
+  white-space:normal; overflow:visible; text-overflow:clip;
+  word-break:keep-all; overflow-wrap:anywhere; vertical-align:top; line-height:1.55; }
+#readBody table.rec-std th { position:static; box-shadow:none; }
+#readBody table.rec-std td code { white-space:normal; }
+#readBody .table-wrap { overflow-x:auto; }
 </style>
 </head>
 <body>
