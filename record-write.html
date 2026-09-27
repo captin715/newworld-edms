@@ -723,7 +723,42 @@
     if (v === false || v == null || v === '') return '<span style="color:#aaa">—</span>';
     if (Array.isArray(v)) return esc(v.join(', '));
     if (typeof v === 'object') return esc(JSON.stringify(v));
-    return esc(String(v)).replace(/\n/g, '<br>');
+    return readText(String(v));
+  }
+
+  /* ★열람에서 글 안의 표를 표로 보이게 (부대표 지적 2026-09-27 — 목표·성공기준 칸의 표가 「| # | … |」 글자로 깨져 보임)
+     ★값은 그대로 두고 ★보여 주는 모양만 바꿉니다. 모든 글자는 먼저 esc() 로 막습니다(태그 주입 없음).
+     ★「|」로 시작하는 줄이 둘 이상 이어지고 둘째 줄이 「|---|」 꼴이면 표로, 아니면 줄바꿈 그대로. */
+  function readInline(t) {
+    return esc(t).replace(/`([^`]+)`/g, '<code>$1</code>');
+  }
+  function readIsSep(line) {
+    var t = line.trim();
+    return t.indexOf('-') >= 0 && t.replace(/[|:\-\s]/g, '') === '';
+  }
+  function readCells(line) {
+    var t = line.trim();
+    if (t.charAt(0) === '|') t = t.slice(1);
+    if (t.charAt(t.length - 1) === '|') t = t.slice(0, -1);
+    return t.split('|').map(function (c) { return c.trim(); });
+  }
+  function readText(str) {
+    var lines = str.replace(/\r\n?/g, '\n').split('\n'), out = [], i = 0;
+    while (i < lines.length) {
+      if (/^\s*\|/.test(lines[i]) && i + 1 < lines.length && readIsSep(lines[i + 1])) {
+        var head = readCells(lines[i]), body = [];
+        i += 2;
+        while (i < lines.length && /^\s*\|/.test(lines[i])) { body.push(readCells(lines[i])); i++; }
+        out.push('<div class="table-wrap" style="margin:6px 0"><table class="rec-std"><thead><tr>'
+          + head.map(function (c) { return '<th>' + readInline(c) + '</th>'; }).join('') + '</tr></thead><tbody>'
+          + body.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + readInline(c) + '</td>'; }).join('') + '</tr>'; }).join('')
+          + '</tbody></table></div>');
+      } else {
+        out.push(readInline(lines[i]) + '<br>');
+        i++;
+      }
+    }
+    return out.join('').replace(/(<br>)+$/, '');
   }
 
   function renderRead(rec) {
@@ -740,7 +775,7 @@
             /* ★payload 밖 저장처는 collect() 가 「_칸이름」으로 담습니다(M-013 §3-1) — 같은 자리에서 읽습니다 */
             var key = String(f.store || '').indexOf('payload.') === 0 ? String(f.store).slice(8) : '_' + f.label;
             used[key] = 1;
-            h += '<tr><th style="width:34%;text-align:left;background:#f4f2ee;color:inherit;font-weight:600">' + esc(f.label) + '</th><td>'
+            h += '<tr><th style="width:18%;text-align:left;background:#f4f2ee;color:inherit;font-weight:600">' + esc(f.label) + '</th><td>'
                + (f.type === '자동값' && p[key] == null ? '<span style="color:#aaa">(승인·등재 시 부여)</span>' : readValue(p[key])) + '</td></tr>';
           });
           h += '</tbody></table>';
@@ -765,7 +800,7 @@
     var extra = Object.keys(p).filter(function (k) { return !used[k]; });
     if (extra.length) {
       h += '<div class="apv-sub" style="margin-top:10px">양식에 없는 값 ' + extra.length + '개</div><table class="rec-std" style="width:100%"><tbody>'
-         + extra.map(function (k) { return '<tr><th style="width:34%;text-align:left;background:#f4f2ee;color:inherit;font-weight:600">' + esc(k) + '</th><td>' + readValue(p[k]) + '</td></tr>'; }).join('')
+         + extra.map(function (k) { return '<tr><th style="width:18%;text-align:left;background:#f4f2ee;color:inherit;font-weight:600">' + esc(k) + '</th><td>' + readValue(p[k]) + '</td></tr>'; }).join('')
          + '</tbody></table>';
     }
     if (!schema.sections && !extra.length) h = '<div class="apv-empty">적힌 값이 없습니다.</div>';
