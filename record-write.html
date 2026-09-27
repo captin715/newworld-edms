@@ -106,6 +106,23 @@
 #readBody table.rec-std th { position:static; box-shadow:none; }
 #readBody table.rec-std td code { white-space:normal; }
 #readBody .table-wrap { overflow-x:auto; }
+/* ★열람 글 모양 규칙 V1 — 줄 구분·들여쓰기·칸 구분 (부대표 지적 2026-09-27) */
+#readBody table.rec-std th, #readBody table.rec-std td { border:1px solid #d5dbe7; padding:8px 10px; }
+#readBody table.rec-std tbody tr:nth-child(even) td { background:#f8fafc; }
+#readBody table.rec-std tbody tr:hover td { background:inherit; }
+#readBody .rd-tbl { margin:8px 0; }
+#readBody .rd-p { margin:2px 0; }
+#readBody .rd-gap { height:8px; }
+#readBody .rd-l1 { margin:6px 0 2px; padding-left:1.8em; text-indent:-1.8em; }
+#readBody .rd-l2 { margin:2px 0; padding-left:1.4em; text-indent:-1.4em; }
+#readBody .rd-no { display:inline-block; min-width:1.8em; text-indent:0; font-weight:700; color:#1c5c4f; }
+#readBody .rd-l2 .rd-no { min-width:1.4em; font-weight:600; color:#4a5568; }
+#readBody .rd-list { margin:4px 0; padding-left:1.3em; }
+#readBody .rd-list li { margin:3px 0; padding-left:2px; }
+#readBody .rd-list li::marker { color:#1c5c4f; }
+#readBody .rd-doc { color:#1c5c4f; margin-right:4px; }
+#readBody .rd-sub { color:#5a6b85; font-size:12.5px; }
+#readBody .rd-note { font-size:12px; color:#5a6b85; margin:4px 0; }
 </style>
 </head>
 <body>
@@ -752,6 +769,40 @@
     if (t.charAt(t.length - 1) === '|') t = t.slice(0, -1);
     return t.split('|').map(function (c) { return c.trim(); });
   }
+  /* ★열람 글 모양 규칙 V1 (부대표 지적 2026-09-27 — 줄 구분·들여쓰기가 없어 가독성이 떨어짐)
+     ★저장값은 그대로 · 보여 주는 모양만 · 모든 글자는 먼저 esc()
+       규칙 1  표       「|」줄이 이어지고 둘째 줄이 「|---|」 → 표
+       규칙 2  나열     한 줄에 「 · 」가 3번 이상이고 80자 이상 → 한 항목씩 줄을 나눈 목록
+                        (항목 앞머리의 문서번호 W-… · OP-… · CFSPS · QEMS 는 굵게, 「 — 」 뒤는 보조 설명으로 흐리게)
+       규칙 3  위계     1단  1. / 1) / ① / 가.          → 번호를 앞으로 빼고 굵게
+                        2단  a) / 가) / - / • / ·         → 한 단 들여쓰기
+                        앞 공백 2칸마다 한 단 더 들여쓰기
+       규칙 4  주석     ※ / ＊ / NOTE / 참고:            → 작은 흐린 글씨
+       규칙 5  문단     빈 줄은 문단 사이 간격으로          */
+  var RD_DOC = /^((?:W-[A-Z]{1,4}(?:-[A-Z])?-[A-Z]?\d{4,7}(?:-\d{2})?(?:~-?\d{2})?)|(?:OP-[A-Z0-9]+(?:\s+V\d+(?:\.\d+)?)?)|(?:CFSPS[\w\-.]*)|(?:QEMS[\w\-.]*))/;
+  function readItem(t) {
+    var m = t.match(RD_DOC), head = '', rest = t;
+    if (m) { head = '<b class="rd-doc">' + readInline(m[1]) + '</b>'; rest = t.slice(m[1].length); }
+    var k = rest.indexOf(' — ');
+    if (k >= 0) return head + readInline(rest.slice(0, k)) + '<span class="rd-sub"> — ' + readInline(rest.slice(k + 3)) + '</span>';
+    return head + readInline(rest);
+  }
+  function readLine(line) {
+    var ind = (line.match(/^[ \t　]*/)[0].replace(/\t/g, '  ').length) >> 1, t = line.trim(), m;
+    if (!t) return '<div class="rd-gap"></div>';
+    if ((t.match(/ · /g) || []).length >= 3 && t.length >= 80) {
+      return '<ul class="rd-list" style="margin-left:' + (ind * 1.2) + 'em">'
+        + t.split(' · ').map(function (x) { return '<li>' + readItem(x.trim()) + '</li>'; }).join('') + '</ul>';
+    }
+    if (/^(※|＊|\*|NOTE\b|참고\s*:)/.test(t)) return '<div class="rd-note" style="margin-left:' + (ind * 1.2) + 'em">' + readInline(t) + '</div>';
+    if ((m = t.match(/^((?:\d{1,2}[.)])|[①-⑳]|(?:[가-하][.]))\s*(.*)$/))) {
+      return '<div class="rd-l1" style="margin-left:' + (ind * 1.2) + 'em"><span class="rd-no">' + esc(m[1]) + '</span>' + readItem(m[2]) + '</div>';
+    }
+    if ((m = t.match(/^((?:[a-z][)])|(?:[가-하][)])|[-•·])\s+(.*)$/))) {
+      return '<div class="rd-l2" style="margin-left:' + (1.2 + ind * 1.2) + 'em"><span class="rd-no">' + esc(m[1] === '-' || m[1] === '·' ? '•' : m[1]) + '</span>' + readItem(m[2]) + '</div>';
+    }
+    return '<div class="rd-p" style="margin-left:' + (ind * 1.2) + 'em">' + readInline(t) + '</div>';
+  }
   function readText(str) {
     var lines = str.replace(/\r\n?/g, '\n').split('\n'), out = [], i = 0;
     while (i < lines.length) {
@@ -759,16 +810,16 @@
         var head = readCells(lines[i]), body = [];
         i += 2;
         while (i < lines.length && /^\s*\|/.test(lines[i])) { body.push(readCells(lines[i])); i++; }
-        out.push('<div class="table-wrap" style="margin:6px 0"><table class="rec-std"><thead><tr>'
+        out.push('<div class="table-wrap rd-tbl"><table class="rec-std"><thead><tr>'
           + head.map(function (c) { return '<th>' + readInline(c) + '</th>'; }).join('') + '</tr></thead><tbody>'
           + body.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + readInline(c) + '</td>'; }).join('') + '</tr>'; }).join('')
           + '</tbody></table></div>');
       } else {
-        out.push(readInline(lines[i]) + '<br>');
+        out.push(readLine(lines[i]));
         i++;
       }
     }
-    return out.join('').replace(/(<br>)+$/, '');
+    return out.join('');
   }
 
   function renderRead(rec) {
