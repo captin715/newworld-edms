@@ -147,7 +147,7 @@
       <div class="rec-filters">
         <select id="mineStatus">
           <option value="">상태 전체</option>
-          <option>작성중</option><option>검토중</option>
+          <option>작성중</option><option>검토중</option><option>승인대기</option>
           <option>승인</option><option>반려</option><option>보관</option>
         </select>
         <span id="mineCount" style="font-size:12px;color:#4a5568;align-self:center"></span>
@@ -180,6 +180,17 @@
 
       <div class="apv-sub">검토를 기다리는 기록</div>
       <div id="reviewList"><div class="apv-empty">읽는 중…</div></div>
+
+      <div class="apv-sub">승인을 기다리는 기록</div>
+      <div id="approveList"><div class="apv-empty">읽는 중…</div></div>
+
+      <!-- ★열람 — 읽지 않고는 결재 단추가 보이지 않습니다 (부대표 지적 2026-09-26) -->
+      <div id="readBox" style="display:none;border:1px solid var(--line,#ddd);border-radius:8px;padding:12px 14px;margin:10px 0;background:#fff">
+        <div id="readHead" style="font-size:13px;margin-bottom:8px"></div>
+        <div id="readBody" style="font-size:13px;max-height:520px;overflow:auto;border-top:1px solid #eee;padding-top:8px"></div>
+        <div id="readAct" style="margin-top:12px"></div>
+        <div class="rec-inline-confirm" id="readMsg" style="display:none"></div>
+      </div>
 
       <div class="apv-sub">정본 등재를 기다리는 기록</div>
       <div id="promoteList"><div class="apv-empty">읽는 중…</div></div>
@@ -284,8 +295,12 @@
        ★[실측 2026-08-18] M-009·M-015·M-022 메시지가 전부 「처리하지 못했습니다」로
          뭉개지고 있었습니다. ★애써 사람 말로 쓴 문장이 화면에 한 글자도 안 닿았습니다.
        ★꼬리표(`[M-015]` 등)는 내부 용어라 뗍니다(판정 20260816_17 §3). */
-    var tagged = raw.match(/^([\s\S]*?)\s*\[M-\d[^\]]*\]\s*$/);
-    if (tagged && tagged[1]) return tagged[1];
+    /* ★결함 ② 시정 (RW-20260927-001 · MST2-20260926-005) —
+       앞판은 꼬리표가 「[M-…」일 때만 DB 문장을 보여 주었습니다.
+       ★그래서 [RW-SoD …] · [RW-결함18] 문장이 ★전부 「처리하지 못했습니다」로 뭉개졌습니다.
+       ★이제 꼬리표 ★모양과 상관없이 떼고, ★한글 문장이면 그대로 보여 줍니다. */
+    var body = raw.replace(/\s*\[[^\[\]]*\]\s*$/, '');
+    if (/[가-힣]/.test(body)) return body;
     if (/permission|denied|policy|rls|권한/i.test(raw)) return '권한이 없습니다.';
     if (/schema|not exist|find the table|PGRST/i.test(raw)) return '저장 불가 — 관리자 확인이 필요합니다.';
     if (/duplicate|conflict/i.test(raw)) return '이미 처리되었거나 충돌이 발생했습니다.';
@@ -322,7 +337,7 @@
   /* ★기록 상태 값역 — M-009 적용분. 문서 결재 값역(EST_STEPS)과 ★섞지 않는다.
      ★상태 칩 5종은 틀에 전건 있습니다 — .st-승인 · .st-보관 은 CC 신설분(common.css 617·618).
        (앞판 주석은 낡아 정정했습니다 — 제작창 통지 20260816_02 §4.) */
-  var REC_STEPS = ['검토중', '승인', '보관'];   // ★판정 20260816_19 §4 확정
+  var REC_STEPS = ['검토중', '승인대기', '승인', '보관'];   // ★M-015 전이 트리거 실측 2026-09-27 — 승인대기가 들어와 있습니다
   /* ★'작성중' 은 상신 전이라 단계에서 빼고, '반려' 는 단계가 아니라 되돌림이라 뺐습니다.
      ★그 둘은 stepper() 안에서 idx<0 이 되어 ★단계 표시가 아예 안 나옵니다(의도된 동작). */
   var OFFSTEP   = { '작성중': 1, '반려': 1 };
@@ -516,6 +531,8 @@
         act = '<span class="rec-lock">수정 불가</span> ';
       } else if (r.status === '검토중') {      /* ★DB 는 아직 안 막습니다 — 화면이 막습니다(§신고) */
         act = '<span class="rec-lock">검토 중 — 고칠 수 없습니다</span> ';
+      } else if (r.status === '승인대기') {    /* ★DB(M-022)가 막지 않는 상태입니다 — 화면이 막습니다(RW-20260927-001 §신고) */
+        act = '<span class="rec-lock">승인 대기 — 고칠 수 없습니다</span> ';
       } else if (r.status === '작성중') {
         act = '<button type="button" class="rec-detail-btn" data-edit="' + esc(r.id) + '">이어쓰기</button> '
             + '<button type="button" class="rec-btn" data-submit="' + esc(r.id) + '">검토 올리기</button> ';
@@ -527,7 +544,10 @@
         + '<td class="stick c1">' + esc(String(r.id).slice(0, 8)) + '</td>'
         + '<td>' + esc(reg ? reg.form_title : (r.record_type || '')) + '</td>'
         + '<td>' + esc((r.payload && (r.payload['프로젝트명'] || r.payload['프로젝트코드'])) || '—') + '</td>'
-        + '<td>' + stTag(r.status) + (fo ? ' <span class="rec-lock">' + esc(fo.folder_no) + '</span>' : '') + '</td>'
+        + '<td>' + stTag(r.status) + (fo ? ' <span class="rec-lock">' + esc(fo.folder_no) + '</span>' : '')
+        + (r.status === '반려' && r.reject_reason
+            ? '<div style="font-size:12px;color:#b63628;margin-top:3px">반려 사유: ' + esc(r.reject_reason) + '</div>' : '')
+        + '</td>'
         + '<td>' + esc(String(r.created_at || '').slice(0, 16).replace('T', ' ')) + '</td>'
         + '<td>' + act
         + '<button type="button" class="rec-detail-btn" data-flow="' + esc(r.id) + '">진행</button>'
@@ -540,7 +560,8 @@
 
   /* ── ⑧⑨ 검토·승인 · 정본 등재 ──────────────────────────────────────
      [실측 2026-08-18 · DB]
-       전이   작성중→검토중 / 검토중→승인·반려 / 반려→작성중 / 승인→보관   [M-015]
+       전이   작성중→검토중 / 검토중→승인대기·반려 / 승인대기→승인·반려 / 반려→작성중 / 승인→보관   [M-015]
+              ★2026-09-27 재실측 — 8/18 뒤 DB 에 「승인대기」가 들어왔는데 화면이 따라가지 않았습니다(결함 ①의 뿌리)
               ★반려에서 검토중으로 ★바로 못 갑니다 — 작성중을 거칩니다
        SoD    승인 시 approver_id 필수 · approver_id ≠ drafter_id           [M-015]
        읽기   남의 기록은 edms_can_read_dev() = admin 또는 dept in (품질,경영)
@@ -585,7 +606,7 @@
       var st = staging(); if (!st) return;
       var r = await st.from('edms_records')
         .select('id,record_type,status,payload,folder_id,drafter_id,reviewer_id,approver_id,created_at')
-        .in('status', ['검토중', '승인'])
+        .in('status', ['검토중', '승인대기', '승인'])
         .order('created_at', { ascending: true }).limit(200);
       if (r.error) throw r.error;
       REVIEW = r.data || [];
@@ -600,10 +621,14 @@
     if (mine) {
       /* ★요건 ② — 작성자에게는 버튼을 보이지 않습니다. DB 도 막지만 화면도 막습니다. */
       acts = '<span class="rec-lock">자기 기록은 '
-           + (kind === 'rev' ? '검토·승인' : '등재') + '할 수 없습니다</span>';
-    } else if (kind === 'rev') {
-      acts = '<button type="button" class="apv-ok" data-ok="' + esc(r.id) + '">승인</button>'
-           + '<button type="button" class="apv-no" data-no="' + esc(r.id) + '">반려</button>';
+           + (kind === 'pro' ? '등재' : '검토·승인') + '할 수 없습니다</span>';
+    } else if (kind === 'rev' || kind === 'apv') {
+      /* ★결함 ①·④ 시정 — 목록에는 ★「열람」만 둡니다. 결재 단추는 열람 안에만 있습니다.
+         ★내 차례가 아니면 누구 차례인지만 보여 줍니다 — 눌러도 막히는 「먹통 단추」를 두지 않습니다. */
+      var turn = kind === 'rev' ? r.reviewer_id : r.approver_id;
+      acts = (me && String(turn) === String(me))
+        ? '<button type="button" class="apv-ok" data-open="' + esc(r.id) + '">열람</button>'
+        : '<span class="rec-lock">' + (kind === 'rev' ? '검토' : '승인') + ' 차례: ' + esc(whoName(turn)) + '</span>';
     } else {
       acts = '<button type="button" class="apv-ok" data-promote="' + esc(r.id) + '">정본 등재</button>';
     }
@@ -620,9 +645,13 @@
     if (!CANREV) return;
     var wait = REVIEW.filter(function (r) { return r.status === '검토중'; });
     var done = REVIEW.filter(function (r) { return r.status === '승인'; });
+    var apv  = REVIEW.filter(function (r) { return r.status === '승인대기'; });
     document.getElementById('reviewList').innerHTML = wait.length
       ? wait.map(function (r) { return reviewRow(r, 'rev'); }).join('')
       : '<div class="apv-empty">검토를 기다리는 기록이 없습니다.</div>';
+    document.getElementById('approveList').innerHTML = apv.length
+      ? apv.map(function (r) { return reviewRow(r, 'apv'); }).join('')
+      : '<div class="apv-empty">승인을 기다리는 기록이 없습니다.</div>';
     document.getElementById('promoteList').innerHTML = done.length
       ? done.map(function (r) { return reviewRow(r, 'pro'); }).join('')
       : '<div class="apv-empty">등재를 기다리는 기록이 없습니다.</div>';
@@ -652,6 +681,8 @@
   }
 
   async function onReviewClick(e) {
+    var op = e.target.closest('[data-open]');
+    if (op) { openRead(op.getAttribute('data-open')); return; }
     var ok = e.target.closest('[data-ok]');
     var no = e.target.closest('[data-no]');
     var pr = e.target.closest('[data-promote]');
@@ -660,15 +691,9 @@
     var id  = btn.getAttribute('data-ok') || btn.getAttribute('data-no') || btn.getAttribute('data-promote');
     btn.disabled = true;
     try {
-      if (ok) {
-        /* ★승인 — 승인자와 검토자를 함께 남깁니다. approver_id 가 없으면 M-015 가 막습니다. */
-        await setStatus(id, '승인', { approver_id: myId(), reviewer_id: myId() });
-        revMsg('승인했습니다. 아래 <b>정본 등재</b> 목록으로 내려갔습니다.');
-      } else if (no) {
-        /* ★반려 사유를 받지 않습니다 — ★담을 열이 없습니다(§신고). 받아 놓고 버리지 않습니다. */
-        await setStatus(id, '반려', { reviewer_id: myId() });
-        revMsg('반려했습니다. 작성자가 고쳐서 다시 올릴 수 있습니다. '
-             + '<b>반려 사유는 아직 저장되지 않습니다</b> — 따로 알려 주십시오.');
+      if (ok || no) {
+        /* ★결재 단추는 열람 안(onReadClick)으로 옮겼습니다. 여기로 오면 옛 단추입니다. */
+        throw human('열람을 눌러 내용을 본 뒤 결재하십시오.');
       } else {
         var r = await edmsClient.rpc('edms_record_promote',
                                      { p_staging_id: id, p_site_ref: '비현장' });
@@ -681,6 +706,157 @@
     } catch (err) {
       revMsg(esc(friendlyErr(err, '처리하지 못했습니다.')), true);
     } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* ── ④ 열람 — 칸과 값을 ★읽기 전용으로 보여 주고, ★그 안에서만 결재합니다 ──
+     ★RW-20260927-001 · MST2-20260926-005 결함 ①③④⑤ 시정
+     ★DB 가 정한 길 (실측 2026-09-27 · trg_zz_records_transition):
+         검토중 ─검토자─▶ 승인대기 ─승인자─▶ 승인      (각 단계에서 반려 가능 · 반려는 사유 필수)
+     ★검토자·승인자 칸은 ★상신 때 이미 정해져 있습니다 — 결재할 때 ★덮어쓰지 않습니다.
+       (앞판은 승인 때 approver_id·reviewer_id 를 둘 다 ★자기로 써서 RW-SoD 에 걸렸습니다.) */
+  var READ = null;   // 열람 중인 기록
+
+  function readValue(v) {
+    if (v === true) return '✓';
+    if (v === false || v == null || v === '') return '<span style="color:#aaa">—</span>';
+    if (Array.isArray(v)) return esc(v.join(', '));
+    if (typeof v === 'object') return esc(JSON.stringify(v));
+    return esc(String(v)).replace(/\n/g, '<br>');
+  }
+
+  function renderRead(rec) {
+    var reg = formOfFolder(rec.folder_id);
+    var schema = (reg && reg.form_schema) || {};
+    var p = rec.payload || {}, used = {};
+    var h = '';
+    (schema.sections || []).forEach(function (s) {
+      h += '<div class="apv-sub" style="margin-top:10px">' + esc((s.no ? s.no + '. ' : '') + (s.title || '')) + '</div>';
+      (s.blocks || []).forEach(function (b) {
+        if (b.kind === '라벨-값') {
+          h += '<table class="rec-std" style="width:100%"><tbody>';
+          (b.fields || []).forEach(function (f) {
+            /* ★payload 밖 저장처는 collect() 가 「_칸이름」으로 담습니다(M-013 §3-1) — 같은 자리에서 읽습니다 */
+            var key = String(f.store || '').indexOf('payload.') === 0 ? String(f.store).slice(8) : '_' + f.label;
+            used[key] = 1;
+            h += '<tr><th style="width:34%;text-align:left;background:#f4f2ee;color:inherit;font-weight:600">' + esc(f.label) + '</th><td>'
+               + (f.type === '자동값' && p[key] == null ? '<span style="color:#aaa">(승인·등재 시 부여)</span>' : readValue(p[key])) + '</td></tr>';
+          });
+          h += '</tbody></table>';
+        } else if (b.kind === '표') {
+          var key = String(b.store || '').replace(/^payload\./, ''), rows = p[key] || [];
+          if (key) used[key] = 1;
+          var cols = b.columns || [];
+          h += '<div class="table-wrap"><table class="rec-std"><thead><tr>'
+             + cols.map(function (c) { return '<th>' + esc(c.label) + '</th>'; }).join('') + '</tr></thead><tbody>'
+             + (rows.length ? rows.map(function (r) {
+                 return '<tr>' + cols.map(function (c) { return '<td>' + readValue(r[c.label]) + '</td>'; }).join('') + '</tr>';
+               }).join('') : '<tr><td colspan="' + cols.length + '" style="color:#aaa">적은 행이 없습니다</td></tr>')
+             + '</tbody></table></div>';
+        } else if (b.kind === '주석') {
+          h += '<div class="rec-write-note">' + esc(b.text) + '</div>';
+        } else {
+          h += '<div class="rec-inline-confirm">이 화면이 모르는 칸 묶음(' + esc(b.kind) + ')입니다 — 아래 「양식에 없는 값」에 그대로 보입니다.</div>';
+        }
+      });
+    });
+    /* ★조용히 빠지는 값이 없게 — 양식 정의에 없는 값도 전부 보여 줍니다 */
+    var extra = Object.keys(p).filter(function (k) { return !used[k]; });
+    if (extra.length) {
+      h += '<div class="apv-sub" style="margin-top:10px">양식에 없는 값 ' + extra.length + '개</div><table class="rec-std" style="width:100%"><tbody>'
+         + extra.map(function (k) { return '<tr><th style="width:34%;text-align:left;background:#f4f2ee;color:inherit;font-weight:600">' + esc(k) + '</th><td>' + readValue(p[k]) + '</td></tr>'; }).join('')
+         + '</tbody></table>';
+    }
+    if (!schema.sections && !extra.length) h = '<div class="apv-empty">적힌 값이 없습니다.</div>';
+    return h;
+  }
+
+  function readAct(rec) {
+    var me = myId(), kind = null;
+    if (rec.status === '검토중'   && String(rec.reviewer_id) === String(me)) kind = 'rev';
+    if (rec.status === '승인대기' && String(rec.approver_id) === String(me)) kind = 'apv';
+    if (!kind) return '<span class="rec-lock">지금은 내 결재 차례가 아닙니다 — 읽기만 됩니다.</span>';
+    var okLabel = kind === 'rev' ? '검토 완료 — 승인 요청' : '승인';
+    var okNote  = kind === 'rev'
+      ? '검토를 마치고 <b>승인자 ' + esc(whoName(rec.approver_id)) + '</b>께 넘깁니다. 결재가 끝나는 것이 아닙니다.'
+      : '이 기록을 승인합니다. 승인 뒤에는 <b>고칠 수 없고</b>, 정본 등재를 기다립니다.';
+    return '<label style="font-size:13px;display:block;margin-bottom:8px">'
+         + '<input type="checkbox" id="readSeen"> 위 내용을 끝까지 확인했습니다</label>'
+         + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+         + '<button type="button" class="apv-ok" id="readOk" data-kind="' + kind + '" disabled>' + okLabel + '</button>'
+         + '<button type="button" class="apv-no" id="readNo" disabled>반려</button>'
+         + '<button type="button" class="rec-btn ghost" id="readClose">닫기</button></div>'
+         + '<div style="font-size:12px;color:#4a5568;margin-top:6px">' + okNote + '</div>'
+         + '<div id="rejBox" style="display:none;margin-top:10px">'
+         + '<label style="font-size:13px"><b>반려 사유</b> (필수 — 무엇을 고쳐야 하는지 한 줄이라도)</label>'
+         + '<textarea id="rejText" rows="3" style="width:100%;margin-top:4px"></textarea>'
+         + '<div style="margin-top:6px"><button type="button" class="apv-no" id="rejSend" disabled>사유를 붙여 반려</button> '
+         + '<button type="button" class="rec-btn ghost" id="rejCancel">취소</button></div></div>';
+  }
+
+  function readMsg(html, bad) {
+    var box = document.getElementById('readMsg');
+    box.style.display = html ? '' : 'none';
+    box.innerHTML = bad ? '<b style="color:#b3261e">' + html + '</b>' : html;
+    if (html) box.scrollIntoView({ block: 'nearest' });
+  }
+
+  function openRead(id) {
+    var rec = null;
+    for (var i = 0; i < REVIEW.length; i++) if (String(REVIEW[i].id) === String(id)) rec = REVIEW[i];
+    if (!rec) { revMsg('그 기록을 찾지 못했습니다. [다시 읽기]를 눌러 주십시오.', true); return; }
+    READ = rec;
+    var reg = formOfFolder(rec.folder_id);
+    document.getElementById('readHead').innerHTML =
+      '<b>' + esc(reg ? reg.form_title : (rec.record_type || '')) + '</b> ' + stTag(rec.status)
+      + '<br><small>작성 ' + esc(whoName(rec.drafter_id)) + ' · 검토 ' + esc(whoName(rec.reviewer_id))
+      + ' · 승인 ' + esc(whoName(rec.approver_id)) + ' · 올린 날 '
+      + esc(String(rec.created_at || '').slice(0, 16).replace('T', ' ')) + ' · 기록 ' + esc(String(rec.id).slice(0, 8)) + '</small>';
+    document.getElementById('readBody').innerHTML = renderRead(rec);
+    document.getElementById('readAct').innerHTML = readAct(rec);
+    readMsg('');
+    var box = document.getElementById('readBox');
+    box.style.display = '';
+    box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  function closeRead() { READ = null; document.getElementById('readBox').style.display = 'none'; }
+
+  async function onReadClick(e) {
+    var t = e.target;
+    if (t.id === 'readClose') { closeRead(); return; }
+    if (t.id === 'readSeen') {
+      document.getElementById('readOk').disabled = !t.checked;
+      document.getElementById('readNo').disabled = !t.checked;
+      return;
+    }
+    if (t.id === 'readNo')    { document.getElementById('rejBox').style.display = ''; document.getElementById('rejText').focus(); return; }
+    if (t.id === 'rejCancel') { document.getElementById('rejBox').style.display = 'none'; return; }
+    if (t.id !== 'readOk' && t.id !== 'rejSend') return;
+    if (!READ) return;
+    var rec = READ, btn = t;
+    btn.disabled = true;
+    try {
+      if (t.id === 'readOk') {
+        var next = t.getAttribute('data-kind') === 'rev' ? '승인대기' : '승인';
+        /* ★상태만 바꿉니다. 검토자·승인자 칸은 건드리지 않습니다(상신 때 정해진 사람). */
+        await setStatus(rec.id, next);
+        closeRead();
+        revMsg(next === '승인대기'
+          ? '검토를 마쳤습니다. <b>' + esc(whoName(rec.approver_id)) + '</b>의 승인 차례로 넘어갔습니다.'
+          : '승인했습니다. 아래 <b>정본 등재</b> 목록으로 내려갔습니다.');
+      } else {
+        var why = (document.getElementById('rejText').value || '').trim();
+        if (!why) throw human('반려 사유를 적어 주십시오.');
+        await setStatus(rec.id, '반려', { reject_reason: why });
+        closeRead();
+        revMsg('반려했습니다. 사유가 작성자에게 보입니다 — 「' + esc(why) + '」');
+      }
+      await refreshAll();
+    } catch (err) {
+      /* ★결함 ② — DB 가 준 문장을 ★단추 바로 아래에 띄웁니다 */
+      readMsg(esc(friendlyErr(err, '처리하지 못했습니다.')), true);
       btn.disabled = false;
     }
   }
@@ -966,7 +1142,7 @@
       var uid = (window.session && window.session.user && window.session.user.id) || null;
       if (!uid) return;
       var r = await st.from('edms_records')
-        .select('id,record_type,status,payload,folder_id,drafter_id,created_at')
+        .select('id,record_type,status,payload,folder_id,drafter_id,created_at,reject_reason')
         .eq('drafter_id', uid).order('created_at', { ascending: false }).limit(200);
       if (r.error) throw r.error;
       MINE = r.data || [];
@@ -1061,7 +1237,8 @@
       document.getElementById('reviewNote').innerHTML =
         '남이 올린 기록을 <b>검토·승인</b>하고, 승인된 기록을 <b>정본으로 등재</b>합니다.'
         + ' <b>자기가 쓴 기록은 자기가 승인·등재할 수 없습니다.</b>'
-        + ' <span style="color:#4a5568">반려 사유를 담을 자리가 아직 없어 <b>사유는 저장되지 않습니다</b>.</span>';
+        + ' <span style="color:#4a5568">내 차례인 기록은 <b>[열람]</b>으로 내용을 본 뒤 그 안에서 결재합니다.'
+        + ' 반려할 때는 <b>사유가 필수</b>이며 작성자에게 보입니다.</span>';
     }
 
     await loadMine();
@@ -1069,7 +1246,8 @@
     if (CANREV) {
       await loadReview();
       lines.push('검토 대기 <b>' + REVIEW.filter(function (r) { return r.status === '검토중'; }).length + '</b>건'
-               + ' · 등재 대기 <b>' + REVIEW.filter(function (r) { return r.status === '승인'; }).length + '</b>건');
+               + ' · 승인 대기 <b>' + REVIEW.filter(function (r) { return r.status === '승인대기'; }).length + '</b>건'
+        + ' · 등재 대기 <b>' + REVIEW.filter(function (r) { return r.status === '승인'; }).length + '</b>건');
     }
     diag.innerHTML = lines.join('&nbsp; · &nbsp;');
 
@@ -1113,6 +1291,11 @@
     });
 
     document.getElementById('reviewList').addEventListener('click', onReviewClick);
+    document.getElementById('approveList').addEventListener('click', onReviewClick);
+    document.getElementById('readBox').addEventListener('click', onReadClick);
+    document.getElementById('readBox').addEventListener('input', function (e) {
+      if (e.target.id === 'rejText') document.getElementById('rejSend').disabled = !e.target.value.trim();
+    });
     document.getElementById('promoteList').addEventListener('click', onReviewClick);
     document.getElementById('btnReviewReload').addEventListener('click', async function () {
       revMsg(''); await refreshAll();
