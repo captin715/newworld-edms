@@ -877,17 +877,20 @@
     var okNote  = kind === 'rev'
       ? '검토를 마치고 <b>승인자 ' + esc(whoName(rec.approver_id)) + '</b>께 넘깁니다. 결재가 끝나는 것이 아닙니다.'
       : '이 기록을 승인합니다. 승인 뒤에는 <b>고칠 수 없고</b>, 정본 등재를 기다립니다.';
-    return '<label style="font-size:13px;display:block;margin-bottom:8px">'
-         + '<input type="checkbox" id="readSeen"> 위 내용을 끝까지 확인했습니다</label>'
+    /* ★RW-20260928-001 — 앞판은 체크 전 단추를 ★disabled 로 두었습니다.
+       ★꺼진 단추는 눌러도 ★아무 일도 일어나지 않고 ★까닭도 안 뜹니다 — 부대표 「눌렀으나 진행 안 됨」(2026-09-28)의 뿌리.
+       ★이제 단추는 늘 눌리고, 체크가 없으면 ★까닭을 바로 아래에 띄웁니다. */
+    return '<label id="readSeenLbl" style="font-size:13px;display:inline-block;margin-bottom:8px;padding:4px 8px;border:1px solid #d6d2ca;border-radius:6px;background:#fffdf5">'
+         + '<input type="checkbox" id="readSeen"> <b>① 위 내용을 끝까지 확인했습니다</b> <span style="color:#6b665e">— 체크한 뒤 ② 단추를 누르십시오</span></label>'
          + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
-         + '<button type="button" class="apv-ok" id="readOk" data-kind="' + kind + '" disabled>' + okLabel + '</button>'
-         + '<button type="button" class="apv-no" id="readNo" disabled>반려</button>'
+         + '<button type="button" class="apv-ok" id="readOk" data-kind="' + kind + '">' + okLabel + '</button>'
+         + '<button type="button" class="apv-no" id="readNo">반려</button>'
          + '<button type="button" class="rec-btn ghost" id="readClose">닫기</button></div>'
          + '<div style="font-size:12px;color:#4a5568;margin-top:6px">' + okNote + '</div>'
          + '<div id="rejBox" style="display:none;margin-top:10px">'
          + '<label style="font-size:13px"><b>반려 사유</b> (필수 — 무엇을 고쳐야 하는지 한 줄이라도)</label>'
          + '<textarea id="rejText" rows="3" style="width:100%;margin-top:4px"></textarea>'
-         + '<div style="margin-top:6px"><button type="button" class="apv-no" id="rejSend" disabled>사유를 붙여 반려</button> '
+         + '<div style="margin-top:6px"><button type="button" class="apv-no" id="rejSend">사유를 붙여 반려</button> '
          + '<button type="button" class="rec-btn ghost" id="rejCancel">취소</button></div></div>';
   }
 
@@ -923,8 +926,15 @@
     var t = e.target;
     if (t.id === 'readClose') { closeRead(); return; }
     if (t.id === 'readSeen') {
-      document.getElementById('readOk').disabled = !t.checked;
-      document.getElementById('readNo').disabled = !t.checked;
+      document.getElementById('readSeenLbl').style.borderColor = t.checked ? '#2e7d32' : '#d6d2ca';
+      if (t.checked) readMsg('');
+      return;
+    }
+    /* ★체크 없이 누르면 ★까닭을 띄웁니다 — 조용히 무시하지 않습니다 */
+    if ((t.id === 'readOk' || t.id === 'readNo') && !document.getElementById('readSeen').checked) {
+      var lb = document.getElementById('readSeenLbl');
+      lb.style.borderColor = '#b3261e'; lb.style.background = '#fdecea';
+      readMsg('먼저 위의 「① 위 내용을 끝까지 확인했습니다」에 체크해 주십시오. 체크한 뒤에 결재됩니다.', true);
       return;
     }
     if (t.id === 'readNo')    { document.getElementById('rejBox').style.display = ''; document.getElementById('rejText').focus(); return; }
@@ -1390,7 +1400,7 @@
     document.getElementById('approveList').addEventListener('click', onReviewClick);
     document.getElementById('readBox').addEventListener('click', onReadClick);
     document.getElementById('readBox').addEventListener('input', function (e) {
-      if (e.target.id === 'rejText') document.getElementById('rejSend').disabled = !e.target.value.trim();
+      if (e.target.id === 'rejText' && e.target.value.trim()) readMsg('');   /* ★단추를 끄지 않습니다 — 빈 사유는 누를 때 까닭을 띄웁니다 */
     });
     document.getElementById('promoteList').addEventListener('click', onReviewClick);
     document.getElementById('btnReviewReload').addEventListener('click', async function () {
