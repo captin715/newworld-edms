@@ -1422,6 +1422,18 @@
     else { document.getElementById('formsEmpty').style.display = '';
            document.getElementById('formsEmpty').innerHTML =
              '<b style="color:#b3261e">정의가 담긴 양식이 없습니다.</b>'; }
+
+    /* ★텔레그램 알림 링크(record-write.html?id=…) — RW-20260929-001 · MST2-20260929-004 ①
+       ★내 결재 차례 기록이면 열람을 바로 엽니다. 아니면 까닭을 한 줄 띄웁니다(조용히 넘기지 않음). */
+    try {
+      var qid = new URLSearchParams(location.search).get('id');
+      if (qid) {
+        var hit = false;
+        for (var qi = 0; qi < REVIEW.length; qi++) if (String(REVIEW[qi].id) === qid) hit = true;
+        if (hit) openRead(qid);
+        else revMsg('알림의 기록은 지금 내 결재 차례 목록에 없습니다 — 이미 처리되었거나 다른 사람 차례입니다.', false);
+      }
+    } catch (_) { /* 주소 읽기 실패는 화면을 막지 않습니다 */ }
   });
 })();
 </script>
