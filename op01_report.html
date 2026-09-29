@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script src="ces-config.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>뉴월드 CES — 현장평가보고서</title>
+<script src="ces-shared.js"></script>
+<script>
+(function(){
+  const token=localStorage.getItem('ces_token');
+  if(!token){window.location.href='login.html';return}
+  const t=localStorage.getItem('ces_login_time');
+  if(t&&(new Date()-new Date(t))/(1000*60*60*24)>7){
+    localStorage.removeItem('ces_token');
+    window.location.href='login.html';
+  }
+})();
+</script>
+<style>
+:root{--blue:#1B3A6B;--teal:#0F6E56;--amber:#BA7517;--red:#A32D2D;
+  --gray:#4A4A4A;--lgray:#F2F4F7;--border:#D6DBE4;--shadow:0 2px 8px rgba(0,0,0,.10)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{padding-bottom:120px;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  background:var(--lgray);color:var(--gray);font-size:14px}
+.app-hdr{background:var(--blue);color:#fff;padding:11px 14px;
+  display:flex;justify-content:space-between;align-items:center;
+  position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.app-hdr h1{font-size:13px;font-weight:700}
+.hdr-btns{display:flex;gap:7px}
+.hbtn{padding:6px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.4);
+  color:#fff;background:transparent;font-size:12px;cursor:pointer;font-weight:600}
+.hbtn.teal{background:var(--teal);border-color:var(--teal)}
+.hbtn.amber{background:var(--amber);border-color:var(--amber)}
+.preview-wrap{padding:14px 12px 100px}
+.report{background:#fff;border-radius:12px;box-shadow:var(--shadow);
+  overflow:hidden;max-width:800px;margin:0 auto}
+.rpt-hdr{background:var(--blue);color:#fff;padding:18px 20px 14px}
+.rpt-company{font-size:11px;opacity:.8;margin-bottom:4px}
+.rpt-title{font-size:20px;font-weight:800;margin-bottom:2px}
+.rpt-sub{font-size:12px;opacity:.7}
+.rpt-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.rpt-meta-item{background:rgba(255,255,255,.15);border-radius:6px;padding:5px 10px;font-size:11px}
+.rpt-meta-item strong{display:block;font-size:10px;opacity:.7;margin-bottom:2px}
+.rpt-body{padding-bottom:120px;padding:16px 18px}
+.rpt-sec{margin-bottom:18px}
+.rpt-sec-title{font-size:13px;font-weight:700;color:var(--blue);
+  border-bottom:2px solid var(--blue);padding-bottom:5px;margin-bottom:10px}
+.ft{width:100%;border-collapse:collapse;font-size:12px}
+.ft td{padding:6px 8px;border:1px solid var(--border);vertical-align:top}
+.ft .lb{background:var(--lgray);font-weight:600;color:var(--blue);width:35%;white-space:nowrap}
+.ok{color:var(--teal);font-weight:700}
+.no{color:var(--red);font-weight:700}
+.case-badge{display:inline-block;padding:4px 14px;border-radius:8px;font-size:13px;font-weight:800}
+.case-a{background:#E8F5F0;color:var(--teal)}
+.case-b{background:#FFF8EC;color:var(--amber)}
+.case-c{background:#FFF0F0;color:var(--red)}
+.case-d{background:#EEF2FF;color:var(--blue)}
+.feas-ok{background:#E8F5F0;color:var(--teal);border:1px solid var(--teal);
+  display:inline-block;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:700}
+.feas-warn{background:#FFF8EC;color:var(--amber);border:1px solid var(--amber);
+  display:inline-block;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:700}
+.feas-bad{background:#FFF0F0;color:var(--red);border:1px solid var(--red);
+  display:inline-block;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:700}
+.zone-card{border:1.5px solid var(--border);border-radius:9px;margin-bottom:12px;overflow:hidden}
+.zone-hdr{background:var(--blue);color:#fff;padding:7px 12px;font-size:12px;font-weight:700;
+  display:flex;justify-content:space-between;align-items:center}
+.zone-body{padding-bottom:120px;padding:10px 12px}
+.dtag{display:inline-block;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;margin:2px}
+.dtag-ok{background:#E8F5F0;color:var(--teal)}
+.dtag-bad{background:#FFF0F0;color:var(--red)}
+.dtag-warn{background:#FFF8EC;color:var(--amber)}
+.dtag-blue{background:#EEF2FF;color:var(--blue)}
+.sign-row{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:10px}
+.sign-cell{flex:1;padding:10px 12px;border-right:1px solid var(--border);text-align:center}
+.sign-cell:last-child{border-right:none}
+.sign-label{font-size:10px;color:#888;margin-bottom:16px}
+.sign-name{font-size:13px;font-weight:700;color:var(--blue);border-top:1px solid var(--border);padding-top:4px;margin-top:8px}
+.empty{color:#bbb;font-style:italic}
+.util-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:5px}
+.util-tbl th{background:var(--blue);color:#fff;padding:6px;text-align:center;font-size:10px}
+.util-tbl td{padding:6px;border:1px solid var(--border);text-align:center;font-size:11px}
+.util-tbl .zn{font-weight:700;color:var(--blue);background:#EEF2FF;text-align:left;padding-left:8px}
+.util-tbl .sum{background:#EEF2FF;font-weight:700;color:var(--blue)}
+.bg-good{background:#E8F5F0}
+.bg-warn{background:#FFF8EC}
+.bg-risk{background:#FFF0F0}
+.btmbar{position:fixed;bottom:0;left:0;right:0;background:#fff;
+  padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:7px;z-index:100}
+.btn{display:flex;align-items:center;justify-content:center;
+  padding:12px;border-radius:9px;border:none;font-size:13px;font-weight:600;
+  cursor:pointer;flex:1}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-out{background:#fff;color:var(--blue);border:2px solid var(--blue);flex:0 0 auto;padding:12px 14px}
+@media print{
+  .app-hdr,.btmbar{display:none!important}
+  .preview-wrap{padding:0}
+  body{padding-bottom:120px;background:#fff}
+  .report{box-shadow:none;border-radius:0;max-width:100%}
+  @page{margin:15mm;size:A4}
+}
+
+/* ── 전자 서명 패드 ── */
+.sig-section{background:#fff;border-radius:10px;padding:14px;margin:12px 0;
+  box-shadow:0 2px 8px rgba(0,0,0,.07);position:relative;z-index:10}
+.sig-title{font-size:12px;font-weight:700;color:#1B3A6B;margin-bottom:10px}
+.sig-grid{display:flex;gap:12px;flex-wrap:wrap}
+.sig-box{flex:1;min-width:180px}
+.sig-label{font-size:11px;font-weight:600;color:#888;margin-bottom:5px;text-align:center}
+.sig-canvas-wrap{border:1.5px solid #D6DBE4;border-radius:8px;background:#fafafa;
+  position:relative;overflow:visible;height:auto}
+.sig-canvas{display:block;width:100%;height:120px;touch-action:none;cursor:crosshair}
+.sig-actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end}
+.sig-btn{border:none;border-radius:6px;padding:5px 11px;font-size:11px;
+  font-weight:600;cursor:pointer;font-family:inherit}
+.sig-btn.clear{background:#FFF0F0;color:#A32D2D}
+.sig-btn.done{background:#E8F5F0;color:#0F6E56}
+.sig-saved-mark{font-size:10px;color:#0F6E56;font-weight:700;text-align:center;margin-top:3px}
+@media print{
+  .sig-section{display:none!important}
+  .no-print{display:none!important}
+  #sigSection{display:none!important}
+}
+</style>
+</head>
+<body>
+<header class="app-hdr">
+  <h1>📄 현장평가보고서 W-FR-L-C011000-01</h1>
+  <div class="hdr-btns">
+    <button class="hbtn" onclick="location.href='index.html'">🏠 홈</button>
+    <button class="hbtn" onclick="location.href='op01_cs.html'">← 체크시트</button>
+    <button class="hbtn teal" onclick="saveFinal()">💾 최종저장</button>
+    <button class="hbtn amber" onclick="printReport()">🖨️ 인쇄·PDF</button>
+  </div>
+</header>
+
+
+<div class="preview-wrap">
+  <div class="report" id="rpt"></div>
+</div>
+
+<!-- ══ 전자 서명 ══ -->
+<div id="sigSection" style="background:#fff;border-radius:10px;padding:14px;margin:12px 0 12px;box-shadow:0 2px 8px rgba(0,0,0,.07)" class="no-print">
+  <div style="font-size:12px;font-weight:700;color:#1B3A6B;margin-bottom:10px">✍️ 전자 서명 (선택사항 — 인쇄 전 서명)</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+
+    <!-- 작성자 서명 -->
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:5px;text-align:center">작성자 (영업팀원)</div>
+      <canvas id="sigCanvas1"
+        style="display:block;width:100%;height:130px;border:1.5px solid #D6DBE4;border-radius:8px;background:#fafafa;cursor:crosshair;touch-action:none">
+      </canvas>
+      <div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">
+        <button type="button" onclick="clearSig(1)" style="border:none;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;background:#FFF0F0;color:#A32D2D;font-family:inherit">지우기</button>
+        <button type="button" onclick="saveSig(1)" style="border:none;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;background:#E8F5F0;color:#0F6E56;font-family:inherit">서명 저장 ✓</button>
+      </div>
+      <div id="sigMark1" style="font-size:10px;color:#0F6E56;font-weight:700;text-align:center;margin-top:3px"></div>
+    </div>
+
+    <!-- 승인자 서명 -->
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:11px;font-weight:600;color:#888;margin-bottom:5px;text-align:center">승인자 (영업팀장)</div>
+      <canvas id="sigCanvas2"
+        style="display:block;width:100%;height:130px;border:1.5px solid #D6DBE4;border-radius:8px;background:#fafafa;cursor:crosshair;touch-action:none">
+      </canvas>
+      <div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end">
+        <button type="button" onclick="clearSig(2)" style="border:none;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;background:#FFF0F0;color:#A32D2D;font-family:inherit">지우기</button>
+        <button type="button" onclick="saveSig(2)" style="border:none;border-radius:6px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;background:#E8F5F0;color:#0F6E56;font-family:inherit">서명 저장 ✓</button>
+      </div>
+      <div id="sigMark2" style="font-size:10px;color:#0F6E56;font-weight:700;text-align:center;margin-top:3px"></div>
+    </div>
+
+  </div>
+  <p style="font-size:10px;color:#aaa;margin-top:8px;text-align:center">손가락 또는 마우스로 직접 서명하세요.</p>
+</div>
+
+<div class="btmbar">
+  <button class="btn btn-out" onclick="location.href='op01_cs.html'">← 체크시트</button>
+  <button class="btn btn-teal" onclick="saveFinal()">💾 최종저장</button>
+  <button class="btn btn-blue" onclick="printReport()">🖨️ 인쇄 / PDF</button>
+</div>
+
+<script>
+// ── Supabase 설정 (로그인 시 자동 저장된 키 사용) ──────────────────────────
+const SB_ANON      = 'sb_publishable_A5r1X1vSgxZJnW2FQkFo2A_Xggrj-s7';
+const SB_URL_STORED = localStorage.getItem('ces_sb_url') || 'https://dfqbxofnloxxjzjpnhqu.supabase.co';
+const SB_KEY_STORED = localStorage.getItem('ces_sb_key') || SB_ANON;
+
+// ── 데이터 로드 ────────────────────────────────────────────────────────────
+function ld(k){try{return JSON.parse(localStorage.getItem(k))||{}}catch(e){return{}}}
+const MS  = ld('ces_op01');
+const CSF = ld('ces_op01_cs_full');
+const zones = (MS.zones&&MS.zones.length)?MS.zones:[];
+const cust  = MS.customer||{};
+const site  = MS.site||{};
+const csD   = CSF.cs||{};
+const gD    = (csD._global)||{};
+const unitP = CSF.unitPrice||MS.unitPrice||55000;
+const totalA= zones.reduce((s,z)=>s+(parseFloat(z.area)||0),0);
+const totalE= totalA*unitP;
+const vat   = Math.round(totalE*0.1);
+
+function v(val,fb){
+  if(val===null||val===undefined||val==='') return '<span class="empty">'+(fb||'—')+'</span>';
+  return String(val);
+}
+function yn(val){
+  if(val==='y') return '<span class="ok">✅ 예</span>';
+  if(val==='n') return '<span class="no">❌ 아니요</span>';
+  return '<span class="empty">—</span>';
+}
+
+// ── 보고서 생성 (문자열 연결 방식 — 백틱 오류 방지) ─────────────────────
+function buildReport(){
+  var today = new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'});
+  var rptNo = 'W-FR-L-C011000-01-'+Date.now().toString().slice(-6);
+
+  // Feasibility 배지
+  var feasHtml = '';
+  var feas = MS.feas||site.feas||'';
+  if(feas==='feasible') feasHtml='<span class="feas-ok">✅ 가능 (Feasible)</span>';
+  else if(feas==='conditional') feasHtml='<span class="feas-warn">🟡 조건부 가능 (Conditional)</span>';
+  else if(feas==='infeasible') feasHtml='<span class="feas-bad">🔴 불가 (Infeasible)</span>';
+  else feasHtml='<span class="empty">미입력</span>';
+
+  // Case 배지
+  var caseVal = CSF.caseVal||'';
+  var caseHtml = '';
+  if(caseVal==='A') caseHtml='<span class="case-badge case-a">🟢 Case A — 결함 없음·경미</span>';
+  else if(caseVal==='B') caseHtml='<span class="case-badge case-b">🟡 Case B — 부분 보강</span>';
+  else if(caseVal==='C') caseHtml='<span class="case-badge case-c">🔴 Case C — 전면 보강</span>';
+  else if(caseVal==='D') caseHtml='<span class="case-badge case-d">🔵 Case D — 철거 후 확인</span>';
+  else caseHtml='<span class="empty">미분류</span>';
+
+  // 결함 태그
+  function defectTags(str){
+    if(!str) return '<span class="empty">—</span>';
+    return str.split(',').filter(function(x){return x}).map(function(d){
+      var bad=['균열','공극','박리','탈락','중성화'];
+      var isOk=d==='양호';
+      var isBad=bad.some(function(b){return d.includes(b)});
+      var isWarn=d.includes('철거');
+      var cls=isOk?'dtag-ok':isWarn?'dtag-blue':isBad?'dtag-bad':'dtag-warn';
+      return '<span class="dtag '+cls+'">'+d+'</span>';
+    }).join('');
+  }
+
+  // 설비 요약 테이블
+  var utilRows = zones.map(function(z,i){
+    var cs = csD[z.id]||{};
+    var panelOk = cs.panel_yn==='y';
+    var kw = cs.panel_kw||'';
+    var p380 = parseInt(cs.p380_count)||0;
+    var p220 = parseInt(cs.p220_count)||0;
+    var waterOk = cs.water_yn==='y';
+    var drainOk = cs.drain_yn==='y';
+    var rowCls = (!panelOk&&p380===0)?'bg-risk':(!panelOk?'bg-warn':(waterOk&&drainOk?'bg-good':''));
+    return '<tr class="'+rowCls+'">'
+      +'<td class="zn">'+(z.name||'구역'+(i+1))+'<br><small style="font-weight:400;color:#888">'+(z.floor||'')+' '+(z.area||0)+'㎡</small></td>'
+      +'<td class="'+(panelOk?'ok':'no')+'">'+(panelOk?'✅ 있음':'❌ 없음')+'</td>'
+      +'<td>'+(kw?'<strong>'+kw+'kW</strong>':'—')+'</td>'
+      +'<td>'+(p380>0?'<strong>'+p380+'개</strong>':'<span style="color:#bbb">0</span>')+'</td>'
+      +'<td>'+(p220>0?'<strong>'+p220+'개</strong>':'<span style="color:#bbb">0</span>')+'</td>'
+      +'<td class="'+(waterOk?'ok':'no')+'">'+(waterOk?'✅':'❌')+'</td>'
+      +'<td class="'+(drainOk?'ok':'no')+'">'+(drainOk?'✅':'❌')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var panelCount = zones.filter(function(z){return (csD[z.id]||{}).panel_yn==='y'}).length;
+  var total380   = zones.reduce(function(s,z){return s+(parseInt((csD[z.id]||{}).p380_count)||0)},0);
+  var total220   = zones.reduce(function(s,z){return s+(parseInt((csD[z.id]||{}).p220_count)||0)},0);
+  var kwList     = zones.map(function(z){return parseFloat((csD[z.id]||{}).panel_kw)||0}).filter(function(k){return k>0});
+  var kwSummary  = kwList.length?('최대 '+Math.max.apply(null,kwList)+'kW / 최소 '+Math.min.apply(null,kwList)+'kW'):'—';
+  var waterZones = zones.filter(function(z){return (csD[z.id]||{}).water_yn==='y'}).map(function(z){return z.name}).join(', ')||'없음';
+  var drainZones = zones.filter(function(z){return (csD[z.id]||{}).drain_yn==='y'}).map(function(z){return z.name}).join(', ')||'없음';
+
+  // 구역 카드
+  var zoneCards = zones.map(function(z,i){
+    var cs = csD[z.id]||{};
+    var defects = cs.floor_defects||'';
+    var colRows = ['col_sq_rc','col_ci_rc','col_h_stl','col_sq_stl','col_etc'].map(function(k){
+      var label={'col_sq_rc':'사각형(RC)','col_ci_rc':'원형(RC)','col_h_stl':'H형(철골)','col_sq_stl':'사각형(철골)','col_etc':'기타'}[k];
+      var cnt = cs[k+'_cnt']||'';
+      var szW = cs[k+'_w']||''; var szD = cs[k+'_d']||''; var szS = cs[k+'_size']||'';
+      if(!cnt) return '';
+      var sizeStr = (szW&&szD)?(szW+'×'+szD+'cm'):(szS||'—');
+      return '<tr><td class="lb">'+label+'</td><td>'+cnt+'개 / '+sizeStr+'</td></tr>';
+    }).join('');
+
+    return '<div class="zone-card">'
+      +'<div class="zone-hdr"><span>구역 '+(i+1)+': '+(z.name||'(미입력)')+'</span>'
+      +'<span style="font-size:11px;opacity:.8">'+(z.floor||'')+' | '+(z.area||0)+'㎡ | '+(z.use||'')+' | '+(z.isNew||'')+'</span></div>'
+      +'<div class="zone-body">'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+      +(z.largeGrinder===true?'<span class="dtag dtag-ok">✅ 대형 그라인더</span>'
+       :z.largeGrinder===false?'<span class="dtag dtag-bad">❌ 대형 그라인더</span>':'')
+      +(z.midGrinder===true?'<span class="dtag dtag-ok">✅ 중형 그라인더</span>'
+       :z.midGrinder===false?'<span class="dtag dtag-bad">❌ 중형 그라인더</span>':'')
+      +(z.forklift?'<span class="dtag dtag-warn">🚜 지게차: '+z.forklift+'</span>':'')
+      +(z.crane?'<span class="dtag dtag-warn">🏗️ 크레인: '+z.crane+'</span>':'')
+      +'</div>'
+      +'<table class="ft">'
+      +'<tr><td class="lb">기계미장</td><td>'
+      +(cs.machine_trowel==='y'?'✅ 완료':cs.machine_trowel==='n'?'🔴 미완료 → Case C':cs.machine_trowel==='u'?'🟡 미확인(도장재)':'<span class="empty">—</span>')
+      +'</td></tr>'
+      +'<tr><td class="lb">기존 마감재</td><td>'+v(cs.existing_finish)+'</td></tr>'
+      +'<tr><td class="lb">바닥 결함</td><td>'+defectTags(defects)+'</td></tr>'
+      +'<tr><td class="lb">유효 천장고</td><td>'+v(cs.ceiling_h)+'m</td></tr>'
+      +'<tr><td class="lb">환기 상태</td><td>'+v(cs.ventilation)+'</td></tr>'
+      +'<tr><td class="lb">조명 상태</td><td>'+v(cs.lighting)+'</td></tr>'
+      +(colRows?'<tr><td class="lb">기둥</td><td><table class="ft" style="margin:0">'+colRows+'</table></td></tr>':'')
+      +'</table>'
+      +(cs.floor_opinion?'<div style="margin-top:6px;padding:6px 8px;background:var(--lgray);border-radius:6px;font-size:11px">'+cs.floor_opinion+'</div>':'')
+      +'</div></div>';
+  }).join('');
+
+  // 리스크 목록
+  var autoRisks = CSF.autoRisks||[];
+  var extra = CSF.extraRisks||'';
+  if(extra) autoRisks = autoRisks.concat([{label:extra,zone:'직접입력'}]);
+  var riskHtml = autoRisks.length
+    ? '<ul style="list-style:none;padding:0">'+autoRisks.map(function(r){
+        return '<li style="padding:5px 8px;border-left:3px solid var(--amber);background:#FFF8EC;border-radius:0 5px 5px 0;margin-bottom:4px;font-size:12px">'
+          +'⚠ '+r.label+(r.zone&&r.zone!=='전체'?' <span style="font-size:10px;color:#aaa">['+r.zone+']</span>':'')+'</li>';
+      }).join('')+'</ul>'
+    : '<div class="empty" style="padding:8px">감지된 리스크 없음</div>';
+
+  // 전체 HTML 조합
+  return '<div class="rpt-hdr">'
+    +'<div class="rpt-company">주식회사 뉴월드 | QEMS 관리문서</div>'
+    +'<div class="rpt-title">현장평가보고서</div>'
+    +'<div class="rpt-sub">Site Evaluation Report · W-FR-L-C011000-01 · Rev 1.0</div>'
+    +'<div class="rpt-meta">'
+    +'<div class="rpt-meta-item"><strong>보고서 번호</strong>'+rptNo+'</div>'
+    +'<div class="rpt-meta-item"><strong>평가 일자</strong>'+(site.date||site.evalDate||today)+'</div>'
+    +'<div class="rpt-meta-item"><strong>작성자</strong>'+(CSF.author||'—')+'</div>'
+    +'<div class="rpt-meta-item"><strong>승인자</strong>'+(CSF.approver||'—')+'</div>'
+    +'<div class="rpt-meta-item"><strong>보안등급</strong>P3 (대외비)</div>'
+    +'</div></div>'
+    +'<div class="rpt-body">'
+
+    // ① 고객 정보
+    +'<div class="rpt-sec"><div class="rpt-sec-title">① 고객·수주 정보</div>'
+    +'<table class="ft">'
+    +'<tr><td class="lb">고객사명</td><td>'+v(cust.name)+'</td><td class="lb">고객 분류</td><td>'+v(MS.cust_type||cust.custType)+'</td></tr>'
+    +'<tr><td class="lb">업종</td><td>'+v(cust.bizType||cust.type)+'</td><td class="lb">사업자번호</td><td>'+v(cust.bizNo)+'</td></tr>'
+    +'<tr><td class="lb">대표자</td><td>'+v(cust.ceo)+'</td><td class="lb">연락처</td><td>'+v(cust.tel)+'</td></tr>'
+    +'<tr><td class="lb">이메일</td><td>'+v(cust.email)+'</td><td class="lb">고객사 주소</td><td>'+v(cust.addr)+'</td></tr>'
+    +'</table></div>'
+
+    // ② 현장 정보
+    +'<div class="rpt-sec"><div class="rpt-sec-title">② 현장·수주 정보</div>'
+    +'<table class="ft">'
+    +'<tr><td class="lb">수주 프로젝트명</td><td colspan="3">'+v(site.name)+'</td></tr>'
+    +'<tr><td class="lb">공사 타입</td><td>'+v(site.bdType||site.type)+'</td><td class="lb">계약 형태</td><td>'+v(site.contract)+'</td></tr>'
+    +'<tr><td class="lb">평가 일자</td><td>'+v(site.evalDate||site.date)+'</td><td class="lb">평가자</td><td>'+v(site.evaluator)+'</td></tr>'
+    +'<tr><td class="lb">공사지 주소</td><td colspan="3">'+v(site.addr)+(site.addr2?' '+site.addr2:'')+'</td></tr>'
+    +'<tr><td class="lb">층고</td><td>'+v(site.floorH,'—')+'m</td><td class="lb">유효 천장고</td><td>'+v(site.ceilingH,'—')+'m</td></tr>'
+    +'<tr><td class="lb">대형차량 진입</td><td>'+(MS.truck_access||site.truckAccess?yn(MS.truck_access||site.truckAccess):'—')+'</td><td class="lb">폐기물처리비</td><td>'+v(MS.waste_cost||site.wasteCost)+'</td></tr>'
+    +'<tr><td class="lb">예산</td><td>'+v(site.budget?parseInt(site.budget).toLocaleString()+'만원':'')+'</td><td class="lb">구조도면</td><td>'+(MS.blueprint||site.blueprint?yn(MS.blueprint||site.blueprint):'—')+'</td></tr>'
+    +'<tr><td class="lb">총 면적</td><td><strong>'+totalA.toLocaleString()+'㎡</strong></td>'
+    +'<td class="lb">간이 견적</td><td>'
+    +'<strong>'+totalE.toLocaleString()+'원</strong> (VAT 별도)<br>'
+    +'<small style="color:#888">VAT 10%: '+vat.toLocaleString()+'원 | 합계: '+(totalE+vat).toLocaleString()+'원</small>'
+    +'</td></tr>'
+    +'</table>'
+    +(site.req?'<div style="margin-top:7px;padding:8px 10px;background:#EEF2FF;border-radius:7px;border-left:3px solid var(--blue);font-size:12px"><strong style="color:var(--blue)">고객 요구사항:</strong> '+site.req+'</div>':'')
+    +'</div>'
+
+    // ③ Feasibility
+    +'<div class="rpt-sec"><div class="rpt-sec-title">③ 공사 가능성 판정 (Feasibility)</div>'
+    +'<div style="margin-bottom:8px">'+feasHtml+'</div>'
+    +((MS.feasCond||site.feasCond)?'<div style="padding:8px 10px;background:#FFF8EC;border-radius:7px;border-left:3px solid var(--amber);font-size:12px"><strong style="color:var(--amber)">조건 내용:</strong> '+(MS.feasCond||site.feasCond)+'</div>':'')
+    +'</div>'
+
+    // ④ 설비 요약 테이블
+    +'<div class="rpt-sec"><div class="rpt-sec-title">④ 설비 조건 — 구역별 요약</div>'
+    +'<div style="overflow-x:auto">'
+    +'<table class="util-tbl">'
+    +'<thead><tr><th style="min-width:70px">구역</th><th>배전함</th><th>용량(kW)</th><th>380V(개)</th><th>220V(개)</th><th>급수</th><th>배수</th></tr></thead>'
+    +'<tbody>'+utilRows
+    +'<tr class="sum"><td class="zn">합계</td><td>'+panelCount+'개</td><td>'+kwSummary+'</td><td>'+total380+'개</td><td>'+total220+'개</td><td style="font-size:10px">'+waterZones+'</td><td style="font-size:10px">'+drainZones+'</td></tr>'
+    +'</tbody></table></div>'
+    +'<table class="ft" style="margin-top:8px">'
+    +'<tr><td class="lb">진입로 기울기</td><td>'+v(site.entry_angle||site.entryAngle,'—')+'°</td><td class="lb">주차장 입구 높이</td><td>'+v(site.parking_h||site.parkingH,'—')+'m</td></tr>'
+    +'<tr><td class="lb">작업 시간 제한</td><td>'+v(site.work_hours||site.workHours)+'</td><td class="lb">타공사 동시진행</td><td>'+v(site.other_work||site.otherWork)+'</td></tr>'
+    +'</table></div>'
+
+    // ⑤ 구역별 체크시트
+    +'<div class="rpt-sec"><div class="rpt-sec-title">⑤ 구역별 현장평가 체크시트 Rev 1.0</div>'
+    +'<div style="font-size:11px;color:var(--teal);background:#E8F5F0;border-radius:7px;padding:7px 10px;margin-bottom:10px">각 구역의 바닥상태·구조·장비 투입 가능 여부. OP-02 진단평가 이중 점검 기반 문서.</div>'
+    +zoneCards+'</div>'
+
+    // ⑥ 리스크
+    +'<div class="rpt-sec"><div class="rpt-sec-title">⑥ 리스크 목록 v1 (Risk List v1)</div>'
+    +riskHtml+'</div>'
+
+    // ⑦ 견적
+    +'<div class="rpt-sec"><div class="rpt-sec-title">⑦ 간이 견적 (Preliminary Estimate)</div>'
+    +'<table class="ft">'
+    +'<tr><td class="lb">적용 단가</td><td>'+unitP.toLocaleString()+'원/㎡ (VAT 별도)</td><td class="lb">총 면적</td><td>'+totalA.toLocaleString()+'㎡</td></tr>'
+    +zones.map(function(z){
+      return '<tr><td class="lb">'+(z.name||'구역')+'</td><td>'+(z.area||0).toLocaleString()+'㎡ → '+((z.area||0)*unitP).toLocaleString()+'원</td>'
+        +'<td class="lb">장비</td><td>'
+        +(z.largeGrinder===true?'대형 ✅':z.largeGrinder===false?'대형 ❌':'대형 —')
+        +' / '+(z.midGrinder===true?'중형 ✅':z.midGrinder===false?'중형 ❌':'중형 —')
+        +'</td></tr>';
+    }).join('')
+    +'<tr style="background:#EEF2FF"><td class="lb" style="color:var(--blue)">공급가액</td><td style="font-size:15px;font-weight:800;color:var(--blue)">'+totalE.toLocaleString()+'원</td>'
+    +'<td class="lb" style="color:var(--teal)">부가세(10%)</td><td style="font-size:15px;font-weight:800;color:var(--teal)">'+vat.toLocaleString()+'원</td></tr>'
+    +'<tr style="background:#1B3A6B"><td colspan="2" style="color:#fff;font-weight:700;padding:8px">합계 (VAT 포함)</td>'
+    +'<td colspan="2" style="color:#fff;font-size:18px;font-weight:800;padding:8px">'+(totalE+vat).toLocaleString()+'원</td></tr>'
+    +'</table></div>'
+
+    // ⑧ Case
+    +'<div class="rpt-sec"><div class="rpt-sec-title">⑧ Case 예비 분류 및 계측 후보</div>'
+    +'<table class="ft">'
+    +'<tr><td class="lb">Case 예비 분류</td><td>'+caseHtml+'</td></tr>'
+    +'<tr><td class="lb">계측 후보 구역</td><td>'+v(CSF.measZones,'진단평가(OP-02)에서 확정')+'</td></tr>'
+    +'</table>'
+    +'<div style="margin-top:7px;font-size:11px;color:#888;padding:6px 10px;background:var(--lgray);border-radius:6px">※ Case 최종 확정은 진단평가(OP-02)에서 수행합니다.</div>'
+    +'</div>'
+
+    // ⑨ 종합의견
+    +'<div class="rpt-sec"><div class="rpt-sec-title">⑨ 현장 종합 의견</div>'
+    +'<div style="padding:10px 12px;background:var(--lgray);border-radius:8px;font-size:12px;min-height:60px;white-space:pre-wrap">'
+    +(CSF.overall||CSF.overallOpinion||'<span class="empty">(종합 의견 없음)</span>')
+    +'</div></div>'
+
+    // ⑩ 결재
+    +'<div class="rpt-sec"><div class="rpt-sec-title">⑩ 결재</div>'
+    +'<div class="sign-row">'
+    +'<div class="sign-cell"><div class="sign-label">작성자 (영업팀원)</div>'+(sigData[1]?'<img src="'+sigData[1]+'" style="height:40px;max-width:100%;object-fit:contain">':'<div style="height:40px"></div>')+'<div class="sign-name">'+(CSF.author||'(미입력)')+'</div></div>'
+    +'<div class="sign-cell"><div class="sign-label">검토자</div><div style="height:40px"></div><div class="sign-name">—</div></div>'
+    +'<div class="sign-cell"><div class="sign-label">승인자 (영업팀장)</div>'+(sigData[2]?'<img src="'+sigData[2]+'" style="height:40px;max-width:100%;object-fit:contain">':'<div style="height:40px"></div>')+'<div class="sign-name">'+(CSF.approver||'(미입력)')+'</div></div>'
+    +'</div></div>'
+
+    +'<div style="text-align:center;padding:12px;font-size:10px;color:#aaa;border-top:1px solid var(--border)">'
+    +'주식회사 뉴월드 | W-FR-L-C011000-01 | 보안등급 P3(대외비) | '+today+'<br>'
+    +'이 보고서는 OP-01 영업팀 작성본(Rev 1.0)입니다. 진단평가(OP-02)에서 공사팀이 Rev 2.0으로 고도화합니다.<br>'
+    +'<span style="font-weight:700;color:#A32D2D">비관리본 – 참조용 (Uncontrolled Copy – For Reference Only)</span>'
+    +'</div>'
+    +'</div>';
+}
+
+// ── 렌더 ──────────────────────────────────────────────────────────────────
+function renderReport(){
+  document.getElementById('rpt').innerHTML = buildReport();
+}
+
+
+// ── 토큰 자동 갱신 ────────────────────────────────────────────────────────
+async function tryRefreshToken(){
+  const rt = localStorage.getItem('ces_refresh_token');
+  if(!rt) return false;
+  try{
+    const r = await fetch(SB_URL_STORED+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY_STORED},
+      body: JSON.stringify({refresh_token:rt})
+    });
+    if(!r.ok) return false;
+    const d = await r.json();
+    if(d.access_token){
+      localStorage.setItem('ces_token', d.access_token);
+      localStorage.setItem('ces_login_time', new Date().toISOString());
+      if(d.refresh_token) localStorage.setItem('ces_refresh_token', d.refresh_token);
+      return true;
+    }
+    return false;
+  }catch(e){ return false; }
+}
+
+// ── 저장 ──────────────────────────────────────────────────────────────────
+async function saveFinal(){
+  await tryRefreshToken();
+  const token = localStorage.getItem('ces_token')||'';
+  const sbUrl = SB_URL_STORED;
+  const sbKey = SB_KEY_STORED;
+
+  // ① 항상 로컬 저장 먼저
+  const localData = {
+    savedAt:new Date().toISOString(),
+    projectName:site.name||'(미입력)',
+    clientName:cust.name||'',
+    totalArea:totalA,
+    totalEst:totalE,
+    vat:vat,
+    caseVal:CSF.caseVal||'',
+    feas:MS.feas||'',
+    zones:zones,
+    site:site,
+    cust:cust,
+    csData:csD,
+    globalData:gD,
+    risks:CSF.autoRisks||[],
+    author:CSF.author||'',
+    approver:CSF.approver||''
+  };
+  localStorage.setItem('ces_op01_final', JSON.stringify(localData));
+
+  // ② Supabase 저장 시도
+  if(!sbKey || sbKey.includes('YOUR_SUPABASE')){
+    showSaveResult('local');
+    return;
+  }
+
+  try{
+    const authHeader = token ? 'Bearer '+token : 'Bearer '+sbKey;
+
+    // sites 테이블 저장
+    const siteBody={
+      site_name:site.name||'(미입력)',
+      client_name:cust.name||'',
+      address:(site.addr||'')+(site.addr2?' '+site.addr2:''),
+      area_m2:totalA||null,
+      contract_date:site.evalDate||site.date||new Date().toISOString().split('T')[0],
+      manager_name:site.evaluator||'',
+      current_stage:'OP-02',
+      status:'active',
+      completed_stages: JSON.stringify([{stage:'OP-01', done_at: new Date().toISOString().split('T')[0]}])
+    };
+    const r1=await fetch(sbUrl+'/rest/v1/sites?on_conflict=site_name,client_name',{
+      method:'POST',
+      headers:{'Content-Type':'application/json',apikey:sbKey,
+        Authorization:authHeader,'Prefer':'resolution=merge-duplicates,return=representation'},
+      body:JSON.stringify(siteBody)
+    });
+
+    if(!r1.ok){
+      const errText = await r1.text();
+      throw new Error('sites 저장 실패: '+errText);
+    }
+
+    const siteData=await r1.json();
+    const siteId=siteData[0].id;
+
+    // site_evaluations 테이블 저장
+    const evalBody={
+      site_id:siteId,
+      project_name:site.name||'',
+      client_name:cust.name||'',
+      site_address:site.addr||'',
+      area_m2:totalA||null,
+      eval_date:site.evalDate||site.date||new Date().toISOString().split('T')[0],
+      evaluator_name:site.evaluator||'',
+      machine_trowel:'completed',
+      blueprint:'none',
+      site_access:'free',
+      feasibility:MS.feas||'feasible',
+      feasibility_condition:MS.feasCond||'',
+      case_prelim:CSF.caseVal||'',
+      overall_opinion:CSF.overall||CSF.overallOpinion||'',
+      next_action:MS.feas==='feasible'?'proceed':'discuss',
+      author_name:CSF.author||'',
+      approver_name:CSF.approver||'',
+      est_area_m2:totalA||null,
+      est_unit_price:unitP||55000,
+      est_total:totalE||null,
+      est_notes:CSF.extraRisks||'',
+      stage:'sales',
+      cs_floor_opinion:JSON.stringify({zones:zones,global:gD}).substring(0,2000),
+      cs_constraint_opinion:JSON.stringify({risks:CSF.autoRisks||[]}).substring(0,500)
+    };
+    const r2=await fetch(sbUrl+'/rest/v1/site_evaluations',{
+      method:'POST',
+      headers:{'Content-Type':'application/json',apikey:sbKey,
+        Authorization:authHeader,'Prefer':'return=representation'},
+      body:JSON.stringify(evalBody)
+    });
+
+    if(!r2.ok){
+      const errText = await r2.text();
+      throw new Error('평가 저장 실패: '+errText);
+    }
+
+    showSaveResult('server');
+    // ── 임시저장(draft) 삭제 ────────────────────────────────────────
+    try{
+      await fetch(sbUrl+'/rest/v1/op01_drafts',{
+        method:'DELETE',
+        headers:{apikey:sbKey,'Authorization':authHeader}
+      });
+    }catch(e){}
+
+  }catch(e){
+    console.error('Supabase 저장 오류:', e);
+    // Supabase 실패해도 로컬 저장은 이미 완료
+    showSaveResult('local_fallback', e.message);
+  }
+}
+
+async function showSaveResult(type, errMsg){
+  if(type==='server'){
+    if(confirm('✅ 서버 저장 완료!\n\n보고서를 인쇄·PDF로 저장하시겠습니까?')){
+      window.print();
+    }
+  }else if(type==='local'){
+    alert('💾 로컬 저장 완료!\n\nSupabase 연결 설정이 필요합니다.\n로그아웃 후 다시 로그인하면 서버 저장이 활성화됩니다.');
+  }else if(type==='local_fallback'){
+    const msg = errMsg||'';
+    let friendlyMsg = '서버 저장 중 오류가 발생했습니다.\n로컬에는 저장되었습니다.';
+    // ★[CED-20260929-002 ①] 직무분리 등 CHECK 제약 위반(SQLSTATE 23514) — 가장 먼저 가린다
+    //   까닭 : 아래 갈래 셋(JWT · column/schema · RLS/policy) 어디에도 23514 가 안 걸려
+    //          기본 문구 「로컬에는 저장되었습니다」가 떠서 사람이 저장된 줄 알았다
+    if(msg.includes('23514')||msg.includes('check constraint')){
+      var cn = (msg.match(/check constraint\s+\\?"([A-Za-z0-9_]+)\\?"/)||[])[1] || '';
+      var why = '저장 규칙에 걸렸습니다.';
+      if(cn.indexOf('author_ne_approver')   >= 0) why = '작성자와 승인자가 같습니다.\n서로 다른 사람이어야 합니다.';
+      else if(cn.indexOf('evaluator_ne_approver') >= 0) why = '평가자와 승인자가 같습니다.\n서로 다른 사람이어야 합니다.';
+      alert('⛔ 서버에 저장되지 않았습니다.\n\n'+why+'\n\n작성자·승인자를 고쳐 다시 저장해 주십시오.'+
+            (cn?'\n\n(규칙: '+cn+')':''));
+      return;
+    }
+    if(msg.includes('JWT')||msg.includes('expire')||msg.includes('PGRST303')||msg.includes('auth')||msg.includes('401')){
+      const refreshed = await tryRefreshToken();
+      if(refreshed){ alert('🔄 인증 자동 갱신됨. 다시 저장합니다.'); saveFinal(); return; }
+      localStorage.removeItem('ces_token'); localStorage.removeItem('ces_refresh_token'); localStorage.removeItem('ces_login_time');
+      const goLogin = confirm('⚠️ 로그인이 만료되었습니다.\n\n✅ 로컬 저장은 완료되었습니다.\n(데이터는 이 기기에 보존됨)\n\n로그인 페이지로 이동하시겠습니까?');
+      if(goLogin) window.location.href='login.html';
+      return;
+    }else if(msg.includes('column')||msg.includes('schema')){
+      friendlyMsg = '데이터베이스 구조 오류입니다.\n관리자에게 문의해 주세요.\n\n(로컬 저장은 완료)';
+    }else if(msg.includes('RLS')||msg.includes('policy')){
+      friendlyMsg = '데이터베이스 권한 오류입니다.\nSupabase RLS 정책을 확인해 주세요.\n\n(로컬 저장은 완료)';
+    }
+    // ★[CED-20260929-002 ②] 80 → 300. 80 자에서는 Postgres 원문의 제약 이름이 잘려 안 보였다
+    alert('⚠️ '+friendlyMsg+'\n\n오류: '+msg.substring(0,300));
+  }
+}
+
+
+// ══ 전자 서명 (sig_test.html 검증 코드 동일 적용) ═══════════════════════
+
+var sigData = {1: null, 2: null};
+
+function setupCanvas(num) {
+  var canvas = document.getElementById('sigCanvas' + num);
+  if (!canvas) { console.error('sigCanvas' + num + ' 없음'); return; }
+
+  // 내부 해상도 설정
+  canvas.width  = canvas.offsetWidth  || 300;
+  canvas.height = canvas.offsetHeight || 130;
+
+  var ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#1B3A6B';
+  ctx.lineWidth   = 2.5;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  var drawing = false;
+  var lx = 0, ly = 0;
+
+  function getXY(e) {
+    var r   = canvas.getBoundingClientRect();
+    var cli = e.touches ? e.touches[0] : e;
+    return {
+      x: (cli.clientX - r.left) * (canvas.width  / r.width),
+      y: (cli.clientY - r.top)  * (canvas.height / r.height)
+    };
+  }
+
+  // Pointer Events (PC + 터치 통합)
+  canvas.addEventListener('pointerdown', function(e) {
+    e.preventDefault();
+    try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
+    drawing = true;
+    var p = getXY(e);
+    lx = p.x; ly = p.y;
+    ctx.beginPath();
+    ctx.arc(lx, ly, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#1B3A6B';
+    ctx.fill();
+  }, false);
+
+  canvas.addEventListener('pointermove', function(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    var p = getXY(e);
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lx = p.x; ly = p.y;
+  }, false);
+
+  canvas.addEventListener('pointerup',     function() { drawing = false; }, false);
+  canvas.addEventListener('pointercancel', function() { drawing = false; }, false);
+
+  // 마우스 폴백 (Pointer Events 미지원 브라우저 대비)
+  canvas.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    drawing = true;
+    var p = getXY(e); lx = p.x; ly = p.y;
+  }, false);
+  canvas.addEventListener('mousemove', function(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    var p = getXY(e);
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke();
+    lx = p.x; ly = p.y;
+  }, false);
+  canvas.addEventListener('mouseup',    function() { drawing = false; }, false);
+  canvas.addEventListener('mouseleave', function() { drawing = false; }, false);
+
+  // 터치 폴백
+  canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    drawing = true;
+    var p = getXY(e); lx = p.x; ly = p.y;
+  }, {passive: false});
+  canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    var p = getXY(e);
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke();
+    lx = p.x; ly = p.y;
+  }, {passive: false});
+  canvas.addEventListener('touchend', function() { drawing = false; }, false);
+
+  // 저장된 서명 복원
+  var saved = localStorage.getItem('ces_sig_' + num);
+  if (saved) {
+    var img = new Image();
+    img.onload = function() {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = saved;
+    sigData[num] = saved;
+    var mk = document.getElementById('sigMark' + num);
+    if (mk) mk.textContent = '✅ 서명 저장됨';
+  }
+
+  console.log('서명' + num + ' 초기화 완료. canvas크기=' + canvas.width + 'x' + canvas.height);
+}
+
+function initSigPad(num) { setupCanvas(num); }
+
+function clearSig(num) {
+  var canvas = document.getElementById('sigCanvas' + num);
+  if (!canvas) return;
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  sigData[num] = null;
+  localStorage.removeItem('ces_sig_' + num);
+  var mk = document.getElementById('sigMark' + num);
+  if (mk) mk.textContent = '';
+}
+
+function saveSig(num) {
+  var canvas = document.getElementById('sigCanvas' + num);
+  if (!canvas) return;
+  var url = canvas.toDataURL('image/png');
+  sigData[num] = url;
+  localStorage.setItem('ces_sig_' + num, url);
+  var mk = document.getElementById('sigMark' + num);
+  if (mk) mk.textContent = '✅ 서명 저장됨';
+}
+
+// 초기화 — 여러 시점에서 시도
+function tryInitSig() {
+  var c1 = document.getElementById('sigCanvas1');
+  var c2 = document.getElementById('sigCanvas2');
+  if (c1 && c2) {
+    setupCanvas(1);
+    setupCanvas(2);
+    return true;
+  }
+  return false;
+}
+
+// 즉시 시도
+if (!tryInitSig()) {
+  document.addEventListener('DOMContentLoaded', tryInitSig);
+}
+window.addEventListener('load', function() {
+  // load 후 재초기화 (렌더링 완료 보장)
+  setTimeout(tryInitSig, 50);
+  setTimeout(tryInitSig, 300);
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+
+
+// 인쇄: 결재란에 서명 반영 후 출력
+// PDF 저장 시 파일명 = "현장평가보고서_현장명"
+function printReport(){
+  renderReport();
+
+  var siteName = '';
+  try{
+    var d=JSON.parse(localStorage.getItem('ces_op01')||'{}');
+    siteName=(d.site&&d.site.name)?d.site.name:'';
+  }catch(e){}
+
+  var docName='W-FR-L-C011000-01_Rev1.0_현장평가보고서';
+  if(siteName) docName+='_'+siteName;
+  docName+='_P3';
+  document.title=docName;
+
+  var modal=document.getElementById('printNameModal');
+  var nameEl=document.getElementById('printFileName');
+  if(modal&&nameEl){ nameEl.textContent=docName; modal.style.display='flex'; }
+  else{ setTimeout(function(){window.print();},150); }
+}
+
+function _doPrint(){
+  setTimeout(function(){window.print();},100);
+}
+
+function closePrintModal(go){
+  var m=document.getElementById('printNameModal');
+  if(m) m.style.display='none';
+  if(go) _doPrint();
+}
+
+renderReport();
+</script>
+
+<!-- ══ PDF 파일명 안내 모달 ══ -->
+<div id="printNameModal" style="display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;padding:24px 20px;
+    width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="font-size:16px;font-weight:800;color:#1B3A6B;margin-bottom:8px">
+      🖨️ PDF 저장 안내
+    </div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px;line-height:1.7">
+      인쇄 창이 열리면 <strong>파일 이름</strong> 칸에<br>
+      아래 이름을 복사해서 붙여넣어 주세요.
+    </div>
+    <!-- 파일명 표시 + 복사 버튼 -->
+    <div style="background:#F2F4F7;border-radius:8px;padding:10px 12px;
+      margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      <div id="printFileName" style="flex:1;font-size:11px;font-weight:700;
+        color:#1B3A6B;word-break:break-all;font-family:monospace"></div>
+      <button onclick="copyFileName()"
+        style="flex-shrink:0;background:#1B3A6B;color:#fff;border:none;
+        border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;
+        cursor:pointer;font-family:inherit" id="copyBtn">
+        복사
+      </button>
+    </div>
+    <div style="font-size:11px;color:#aaa;margin-bottom:18px">
+      💡 Chrome 내장 PDF로 저장하면 자동으로 파일명이 입력됩니다.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="closePrintModal(false)"
+        style="flex:1;padding:11px;border:none;border-radius:10px;
+        background:#F2F4F7;color:#4A4A4A;font-size:13px;
+        font-weight:700;cursor:pointer;font-family:inherit">
+        취소
+      </button>
+      <button onclick="closePrintModal(true)"
+        style="flex:2;padding:11px;border:none;border-radius:10px;
+        background:#1B3A6B;color:#fff;font-size:13px;
+        font-weight:700;cursor:pointer;font-family:inherit">
+        인쇄 계속 →
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function copyFileName(){
+  var el = document.getElementById('printFileName');
+  var btn = document.getElementById('copyBtn');
+  if(!el) return;
+  try{
+    navigator.clipboard.writeText(el.textContent).then(function(){
+      btn.textContent = '✅ 복사됨';
+      setTimeout(function(){ btn.textContent = '복사'; }, 2000);
+    });
+  }catch(e){
+    // 구형 브라우저 폴백
+    var ta = document.createElement('textarea');
+    ta.value = el.textContent;
+    document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✅ 복사됨';
+    setTimeout(function(){ btn.textContent = '복사'; }, 2000);
+  }
+}
+</script>
+
+</body>
+</html>

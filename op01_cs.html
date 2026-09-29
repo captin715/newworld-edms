@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script src="ces-config.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>뉴월드 CES — OP-01 체크시트</title>
+<script src="ces-shared.js"></script>
+<style>
+:root{--blue:#1B3A6B;--teal:#0F6E56;--amber:#BA7517;--red:#A32D2D;
+  --green:#1A6B3A;--gray:#4A4A4A;--lgray:#F2F4F7;--border:#D6DBE4;
+  --shadow:0 2px 10px rgba(0,0,0,.10)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  background:var(--lgray);color:var(--gray);font-size:14px}
+/* 헤더 */
+.hdr{background:var(--blue);color:#fff;position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.hdr-top{padding:10px 13px 5px;display:flex;justify-content:space-between;align-items:center}
+.hdr h1{font-size:13px;font-weight:700}
+.hdr-acts{display:flex;gap:6px}
+.hbtn{padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.4);
+  color:#fff;background:transparent;font-size:11px;cursor:pointer;font-weight:600}
+.hbtn.teal{background:var(--teal);border-color:var(--teal)}
+/* 탭 */
+.tabbar{display:flex;overflow-x:auto;gap:5px;padding:4px 10px 8px;scrollbar-width:none}
+.tabbar::-webkit-scrollbar{display:none}
+.tab{padding:5px 13px;border-radius:8px;border:1.5px solid rgba(255,255,255,.3);
+  font-size:11px;cursor:pointer;color:rgba(255,255,255,.75);white-space:nowrap;
+  background:transparent;transition:all .2s;flex-shrink:0}
+.tab.active{background:#fff;color:var(--blue);font-weight:700;border-color:#fff}
+/* 메인 */
+.main{padding:12px 12px 90px}
+/* 카드 */
+.card{background:#fff;border-radius:11px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow)}
+.ct{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:10px;
+  display:flex;align-items:center;gap:5px}
+.ct::before{content:'';width:3px;height:15px;background:var(--blue);border-radius:2px;flex-shrink:0}
+/* 그룹 헤더 */
+.grp{font-size:11px;font-weight:700;color:#fff;background:var(--blue);
+  padding:6px 11px;border-radius:7px;margin:10px 0 7px;display:flex;align-items:center;gap:5px}
+/* 폼 */
+.fg{margin-bottom:9px}
+.fl{font-size:11px;font-weight:600;color:var(--gray);margin-bottom:3px;display:flex;align-items:center;gap:4px}
+.fi,.fs{width:100%;padding:8px 10px;border:1.5px solid var(--border);
+  border-radius:7px;font-size:12px;color:var(--gray);background:#fff;appearance:none}
+.fi:focus,.fs:focus{outline:none;border-color:var(--blue)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.unit{display:flex;align-items:center;gap:5px}
+.unit .fi{flex:1}
+.unit span{font-size:11px;color:#888;white-space:nowrap}
+/* 배지 */
+.op01{font-size:9px;background:#E8F5F0;color:var(--teal);padding:1px 5px;border-radius:3px;font-weight:600}
+.op02{font-size:9px;background:#EEF2FF;color:var(--blue);padding:1px 5px;border-radius:3px;font-weight:600}
+.casec{font-size:9px;background:#FFF0F0;color:var(--red);padding:1px 5px;border-radius:3px;font-weight:600}
+.opt{font-size:9px;background:var(--lgray);color:#888;padding:1px 5px;border-radius:3px}
+/* 체크 행 */
+.cr{background:var(--lgray);border-radius:9px;padding:10px;margin-bottom:7px}
+.cr-top{display:flex;align-items:flex-start;gap:7px;margin-bottom:6px}
+.cr-label{flex:1;font-size:12px;font-weight:600;line-height:1.4}
+/* 사진 버튼 */
+.pbtn{width:30px;height:30px;border:1.5px solid var(--border);border-radius:6px;
+  background:#fff;cursor:pointer;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;transition:all .2s}
+.pbtn::after{content:'📷';font-size:13px}
+.pbtn.has{background:var(--teal);border-color:var(--teal)}
+.pbtn.has::after{content:'✓';font-size:11px;color:#fff;font-weight:700}
+/* 다중 선택 */
+.ms{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
+.mi{padding:6px 9px;border:1.5px solid var(--border);border-radius:6px;
+  font-size:11px;cursor:pointer;background:#fff;transition:all .2s;user-select:none}
+.mi.on{border-color:var(--red);background:#FFF0F0;color:var(--red);font-weight:700}
+.mi.on-ok{border-color:var(--teal);background:#E8F5F0;color:var(--teal);font-weight:700}
+.mi.on-warn{border-color:var(--amber);background:#FFF8EC;color:var(--amber);font-weight:700}
+/* Yes/No */
+.yn{display:flex;gap:5px;margin-top:3px}
+.ynb{padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;
+  font-size:11px;cursor:pointer;background:#fff;flex:1;text-align:center;transition:all .2s}
+.ynb.y{border-color:var(--teal);background:#E8F5F0;color:var(--teal);font-weight:700}
+.ynb.n{border-color:var(--red);background:#FFF0F0;color:var(--red);font-weight:700}
+/* 비고 */
+.note{width:100%;padding:6px 9px;border:1.5px solid var(--border);
+  border-radius:6px;font-size:11px;background:#fff;color:var(--gray);margin-top:5px;resize:none}
+.note:focus{outline:none;border-color:var(--blue)}
+/* 동적 세부 패널 */
+.sub-panel{background:#fff;border-left:3px solid var(--amber);
+  border-radius:0 8px 8px 0;padding:10px;margin-top:7px;animation:si .2s ease}
+@keyframes si{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.sub-title{font-size:11px;font-weight:700;color:var(--amber);margin-bottom:7px}
+/* 기둥 테이블 */
+.col-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+.col-table th{background:var(--blue);color:#fff;padding:6px 7px;text-align:center;font-weight:600}
+.col-table td{padding:5px 6px;border:1px solid var(--border);text-align:center;vertical-align:middle}
+.col-table tr:nth-child(even) td{background:var(--lgray)}
+.col-cnt{width:50px;padding:4px 5px;border:1.5px solid var(--border);
+  border-radius:5px;font-size:12px;text-align:center;background:#fff}
+.col-size{width:80px;padding:4px 5px;border:1.5px solid var(--border);
+  border-radius:5px;font-size:11px;text-align:center;background:#fff}
+/* 설비 요약 테이블 (공통 탭) */
+.util-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:5px;overflow:auto}
+.util-table th{background:var(--blue);color:#fff;padding:7px 6px;text-align:center;
+  font-weight:600;white-space:nowrap;font-size:10px}
+.util-table td{padding:7px 6px;border:1px solid var(--border);text-align:center;
+  vertical-align:middle;font-size:11px}
+.util-table .zone-name{font-weight:700;color:var(--blue);background:#EEF2FF;text-align:left;padding-left:9px}
+.util-table .sum-row td{background:#EEF2FF;font-weight:700;color:var(--blue)}
+.util-ok{color:var(--teal);font-weight:700}
+.util-no{color:var(--red);font-weight:700}
+.util-warn{background:#FFF8EC}
+.util-risk{background:#FFF0F0}
+.util-good{background:#E8F5F0}
+/* Case C 배너 */
+.casec-banner{background:#FFF0F0;border:2px solid var(--red);border-radius:9px;
+  padding:9px 11px;margin-bottom:9px;font-size:11px;color:var(--red);font-weight:700;display:none}
+/* 리스크 */
+.risk-box{background:#FFF8EC;border:1.5px solid var(--amber);border-radius:9px;padding:9px 11px;margin-bottom:7px}
+.risk-title{font-size:11px;font-weight:700;color:var(--amber);margin-bottom:5px}
+.rtag{display:inline-flex;background:#fff;border:1px solid var(--amber);
+  border-radius:5px;padding:3px 7px;font-size:10px;color:var(--amber);margin:2px}
+/* 정보 박스 */
+.info-box{background:#E8F5F0;border:1.5px solid var(--teal);border-radius:8px;
+  padding:8px 11px;margin-bottom:9px;font-size:11px;color:var(--teal);line-height:1.5}
+/* 사진 미리보기 */
+.prev-wrap{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.prev-img{width:50px;height:50px;border-radius:6px;object-fit:cover;border:2px solid var(--teal)}
+/* Case 버튼 */
+.case-row{display:flex;gap:7px}
+.case-btn{padding:9px 8px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:12px;cursor:pointer;background:#fff;flex:1;text-align:center;
+  transition:all .2s;line-height:1.4;font-weight:500}
+.case-a{border-color:var(--teal);background:#E8F5F0;color:var(--teal);font-weight:700}
+.case-b{border-color:var(--amber);background:#FFF8EC;color:var(--amber);font-weight:700}
+.case-c{border-color:var(--red);background:#FFF0F0;color:var(--red);font-weight:700}
+/* 하단 버튼 */
+.btmbar{position:fixed;bottom:0;left:0;right:0;background:#fff;
+  padding:10px 13px;border-top:1px solid var(--border);display:flex;gap:7px;z-index:100;
+  box-shadow:0 -2px 10px rgba(0,0,0,.06)}
+.btn{display:flex;align-items:center;justify-content:center;
+  padding:12px;border-radius:9px;border:none;font-size:13px;font-weight:600;
+  cursor:pointer;flex:1;transition:all .2s}
+.btn:active{transform:scale(.97)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-out{background:#fff;color:var(--blue);border:2px solid var(--blue);flex:0 0 auto;padding:12px 14px}
+/* 토스트 */
+.toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.82);color:#fff;padding:8px 16px;border-radius:14px;
+  font-size:12px;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1}
+/* 스크롤 테이블 래퍼 */
+.tbl-scroll{overflow-x:auto;border-radius:8px;box-shadow:var(--shadow)}
+</style>
+<script>
+(function(){
+  const token=localStorage.getItem('ces_token');
+  if(!token){window.location.href='login.html';return}
+  const t=localStorage.getItem('ces_login_time');
+  if(t&&(new Date()-new Date(t))/(1000*60*60*24)>7){
+    localStorage.removeItem('ces_token');
+    window.location.href='login.html';
+  }
+})();
+</script>
+</head>
+<body>
+<script>
+// ── 데이터 로드 ────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// CES Supabase 자동 동기화 모듈 v1.0
+// op01.html / op01_cs.html 의 <script> 상단에 추가
+// ══════════════════════════════════════════════════════════════════
+
+const _SB = {
+  url:   localStorage.getItem('ces_sb_url') || '',
+  key:   localStorage.getItem('ces_sb_key') || '',
+  token: () => localStorage.getItem('ces_token') || '',
+  timer: null
+};
+
+// ── 동기화 예약 (2초 디바운스) ─────────────────────────────────────
+function syncSchedule() {
+  clearTimeout(_SB.timer);
+  _SB.timer = setTimeout(_syncNow, 2000);
+}
+
+// ── 즉시 동기화 ────────────────────────────────────────────────────
+async function _syncNow() {
+  if (!_SB.url || !_SB.key) return;
+  _syncBadge('saving');
+  try {
+    const body = {
+      op01_data:    _safeParse('ces_op01'),
+      op01_cs_data: _safeParse('ces_op01_cs'),
+      op01_cs_full: _safeParse('ces_op01_cs_full'),
+      updated_at:   new Date().toISOString()
+    };
+    const r = await fetch(
+      _SB.url + '/rest/v1/op01_drafts?on_conflict=user_id',
+      {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey':        _SB.key,
+          'Authorization': 'Bearer ' + _SB.token(),
+          'Prefer':        'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(body)
+      }
+    );
+    _syncBadge(r.ok ? 'saved' : 'error');
+    if (!r.ok) console.warn('[sync] HTTP', r.status, await r.text());
+  } catch(e) {
+    _syncBadge('error');
+    console.warn('[sync] 오류:', e.message);
+  }
+}
+
+// ── 페이지 로드 시 복구 (localStorage 비어있을 때만) ───────────────
+async function syncRestore() {
+  const hasLocal = !!localStorage.getItem('ces_op01');
+  if (hasLocal) return false; // 로컬 데이터 있으면 복구 불필요
+  if (!_SB.url || !_SB.key) return false;
+  try {
+    const r = await fetch(
+      _SB.url + '/rest/v1/op01_drafts?select=op01_data,op01_cs_data,op01_cs_full&limit=1',
+      { headers: { 'apikey': _SB.key, 'Authorization': 'Bearer ' + _SB.token() } }
+    );
+    if (!r.ok) return false;
+    const rows = await r.json();
+    if (!rows || !rows[0]) return false;
+    const d = rows[0];
+    if (d.op01_data    && Object.keys(d.op01_data).length)
+      localStorage.setItem('ces_op01',          JSON.stringify(d.op01_data));
+    if (d.op01_cs_data && Object.keys(d.op01_cs_data).length)
+      localStorage.setItem('ces_op01_cs',       JSON.stringify(d.op01_cs_data));
+    if (d.op01_cs_full && Object.keys(d.op01_cs_full).length)
+      localStorage.setItem('ces_op01_cs_full',  JSON.stringify(d.op01_cs_full));
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── Draft 삭제 (최종 제출 완료 후 호출) ────────────────────────────
+async function syncClearDraft() {
+  if (!_SB.url || !_SB.key) return;
+  try {
+    await fetch(_SB.url + '/rest/v1/op01_drafts',
+      { method: 'DELETE',
+        headers: { 'apikey': _SB.key, 'Authorization': 'Bearer ' + _SB.token() }
+      });
+  } catch(e) {}
+}
+
+// ── 동기화 배지 표시 ───────────────────────────────────────────────
+function _syncBadge(state) {
+  const el = document.getElementById('sync-badge');
+  if (!el) return;
+  const MAP = {
+    saving: ['☁️ 저장 중…', '#888'],
+    saved:  ['☁️ 저장됨',    '#0F6E56'],
+    error:  ['⚠️ 로컬만',    '#BA7517']
+  };
+  const [txt, col] = MAP[state] || ['', ''];
+  el.textContent = txt;
+  el.style.color  = col;
+}
+
+// ── 유틸 ────────────────────────────────────────────────────────────
+function _safeParse(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '{}'); }
+  catch(e) { return {}; }
+}
+
+
+function ld(k){try{return JSON.parse(localStorage.getItem(k))||{}}catch(e){return{}}}
+function sv(k,d){localStorage.setItem(k,JSON.stringify(d));syncSchedule();}
+
+const mainST = ld('ces_op01');
+const zones  = (mainST.zones&&mainST.zones.length)
+  ? mainST.zones
+  : [{id:1,name:'전체 구역',area:0,floor:'',use:'',isNew:'',poured:'',
+     largeGrinder:null,midGrinder:null,floorSep:false}];
+let csData   = ld('ces_op01_cs');
+let globalCS = csData._global || {};  // 공통 탭 데이터 (전역)
+let activeZ  = 0;          // 0 = 공통 탭, 1..N = 구역 탭
+let autoRisks= [];
+const UNIT   = mainST.unitPrice||55000;
+
+zones.forEach(z=>{if(!csData[z.id])csData[z.id]={}});
+
+// ── 세부 패널 정의 ─────────────────────────────────────────────────────────────
+const DEFECT_SUB={
+  '균열(Crack)':{title:'🔴 균열 세부',items:[
+    {id:'crack_level',type:'ms',label:'균열 폭',
+     opts:['육안 미세(<0.3mm)','0.3~1mm','1mm 이상','망상균열','관통 균열']},
+    {id:'crack_loc',type:'text',label:'위치·방향',ph:'예: 중앙부 방사형, 입구 방향 선형'},
+    {id:'crack_len',type:'num',label:'최대 길이',unit:'m',ph:'예: 3.5'},
+  ]},
+  '공극·벌집(Void)':{title:'🟠 공극·벌집 세부',items:[
+    {id:'void_size',type:'ms',label:'최대 크기',opts:['10mm 미만','10~50mm','50mm 이상']},
+    {id:'void_area',type:'ms',label:'발생 면적',opts:['1㎡ 미만','1~5㎡','5㎡ 이상']},
+    {id:'void_loc',type:'text',label:'위치',ph:'예: 입구 좌측 3구역'},
+  ]},
+  '박리(Delamination)':{title:'🔴 박리 세부',items:[
+    {id:'delam_area',type:'ms',label:'박리 면적',opts:['1㎡ 미만(국부)','1~5㎡(부분)','5㎡ 이상(광범위)']},
+    {id:'delam_depth',type:'ms',label:'박리 깊이',opts:['표면층(~5mm)','중층(5~15mm)','구조층(15mm+)']},
+    {id:'delam_loc',type:'text',label:'위치',ph:'예: 창고 B구역 북측 벽 인접'},
+  ]},
+  '탈락(Spalling)':{title:'🔴 탈락 세부',items:[
+    {id:'spall_area',type:'ms',label:'탈락 면적',opts:['1㎡ 미만','1~5㎡','5㎡ 이상 → D등급 위험']},
+    {id:'spall_depth',type:'num',label:'탈락 깊이',unit:'mm',ph:'예: 20'},
+    {id:'spall_loc',type:'text',label:'위치',ph:'예: 기둥 하부 4개소'},
+  ]},
+  '오염·잔재물':{title:'🟡 오염 세부',items:[
+    {id:'contam_type',type:'ms',label:'오염 유형',opts:['유류·기름','화학물질','녹(산화)','이물질']},
+    {id:'contam_area',type:'ms',label:'오염 면적',opts:['국부(1㎡미만)','부분(1~10㎡)','광범위(10㎡+)']},
+  ]},
+  '중성화 의심':{title:'🟡 중성화 세부',items:[
+    {id:'carbon_sign',type:'ms',label:'징후',opts:['표면 변색(회백색)','분진 발생','균열 동반']},
+    {id:'carbon_area',type:'num',label:'의심 면적',unit:'㎡',ph:'예: 5'},
+  ]},
+  '형상 이상(단차·경사)':{title:'🟡 형상 이상 세부',items:[
+    {id:'shape_type',type:'ms',label:'유형',opts:['단차(높이 차)','경사','돌출부','침하·함몰']},
+    {id:'shape_size',type:'num',label:'최대 단차/경사',unit:'mm/°',ph:'예: 8'},
+    {id:'shape_loc',type:'text',label:'위치',ph:'예: 입구 경계부, 기둥 주변'},
+  ]},
+  '철거 후 확인 요망':{title:'🔵 철거 후 확인 요망',items:[
+    {id:'demolish_reason',type:'ms',label:'철거 필요 사유',
+     opts:['기존 마감재 존재(에폭시)','기존 마감재 존재(우레탄)','기존 마감재 존재(크리트)',
+           '기존 마감재 존재(방수시트)','기존 마감재 존재(타일)','기존 마감재 존재(페인트)',
+           '두꺼운 오염층','기타 시각 차단 원인']},
+    {id:'demolish_scope',type:'ms',label:'철거 범위',opts:['전면 철거','부분 철거','샘플 검사 후 결정']},
+    {id:'demolish_note',type:'text',label:'추가 메모',ph:'예: 우레탄 도막 약 2mm, 전면 철거 후 기계미장 및 균열 확인 필요'},
+  ]},
+};
+
+const COL_TYPES=[
+  {key:'col_sq_rc', label:'사각형(RC)',   sizeType:'cross', sizeHint:'mm'},
+  {key:'col_ci_rc', label:'원형(RC)',     sizeType:'single',sizeHint:'직경(mm) 예:500'},
+  {key:'col_h_stl', label:'H형(철골)',    sizeType:'single',sizeHint:'플랜지폭(mm) 예:200'},
+  {key:'col_sq_stl',label:'사각형(철골)',sizeType:'cross', sizeHint:'mm'},
+  {key:'col_etc',   label:'기타',         sizeType:'text',  sizeHint:'형상·크기 기재'},
+];
+
+const DEFECT_ALL=['양호','균열(Crack)','공극·벌집(Void)','박리(Delamination)',
+  '탈락(Spalling)','오염·잔재물','중성화 의심','형상 이상(단차·경사)','철거 후 확인 요망'];
+</script>
+
+<!-- 헤더 -->
+<header class="hdr">
+  <div class="hdr-top">
+    <h1>📋 OP-01 체크시트 V1</h1>
+    <div class="hdr-acts">
+      <button class="hbtn" onclick="location.href='index.html'">🏠 홈</button>
+      <button class="hbtn" onclick="location.href='op01.html'">← 현장정보</button>
+      <button class="hbtn teal" onclick="saveAll()">💾 저장</button>
+    </div>
+  </div>
+  <div class="tabbar" id="tabbar"></div>
+</header>
+
+<main class="main">
+  <div class="casec-banner" id="casec-banner">
+    🔴 기계미장 미완료 감지 → Case C 예비 분류 대상. OP-04 착수 전 원바닥 기준선 생성 필요.
+  </div>
+  <div id="cs-body"></div>
+
+  <!-- 리스크 -->
+  <div class="card">
+    <div class="ct">⚠️ 자동 생성 리스크 목록 v1</div>
+    <div id="risk-wrap"><div style="font-size:12px;color:#aaa;font-style:italic">체크시트 입력 후 자동 표시</div></div>
+    <div class="fg" style="margin-top:8px">
+      <label class="fl" style="font-size:11px">추가 리스크 <span class="opt">직접 입력</span></label>
+      <textarea class="note" rows="2" id="extra-risks" oninput="csData._extraRisks=this.value;sv('ces_op01_cs',csData)" placeholder="체크시트 외 추가 리스크 기재"></textarea>
+    </div>
+  </div>
+
+  <!-- 견적 요약 -->
+  <div id="est-summary"></div>
+
+  <!-- Case + 종합 -->
+  <div class="card">
+    <div class="ct">Case 예비 분류 및 종합 의견</div>
+    <div class="fg">
+      <label class="fl" style="font-size:11px">Case 예비 분류 <span class="op02">OP-02 확정</span></label>
+      <div class="case-row" style="flex-wrap:wrap">
+        <button class="case-btn" id="case-a" onclick="selCase('A')">🟢 Case A<br><small style="font-weight:400;font-size:10px">결함 없음·경미</small></button>
+        <button class="case-btn" id="case-b" onclick="selCase('B')">🟡 Case B<br><small style="font-weight:400;font-size:10px">부분 보강</small></button>
+        <button class="case-btn" id="case-c" onclick="selCase('C')">🔴 Case C<br><small style="font-weight:400;font-size:10px">전면 보강</small></button>
+        <button class="case-btn" id="case-d" onclick="selCase('D')" style="border-color:var(--blue);min-width:120px">🔵 Case D<br><small style="font-weight:400;font-size:10px">철거 후 확인</small></button>
+      </div>
+      <input type="hidden" id="case-val">
+    </div>
+    <div class="fg">
+      <label class="fl" style="font-size:11px">계측 후보 구역 <span class="op02">OP-02 입력</span></label>
+      <textarea class="note" rows="2" id="meas-zones" oninput="csData._measZones=this.value;sv('ces_op01_cs',csData)" placeholder="예: 1층 A구역 — 들뜸 다수 / 입구부 집중 계측 필요"></textarea>
+    </div>
+    <div class="fg">
+      <label class="fl" style="font-size:11px">현장 종합 의견</label>
+      <textarea class="note" rows="3" id="overall" oninput="csData._overall=this.value;sv('ces_op01_cs',csData)" placeholder="현장 상태 종합, 주요 리스크, 후속 조치"></textarea>
+    </div>
+    <div style="height:1px;background:var(--border);margin:10px 0"></div>
+    <div class="row2">
+      <div class="fg"><label class="fl" style="font-size:11px">작성자 (영업팀원)</label>
+        <input class="fi" id="author" placeholder="이름" style="font-size:12px"></div>
+      <div class="fg"><label class="fl" style="font-size:11px">승인자 (영업팀장)</label>
+        <input class="fi" id="approver" placeholder="이름" style="font-size:12px"></div>
+    </div>
+  </div>
+</main>
+
+<div class="btmbar">
+  <button class="btn btn-out" onclick="location.href='op01.html'">← 현장정보</button>
+  <button class="btn btn-teal" onclick="saveAll()">💾 저장</button>
+  <button class="btn btn-blue" onclick="goReport()">📄 보고서 →</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 탭 렌더 ───────────────────────────────────────────────────────────────────
+function renderTabs(){
+  const bar=document.getElementById('tabbar');
+  bar.innerHTML=[
+    {label:'🌐 공통 요약'},...zones.map((z,i)=>({label:z.name||`구역${i+1}`}))
+  ].map((t,i)=>`
+    <button class="tab ${activeZ===i?'active':''}" onclick="switchTab(${i})">${t.label}</button>
+  `).join('');
+}
+function switchTab(i){
+  // 탭 전환 시 현재 데이터 자동 저장
+  csData._global=globalCS;
+  sv('ces_op01_cs',csData);
+  activeZ=i;renderTabs();renderBody();
+}
+
+// ── 공통 탭 렌더 (설비 요약 테이블) ──────────────────────────────────────────
+function renderCommonTab(){
+  // 구역별 설비 데이터 집계
+  const rows=zones.map((z,i)=>{
+    const cs=csData[z.id]||{};
+    const panelOk=cs.panel_yn==='y';
+    const panelKw=parseFloat(cs.panel_kw)||0;
+    const p380=parseInt(cs.p380_count)||0;
+    const p220=parseInt(cs.p220_count)||0;
+    const waterOk=cs.water_yn==='y';
+    const drainOk=cs.drain_yn==='y';
+    return {z,i,panelOk,panelKw,p380,p220,waterOk,drainOk,cs};
+  });
+
+  // 합계 계산
+  const panelCount=rows.filter(r=>r.panelOk).length;
+  const panelKws=rows.filter(r=>r.panelOk&&r.panelKw>0).map(r=>r.panelKw);
+  const maxKw=panelKws.length?Math.max(...panelKws):0;
+  const minKw=panelKws.length?Math.min(...panelKws):0;
+  const total380=rows.reduce((s,r)=>s+r.p380,0);
+  const total220=rows.reduce((s,r)=>s+r.p220,0);
+  const waterZones=rows.filter(r=>r.waterOk).map(r=>r.z.name||`구역${r.i+1}`);
+  const drainZones=rows.filter(r=>r.drainOk).map(r=>r.z.name||`구역${r.i+1}`);
+
+  // 행 색상 로직
+  function rowCls(r){
+    if(!r.panelOk&&r.p380===0) return 'util-risk';
+    if(!r.panelOk) return 'util-warn';
+    if(r.panelOk&&r.waterOk&&r.drainOk) return 'util-good';
+    return '';
+  }
+
+  let html=`
+  <div class="card">
+    <div class="ct">⚡ 설비 조건 구역별 요약 <small style="font-size:10px;font-weight:400;color:#888">(각 구역 탭에서 입력)</small></div>
+    <div class="info-box">
+      🟢 초록: 설비 완비 &nbsp;|&nbsp; 🟡 노랑: 배전함 없음(주의) &nbsp;|&nbsp; 🔴 빨강: 배전함·380V 모두 없음(리스크)
+    </div>
+    <div class="tbl-scroll">
+    <table class="util-table">
+      <thead>
+        <tr>
+          <th style="min-width:70px">구역</th>
+          <th style="min-width:80px">배전함<br>유무</th>
+          <th style="min-width:70px">배전함<br>용량(kW)</th>
+          <th style="min-width:50px">380V<br>(개)</th>
+          <th style="min-width:60px">220V<br>콘센트(개)</th>
+          <th style="min-width:50px">급수</th>
+          <th style="min-width:50px">배수</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>`
+          <tr class="${rowCls(r)}">
+            <td class="zone-name">${r.z.name||`구역${r.i+1}`}<br>
+              <small style="font-size:9px;color:#888">${r.z.floor||''} ${r.z.area||0}㎡</small>
+            </td>
+            <td class="${r.panelOk?'util-ok':'util-no'}">${r.panelOk?'✅ 있음':'❌ 없음'}</td>
+            <td>${r.panelOk&&r.panelKw>0?`<strong>${r.panelKw}kW</strong>`:'<span style="color:#bbb">—</span>'}</td>
+            <td>${r.p380>0?`<strong>${r.p380}개</strong>`:'<span style="color:#bbb">0</span>'}</td>
+            <td>${r.p220>0?`<strong>${r.p220}개</strong>`:'<span style="color:#bbb">0</span>'}</td>
+            <td class="${r.waterOk?'util-ok':'util-no'}">${r.waterOk?'✅':'❌'}</td>
+            <td class="${r.drainOk?'util-ok':'util-no'}">${r.drainOk?'✅':'❌'}</td>
+          </tr>`).join('')}
+        <tr class="sum-row">
+          <td class="zone-name">합계·요약</td>
+          <td>${panelCount}개 설치</td>
+          <td>${panelKws.length?`최대 ${maxKw}kW<br>최소 ${minKw}kW`:'<span style="color:#bbb">—</span>'}</td>
+          <td>${total380}개</td>
+          <td>${total220}개</td>
+          <td style="font-size:10px">${waterZones.length?waterZones.join('<br>'):'없음'}</td>
+          <td style="font-size:10px">${drainZones.length?drainZones.join('<br>'):'없음'}</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    ${rows.some(r=>!r.panelOk)?`
+      <div style="margin-top:8px;padding:8px 10px;background:#FFF8EC;border-radius:7px;
+        font-size:11px;color:var(--amber);border-left:3px solid var(--amber)">
+        ⚠️ 배전함 없는 구역(${rows.filter(r=>!r.panelOk).map(r=>r.z.name||`구역${r.i+1}`).join(', ')})은
+        인접 구역 연장 또는 발전기 투입 계획이 필요합니다.
+      </div>`:''}
+  </div>
+
+  <div class="card">
+    <div class="ct">📋 구역별 현황 요약</div>
+    <div class="tbl-scroll">
+    <table class="util-table">
+      <thead>
+        <tr>
+          <th>구역</th><th>면적</th><th>용도</th><th>신축/구축</th>
+          <th>대형 그라인더</th><th>중형 그라인더</th><th>지게차</th><th>크레인</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${zones.map((z,i)=>`
+          <tr>
+            <td class="zone-name">${z.name||`구역${i+1}`}</td>
+            <td>${z.area||0}㎡</td>
+            <td>${z.use||'<span style="color:#bbb">—</span>'}</td>
+            <td>${z.isNew||'<span style="color:#bbb">—</span>'}</td>
+            <td class="${z.largeGrinder===true?'util-ok':z.largeGrinder===false?'util-no':''}">
+              ${z.largeGrinder===true?'✅ 가능':z.largeGrinder===false?'❌ 불가':'—'}
+            </td>
+            <td class="${z.midGrinder===true?'util-ok':z.midGrinder===false?'util-no':''}">
+              ${z.midGrinder===true?'✅ 가능':z.midGrinder===false?'❌ 불가':'—'}
+            </td>
+            <td>${z.forklift||'—'}</td>
+            <td>${z.crane||'—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+  </div>`;
+  return html;
+}
+
+// ── 구역 탭 렌더 ──────────────────────────────────────────────────────────────
+function renderZoneTab(z){
+  const cs=csData[z.id]||{};
+  const selDef=(cs.floor_defects||'').split(',').filter(x=>x);
+
+  return `
+  <!-- 구역 요약 배너 -->
+  <div class="info-box">
+    📍 <strong>${z.name||`구역${activeZ}`}</strong>
+    ${z.floor?' | '+z.floor:''} | ${z.area||0}㎡ | ${z.use||''} | ${z.isNew||''}
+    ${z.poured?' | 최종 타설일: '+z.poured:''}
+  </div>
+
+  <!-- ── 설비 조건 (구역별 직접 입력) ── -->
+  <div class="card">
+    <div class="grp">⚡ 설비 조건 (이 구역)</div>
+
+    <!-- 배전함 -->
+    <div class="cr">
+      <div class="cr-top">
+        <div class="cr-label">배전함 유무 <span class="op01">OP-01 필수</span></div>
+        <div class="pbtn ${cs.panel_photo?'has':''}" onclick="trigPh('panel',${z.id})"></div>
+      </div>
+      <div class="yn">
+        <button class="ynb ${cs.panel_yn==='y'?'y':''}" onclick="setYN(${z.id},'panel_yn','y',this)">✅ 있음</button>
+        <button class="ynb ${cs.panel_yn==='n'?'n':''}" onclick="setYN(${z.id},'panel_yn','n',this)">❌ 없음 → 발전기/연장</button>
+      </div>
+      <div class="row2" style="margin-top:6px">
+        <div>
+          <label class="fl" style="font-size:10px">배전함 용량 (kW)
+            <span class="opt">배전함 있을 경우 입력</span>
+          </label>
+          <div class="unit">
+            <input class="fi" type="number" placeholder="예: 30" value="${cs.panel_kw||''}"
+              style="font-size:12px;padding:7px 9px"
+              onchange="setV(${z.id},'panel_kw',this.value);refreshCommon()">
+            <span>kW</span>
+          </div>
+        </div>
+        <div>
+          <label class="fl" style="font-size:10px">독립 분기 수 (회로)</label>
+          <div class="unit">
+            <input class="fi" type="number" placeholder="예: 3" value="${cs.panel_branch||''}"
+              style="font-size:12px;padding:7px 9px"
+              onchange="setV(${z.id},'panel_branch',this.value)">
+            <span>개</span>
+          </div>
+        </div>
+      </div>
+      <textarea class="note" rows="1" placeholder="배전함 위치 (예: 북측 벽면 중앙)"
+        onchange="setV(${z.id},'panel_loc',this.value)">${cs.panel_loc||''}</textarea>
+      <input type="file" id="ph-panel-${z.id}" accept="image/*" capture="environment"
+        style="display:none" multiple onchange="handlePh('panel',${z.id},this)">
+      <div id="prev-panel-${z.id}" class="prev-wrap"></div>
+    </div>
+
+    <!-- 380V -->
+    <div class="cr">
+      <div class="cr-label">전기 380V 수량 <span class="op01">OP-01</span></div>
+      <div class="row2" style="margin-top:5px">
+        <div class="unit">
+          <input class="fi" type="number" placeholder="0" value="${cs.p380_count||''}"
+            style="font-size:12px;padding:7px 9px"
+            onchange="setV(${z.id},'p380_count',this.value);refreshCommon()">
+          <span>개</span>
+        </div>
+        <input class="fi" placeholder="위치 (예: 남측 벽 2개, 북측 1개)"
+          value="${cs.p380_loc||''}" style="font-size:11px;padding:7px 9px"
+          onchange="setV(${z.id},'p380_loc',this.value)">
+      </div>
+    </div>
+
+    <!-- 220V -->
+    <div class="cr">
+      <div class="cr-label">전기 220V 콘센트 수량 <span class="op01">OP-01</span>
+        <br><small style="font-size:10px;color:#888">집진기 운영 핵심 — 수량·위치 정확히 기재</small>
+      </div>
+      <div class="row2" style="margin-top:5px">
+        <div class="unit">
+          <input class="fi" type="number" placeholder="0" value="${cs.p220_count||''}"
+            style="font-size:12px;padding:7px 9px"
+            onchange="setV(${z.id},'p220_count',this.value);refreshCommon()">
+          <span>개</span>
+        </div>
+        <input class="fi" placeholder="위치 (예: 기둥 사이마다 1개, 동측 벽 3개)"
+          value="${cs.p220_loc||''}" style="font-size:11px;padding:7px 9px"
+          onchange="setV(${z.id},'p220_loc',this.value)">
+      </div>
+    </div>
+
+    <!-- 급수·배수 -->
+    <div class="cr">
+      <div class="row2">
+        <div>
+          <div class="cr-label" style="margin-bottom:5px">급수 시설</div>
+          <div class="yn">
+            <button class="ynb ${cs.water_yn==='y'?'y':''}"
+              onclick="setYN(${z.id},'water_yn','y',this);refreshCommon()">✅ 있음</button>
+            <button class="ynb ${cs.water_yn==='n'?'n':''}"
+              onclick="setYN(${z.id},'water_yn','n',this);refreshCommon()">❌ 없음</button>
+          </div>
+          ${cs.water_yn==='y'?`
+          <div class="unit" style="margin-top:5px">
+            <input class="fi" type="number" placeholder="거리" value="${cs.water_dist||''}"
+              style="font-size:11px;padding:6px 8px"
+              onchange="setV(${z.id},'water_dist',this.value)">
+            <span>m</span>
+          </div>`:''}
+        </div>
+        <div>
+          <div class="cr-label" style="margin-bottom:5px">배수 시설</div>
+          <div class="yn">
+            <button class="ynb ${cs.drain_yn==='y'?'y':''}"
+              onclick="setYN(${z.id},'drain_yn','y',this);refreshCommon()">✅ 있음</button>
+            <button class="ynb ${cs.drain_yn==='n'?'n':''}"
+              onclick="setYN(${z.id},'drain_yn','n',this);refreshCommon()">❌ 없음</button>
+          </div>
+          ${cs.drain_yn==='y'?`
+          <div class="unit" style="margin-top:5px">
+            <input class="fi" type="number" placeholder="거리" value="${cs.drain_dist||''}"
+              style="font-size:11px;padding:6px 8px"
+              onchange="setV(${z.id},'drain_dist',this.value)">
+            <span>m</span>
+          </div>`:''}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── A. 바닥 상태 ── -->
+  <div class="card">
+    <div class="grp">🔍 A. 바닥 상태 (육안 확인)</div>
+    <div class="info-box">계측기 없이 육안 확인. 상세 계측은 OP-02 진단평가에서 수행.</div>
+
+    <!-- 기계미장 -->
+    <div class="cr">
+      <div class="cr-top">
+        <div class="cr-label">기계미장 완성 여부
+          <span class="op01">OP-01</span><span class="casec">Case C 트리거</span>
+        </div>
+        <div class="pbtn ${cs.mt_photo?'has':''}" onclick="trigPh('mt',${z.id})"></div>
+      </div>
+      <div class="yn" style="flex-wrap:wrap">
+        <button class="ynb ${cs.machine_trowel==='y'?'y':''}"
+          onclick="set3Btn(${z.id},'machine_trowel','y',this)">✅ 완료</button>
+        <button class="ynb ${cs.machine_trowel==='n'?'n':''}"
+          onclick="set3Btn(${z.id},'machine_trowel','n',this)">🔴 미완료 → Case C</button>
+        <button class="ynb ${cs.machine_trowel==='u'?'warn':''}"
+          onclick="set3Btn(${z.id},'machine_trowel','u',this)"
+          style="border-color:${cs.machine_trowel==='u'?'var(--amber)':'var(--border)'};
+            background:${cs.machine_trowel==='u'?'#FFF8EC':'#fff'};
+            color:${cs.machine_trowel==='u'?'var(--amber)':'inherit'}">
+          🟡 미확인 (도장재 존재)
+        </button>
+      </div>
+      <textarea class="note" rows="1" placeholder="비고"
+        onchange="setV(${z.id},'mt_note',this.value)">${cs.mt_note||''}</textarea>
+      <input type="file" id="ph-mt-${z.id}" accept="image/*" capture="environment"
+        style="display:none" multiple onchange="handlePh('mt',${z.id},this)">
+      <div id="prev-mt-${z.id}" class="prev-wrap"></div>
+    </div>
+
+    <!-- 기존 마감재 -->
+    <div class="cr">
+      <div class="cr-top">
+        <div class="cr-label">기존 바닥 마감재 종류 <span class="op01">OP-01</span> <span class="opt">선택</span></div>
+        <div class="pbtn ${cs.finish_photo?'has':''}" onclick="trigPh('finish',${z.id})"></div>
+      </div>
+      <div class="ms" id="ms-finish-${z.id}">
+        ${['없음(무도장)','에폭시','폴리우레탄(PU)','타일','페인트','기타'].map(o=>`
+          <div class="mi ${(cs.existing_finish||'').includes(o)?(o==='없음(무도장)'?'on-ok':'on'):''}"
+            onclick="toggleMs(${z.id},'existing_finish','${o}',this,${o==='없음(무도장)'?'true':'false'})"
+          >${o}</div>`).join('')}
+      </div>
+      <textarea class="note" rows="1" placeholder="두께 추정 또는 기타 기재"
+        onchange="setV(${z.id},'finish_note',this.value)">${cs.finish_note||''}</textarea>
+      <input type="file" id="ph-finish-${z.id}" accept="image/*" capture="environment"
+        style="display:none" multiple onchange="handlePh('finish',${z.id},this)">
+      <div id="prev-finish-${z.id}" class="prev-wrap"></div>
+    </div>
+
+    <!-- 바닥 결함 복수선택 + 동적 세부 -->
+    <div class="cr">
+      <div class="cr-top">
+        <div class="cr-label">바닥 결함 상태 <span class="op01">OP-01</span>
+          <br><small style="font-size:10px;color:#aaa">복수 선택 → 세부 항목 자동 생성</small>
+        </div>
+        <div class="pbtn ${cs.defect_photo?'has':''}" onclick="trigPh('defect',${z.id})"></div>
+      </div>
+      <div class="ms" id="ms-defect-${z.id}">
+        ${DEFECT_ALL.map(d=>{
+          const isOn=selDef.includes(d);
+          const isOk=d==='양호';
+          const isWarn=d==='철거 후 확인 요망';
+          return `<div class="mi ${isOn?(isOk?'on-ok':isWarn?'on-warn':'on'):''}"
+            onclick="toggleDefect(${z.id},'${d.replace(/'/g,"\\'")}',this)">${d}</div>`;
+        }).join('')}
+      </div>
+      <div id="defect-subs-${z.id}">${buildDefectSubs(z.id,selDef,cs)}</div>
+      <textarea class="note" rows="2" placeholder="바닥 상태 종합 의견"
+        onchange="setV(${z.id},'floor_opinion',this.value)">${cs.floor_opinion||''}</textarea>
+      <input type="file" id="ph-defect-${z.id}" accept="image/*" capture="environment"
+        style="display:none" multiple onchange="handlePh('defect',${z.id},this)">
+      <div id="prev-defect-${z.id}" class="prev-wrap"></div>
+    </div>
+  </div>
+
+  <!-- ── B. 구조·형상 ── -->
+  <div class="card">
+    <div class="grp">🏛️ B. 구조·형상 조건</div>
+
+    <!-- 천장고 -->
+    <div class="cr">
+      <div class="cr-label">유효 천장고 (작업 가능 높이) <span class="op01">OP-01</span></div>
+      <div class="unit" style="margin-top:5px">
+        <input class="fi" type="number" step="0.1" placeholder="예: 3.2" value="${cs.ceiling_h||''}"
+          style="font-size:12px;padding:7px 9px"
+          onchange="checkCeiling(${z.id},this.value)">
+        <span>m</span>
+      </div>
+      <textarea class="note" rows="1" placeholder="메모 (예: 배관으로 인해 일부 구간 2.8m)"
+        onchange="setV(${z.id},'ceiling_note',this.value)">${cs.ceiling_note||''}</textarea>
+    </div>
+
+    <!-- 지붕/창문/출입문 -->
+    <div class="cr">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+        ${[['roof_yn','지붕'],['window_yn','창문'],['door_yn','출입문']].map(([k,l])=>`
+          <div>
+            <div style="font-size:11px;font-weight:600;margin-bottom:4px">${l} 유무</div>
+            <div class="yn">
+              <button class="ynb ${cs[k]==='y'?'y':''}" onclick="setYN(${z.id},'${k}','y',this)">있음</button>
+              <button class="ynb ${cs[k]==='n'?'n':''}" onclick="setYN(${z.id},'${k}','n',this)">없음</button>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- 기둥 유형 + 수량 + 크기 테이블 -->
+    <div class="cr">
+      <div class="cr-top">
+        <div class="cr-label">기둥 유형·수량·크기 <span class="op01">OP-01</span>
+          <br><small style="font-size:10px;color:#aaa">유형별 수량·크기 입력 (단위: mm)</small>
+        </div>
+        <div class="pbtn ${cs.col_photo?'has':''}" onclick="trigPh('col',${z.id})"></div>
+      </div>
+      <div class="tbl-scroll">
+        <table class="col-table">
+          <thead>
+            <tr>
+              <th style="width:35%;text-align:left;padding-left:8px">유형</th>
+              <th style="width:22%">수량(개)</th>
+              <th style="width:43%">크기(mm)</th>
+            </tr>
+          </thead>
+          <tbody id="col-tbody-${z.id}"><!-- 기둥 행은 renderColTable()로 채워짐 --></tbody>
+        </table>
+      </div>
+      <input type="file" id="ph-col-${z.id}" accept="image/*" capture="environment"
+        style="display:none" multiple onchange="handlePh('col',${z.id},this)">
+      <div id="prev-col-${z.id}" class="prev-wrap"></div>
+    </div>
+
+    <!-- 방·칸막이·계단·트렌치·차선 -->
+    <div class="cr">
+      <div class="row2" style="margin-bottom:7px">
+        <div>
+          <div style="font-size:11px;font-weight:600;margin-bottom:4px">방(독립공간)</div>
+          <div class="unit">
+            <input class="fi" type="number" placeholder="0" value="${cs.room_count||''}"
+              style="font-size:12px;padding:7px" onchange="setV(${z.id},'room_count',this.value)">
+            <span>개</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;margin-bottom:4px">칸막이</div>
+          <div class="unit">
+            <input class="fi" type="number" placeholder="0" value="${cs.partition||''}"
+              style="font-size:12px;padding:7px" onchange="setV(${z.id},'partition',this.value)">
+            <span>개</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+        ${[['stair_yn','계단'],['trench_yn','트렌치·피트'],['lane_yn','차선 도색']].map(([k,l])=>`
+          <div>
+            <div style="font-size:11px;font-weight:600;margin-bottom:4px">${l}</div>
+            <div class="yn">
+              <button class="ynb ${cs[k]==='y'?'y':''}" onclick="setYN(${z.id},'${k}','y',this)">있음</button>
+              <button class="ynb ${cs[k]==='n'?'n':''}" onclick="setYN(${z.id},'${k}','n',this)">없음</button>
+            </div>
+          </div>`).join('')}
+      </div>
+      ${cs.trench_yn==='y'?`
+        <div class="unit" style="margin-top:6px">
+          <input class="fi" type="number" placeholder="트렌치 깊이" value="${cs.trench_depth||''}"
+            style="font-size:12px;padding:7px" onchange="setV(${z.id},'trench_depth',this.value)">
+          <span>m</span>
+        </div>`:''
+      }
+    </div>
+
+    <!-- 환기·조명 -->
+    <div class="cr">
+      <div class="row2">
+        <div>
+          <div style="font-size:11px;font-weight:600;margin-bottom:5px">환기 상태 <span class="op01">OP-01</span></div>
+          <div class="ms">
+            ${['자연 환기 가능','기계 환기 필요','불가 → 분진 집중 대응'].map(o=>`
+              <div class="mi ${(cs.ventilation||'').includes(o)?'on':''}"
+                onclick="toggleMs(${z.id},'ventilation','${o}',this,false)">${o}</div>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;margin-bottom:5px">조명 상태</div>
+          <div class="ms">
+            ${['충분(주야간 모두 가능)','주간 충분·야간 추가 조명 필요','부족(임시 조명 필요)','없음(조명 장비 반입 필수)'].map(o=>`
+              <div class="mi ${(cs.lighting||'').includes(o)?'on':''}"
+                onclick="toggleMs(${z.id},'lighting','${o}',this,false)">${o}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── 결함 세부 패널 ─────────────────────────────────────────────────────────────
+function buildDefectSubs(zid,selDef,cs){
+  return selDef.filter(d=>d!=='양호'&&DEFECT_SUB[d]).map(d=>{
+    const sub=DEFECT_SUB[d];
+    return `<div class="sub-panel">
+      <div class="sub-title">${sub.title}</div>
+      ${sub.items.map(it=>`
+        <div style="margin-bottom:7px">
+          <label style="font-size:11px;font-weight:600;display:block;margin-bottom:3px">${it.label}</label>
+          ${it.type==='text'
+            ?`<input class="note" value="${cs[it.id]||''}" placeholder="${it.ph||''}" style="width:100%"
+                onchange="setV(${zid},'${it.id}',this.value)">`
+          :it.type==='num'
+            ?`<div class="unit"><input class="fi" type="number" value="${cs[it.id]||''}" placeholder="${it.ph||''}"
+                style="font-size:12px;padding:7px 9px" onchange="setV(${zid},'${it.id}',this.value)">
+                <span>${it.unit||''}</span></div>`
+            :`<div class="ms">${(it.opts||[]).map(o=>`
+                <div class="mi ${cs[it.id]===o?'on':''}"
+                  onclick="setSingle(${zid},'${it.id}','${o.replace(/'/g,"\\'")}',this)">${o}</div>`).join('')}</div>`}
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── 렌더 ─────────────────────────────────────────────────────────────────────
+// 기둥 테이블 렌더 (문자열 연결 방식 - 백틱 중첩 오류 방지)
+function renderColTable(zid, cs){
+  var tbody = document.getElementById('col-tbody-'+zid);
+  if(!tbody) return;
+  var cols=[
+    {key:'col_sq_rc', label:'사각형(RC)',   cross:true},
+    {key:'col_ci_rc', label:'원형(RC)',     single:true, ph:'직경 예:500'},
+    {key:'col_h_stl', label:'H형(철골)',    single:true, ph:'플랜지폭 예:200'},
+    {key:'col_sq_stl',label:'사각형(철골)',cross:true},
+    {key:'col_etc',   label:'기타',         text:true},
+  ];
+  tbody.innerHTML = cols.map(function(ct){
+    var cnt = cs[ct.key+'_cnt']||'';
+    var szW = cs[ct.key+'_w']||'';
+    var szD = cs[ct.key+'_d']||'';
+    var szS = cs[ct.key+'_size']||'';
+    var sizeCell = '';
+    if(ct.cross){
+      sizeCell = '<div style="display:flex;align-items:center;gap:3px">'
+        +'<input class="col-size" type="number" placeholder="W(mm)" value="'+szW+'"'
+        +' style="width:58px" onchange="setV('+zid+',\''+ct.key+'_w\',this.value)">'
+        +'<span style="font-weight:700;color:var(--blue);font-size:13px">×</span>'
+        +'<input class="col-size" type="number" placeholder="D(mm)" value="'+szD+'"'
+        +' style="width:58px" onchange="setV('+zid+',\''+ct.key+'_d\',this.value)">'
+        +'<span style="font-size:9px;color:#888">mm</span></div>';
+    } else if(ct.single){
+      sizeCell = '<div style="display:flex;align-items:center;gap:3px">'
+        +'<input class="col-size" type="number" placeholder="'+(ct.ph||'')+'" value="'+szS+'"'
+        +' style="width:90px" onchange="setV('+zid+',\''+ct.key+'_size\',this.value)">'
+        +'<span style="font-size:9px;color:#888">mm</span></div>';
+    } else {
+      sizeCell = '<input class="col-size" placeholder="형상·크기 기재" value="'+szS+'"'
+        +' onchange="setV('+zid+',\''+ct.key+'_size\',this.value)" style="width:100%">';
+    }
+    return '<tr>'
+      +'<td style="text-align:left;padding-left:8px;font-weight:600">'+ct.label+'</td>'
+      +'<td><input class="col-cnt" type="number" min="0" placeholder="0" value="'+cnt+'"'
+      +' onchange="setV('+zid+',\''+ct.key+'_cnt\',this.value)"></td>'
+      +'<td>'+sizeCell+'</td></tr>';
+  }).join('');
+}
+
+function renderBody(){
+  const el=document.getElementById('cs-body');
+  el.innerHTML = activeZ===0 ? renderCommonTab() : renderZoneTab(zones[activeZ-1]);
+  // 기둥 테이블 별도 렌더
+  if(activeZ>0){
+    var z=zones[activeZ-1];
+    if(z) renderColTable(z.id, csData[z.id]||{});
+  }
+  renderEstSummary();
+  updateRisks();
+}
+
+// 공통 탭만 새로고침 (설비 입력 시 호출)
+function refreshCommon(){if(activeZ===0)renderBody()}
+
+// ── 값 설정 ───────────────────────────────────────────────────────────────────
+function setV(zid,k,v){
+  if(!csData[zid])csData[zid]={};
+  csData[zid][k]=v;
+  csData._global=globalCS;
+  sv('ces_op01_cs',csData); // 즉시 저장
+}
+// 3버튼 (y/n/u) 처리 — 기계미장용
+function set3Btn(zid,k,v,btn){
+  setV(zid,k,v);
+  btn.closest('.yn').querySelectorAll('.ynb').forEach(b=>{
+    b.classList.remove('y','n');
+    b.style.borderColor='';b.style.background='';b.style.color='';
+  });
+  if(v==='y'){btn.classList.add('y')}
+  else if(v==='n'){btn.classList.add('n')}
+  else{
+    // 미확인 — amber 색상 직접 적용
+    btn.style.borderColor='var(--amber)';
+    btn.style.background='#FFF8EC';
+    btn.style.color='var(--amber)';
+    btn.style.fontWeight='700';
+  }
+  if(k==='machine_trowel'){
+    if(v==='n'){
+      document.getElementById('casec-banner').style.display='block';
+      selCase('C');toast('⚠️ 기계미장 미완료 → Case C 자동 설정');
+      addRisk('기계미장 미완료 → Case C',zones[activeZ-1]?.name||'구역');
+    }else if(v==='u'){
+      toast('🟡 기계미장 미확인 → OP-02 진단평가에서 확인 필요');
+      addRisk('기계미장 미확인 → OP-02 현장 확인 필요',zones[activeZ-1]?.name||'구역');
+    }
+    updateRisks();
+  }
+}
+
+function setYN(zid,k,v,btn){
+  setV(zid,k,v);
+  btn.closest('.yn').querySelectorAll('.ynb').forEach(b=>b.classList.remove('y','n'));
+  btn.classList.add(v);
+  if(k==='machine_trowel'&&v==='n'){
+    document.getElementById('casec-banner').style.display='block';
+    selCase('C');toast('⚠️ 기계미장 미완료 → Case C 자동 설정');
+    addRisk('기계미장 미완료 → Case C',zones[activeZ-1]?.name||'구역');
+  }
+  // 공통 탭 요약 데이터 갱신 (재렌더 없이 내부 데이터만 업데이트)
+  if(['water_yn','drain_yn'].includes(k)){
+    updateRisks();
+  }
+  updateRisks();
+}
+function toggleMs(zid,k,val,el,isOk){
+  if(!csData[zid])csData[zid]={};
+  let arr=(csData[zid][k]||'').split(',').filter(x=>x);
+  if(arr.includes(val)){arr=arr.filter(v=>v!==val);el.classList.remove('on','on-ok','on-warn')}
+  else{arr.push(val);el.classList.add(isOk?'on-ok':'on')}
+  csData[zid][k]=arr.join(',');updateRisks();
+}
+function toggleDefect(zid,d,el){
+  if(!csData[zid])csData[zid]={};
+  const cs=csData[zid];
+  let arr=(cs.floor_defects||'').split(',').filter(x=>x);
+  if(d==='양호'){
+    const wasOn=arr.includes('양호');
+    arr=wasOn?[]:['양호'];
+    document.querySelectorAll(`#ms-defect-${zid} .mi`).forEach(b=>b.classList.remove('on','on-ok','on-warn'));
+    if(!wasOn)el.classList.add('on-ok');
+  }else{
+    arr=arr.filter(v=>v!=='양호');
+    document.querySelector(`#ms-defect-${zid} .mi`)?.classList.remove('on-ok');
+    if(arr.includes(d)){arr=arr.filter(v=>v!==d);el.classList.remove('on','on-warn')}
+    else{
+      arr.push(d);
+      el.classList.add(d==='철거 후 확인 요망'?'on-warn':'on');
+      if(d==='철거 후 확인 요망'){
+        toast('🔵 철거 후 확인 요망 선택 → Case D 예비 분류 권장');
+        addRisk('철거 후 확인 요망 → Case D 예비 분류·OP-02 이관',zones[activeZ-1]?.name||'구역');
+        // Case D 자동 제안 (아직 미설정인 경우만)
+        const curCase=document.getElementById('case-val')?.value;
+        if(!curCase) selCase('D');
+      } else if(d!=='양호'){
+        addRisk('바닥 결함 확인 → Case B/C 검토',zones[activeZ-1]?.name||'구역');
+      }
+    }
+  }
+  cs.floor_defects=arr.join(',');
+  document.getElementById(`defect-subs-${zid}`).innerHTML=buildDefectSubs(zid,arr,cs);
+  updateRisks();
+}
+function setSingle(zid,k,v,el){
+  setV(zid,k,v);
+  el.closest('.ms').querySelectorAll('.mi').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+function checkCeiling(zid,v){
+  setV(zid,'ceiling_h',v);
+  if(parseFloat(v)<2.5&&parseFloat(v)>0)
+    addRisk(`천장고 낮음(${v}m) → 대형장비 불가`,zones[activeZ-1]?.name||'구역');
+  updateRisks();
+}
+
+// ── 리스크 ────────────────────────────────────────────────────────────────────
+function addRisk(label,zone){if(!autoRisks.find(r=>r.label===label))autoRisks.push({label,zone})}
+function updateRisks(){
+  const el=document.getElementById('risk-wrap');if(!el)return;
+  // 구역별 추가 리스크 자동 감지
+  zones.forEach(z=>{
+    const cs=csData[z.id]||{};
+    const nm=z.name||`구역`;
+    if(cs.panel_yn==='n') addRisk(`배전함 없음(${nm}) → 발전기/연장 계획 필요`,nm);
+    if(cs.ventilation&&cs.ventilation.includes('불가')) addRisk(`환기 불가(${nm}) → 분진 집중 대응`,nm);
+    if(cs.lighting&&cs.lighting.includes('없음')) addRisk(`조명 없음(${nm}) → 조명 장비 반입`,nm);
+    if(cs.floor_defects&&cs.floor_defects.includes('철거')) addRisk(`철거 후 확인 요망(${nm}) → OP-02 이관`,nm);
+  });
+  if(!autoRisks.length){
+    el.innerHTML='<div style="font-size:12px;color:#aaa;font-style:italic">감지된 리스크 없음</div>';return;
+  }
+  const byZone={};
+  autoRisks.forEach(r=>{if(!byZone[r.zone])byZone[r.zone]=[];byZone[r.zone].push(r.label)});
+  el.innerHTML=Object.entries(byZone).map(([z,items])=>`
+    <div class="risk-box"><div class="risk-title">⚠️ ${z}</div>
+      ${items.map(i=>`<span class="rtag">⚠ ${i}</span>`).join('')}
+    </div>`).join('');
+}
+
+// ── 견적 요약 ─────────────────────────────────────────────────────────────────
+function renderEstSummary(){
+  const el=document.getElementById('est-summary');if(!el)return;
+  const total=zones.reduce((s,z)=>s+(parseFloat(z.area)||0),0);
+  const amt=total*UNIT;
+  if(!amt){el.innerHTML='';return}
+  el.innerHTML=`<div style="background:var(--blue);color:#fff;border-radius:10px;
+    padding:11px 13px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:10px;opacity:.75">간이 견적 · ${UNIT.toLocaleString()}원/㎡</div>
+      <div style="font-size:20px;font-weight:800">${amt.toLocaleString()}원</div>
+      <div style="font-size:10px;opacity:.7">${total.toLocaleString()}㎡</div>
+    </div>
+    <div style="font-size:10px;opacity:.75;text-align:right">
+      폐기물처리비 예상<br>
+      ${Math.round(amt*.04).toLocaleString()}~${Math.round(amt*.10).toLocaleString()}원
+    </div>
+  </div>`;
+}
+
+// ── Case ─────────────────────────────────────────────────────────────────────
+function selCase(v){
+  document.getElementById('case-val').value=v;
+  csData._caseVal=v;
+  sv('ces_op01_cs',csData);
+  ['a','b','c','d'].forEach(c=>{
+    const b=document.getElementById('case-'+c);
+    if(b){b.className='case-btn';b.style.borderColor='';b.style.background='';b.style.color='';b.style.fontWeight=''}
+  });
+  const b=document.getElementById('case-'+v.toLowerCase());
+  if(!b)return;
+  const MAP={
+    A:{bc:'var(--teal)', bg:'#E8F5F0', cl:'var(--teal)'},
+    B:{bc:'var(--amber)',bg:'#FFF8EC',cl:'var(--amber)'},
+    C:{bc:'var(--red)',  bg:'#FFF0F0',cl:'var(--red)'},
+    D:{bc:'var(--blue)', bg:'#EEF2FF',cl:'var(--blue)'},
+  };
+  const s=MAP[v];
+  if(s){b.style.borderColor=s.bc;b.style.background=s.bg;b.style.color=s.cl;b.style.fontWeight='700'}
+  if(v==='D') toast('🔵 Case D: 철거 후 바닥 상태 확인 후 Case 재분류 필요 (OP-02에서 확정)');
+}
+
+// ── 사진 ─────────────────────────────────────────────────────────────────────
+function trigPh(id,zid){document.getElementById(`ph-${id}-${zid}`)?.click()}
+function handlePh(id,zid,input){
+  if(!input.files.length)return;
+  Array.from(input.files).forEach(file=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const prev=document.getElementById(`prev-${id}-${zid}`);
+      if(prev){const img=document.createElement('img');img.src=e.target.result;img.className='prev-img';prev.appendChild(img)}
+      const pbtn=document.getElementById(`pb-${id}-${zid}`)||document.querySelector(`[onclick*="trigPh('${id}',${zid})"]`);
+      if(pbtn)pbtn.classList.add('has');
+      setV(zid,id+'_photo',true);
+    };r.readAsDataURL(file);
+  });
+  toast(`📷 ${input.files.length}장 저장`);
+}
+
+// ── 저장 / 보고서 ─────────────────────────────────────────────────────────────
+function saveAll(){
+  // ★[CED-20260929-002 ③] 작성자＝승인자를 화면에서 먼저 막는다 (직무분리 · 전 축 공통)
+  //   까닭 : 서버 CHECK 는 NOT VALID 라 새 행만 걸린다. 그 새 행이 이 화면에서 온다.
+  //          여기서 막으면 서버까지 가지 않는다.
+  {
+    const a=(document.getElementById('author')||{}).value||'';
+    const b=(document.getElementById('approver')||{}).value||'';
+    if(a.trim() && b.trim() && a.trim()===b.trim()){
+      toast('⛔ 작성자와 승인자가 같습니다 — 서로 다른 사람이어야 합니다');
+      const el=document.getElementById('approver'); if(el) el.focus();
+      return false;
+    }
+  }
+  const full={
+    cs:csData,
+    caseVal:document.getElementById('case-val').value,
+    measZones:document.getElementById('meas-zones').value,
+    overall:document.getElementById('overall').value,
+    extraRisks:document.getElementById('extra-risks').value,
+    author:document.getElementById('author').value,
+    approver:document.getElementById('approver').value,
+    autoRisks,unitPrice:UNIT
+  };
+  sv('ces_op01_cs_full',full);
+  toast('✅ 체크시트 저장 완료');
+  return true;
+}
+// ★[CED-20260929-002 ③] saveAll() 이 거절하면 보고서로 넘어가지 않는다
+function goReport(){ if(saveAll()===false) return; location.href='op01_report.html'; }
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── 초기화 ───────────────────────────────────────────────────────────────────
+renderTabs();
+renderBody();
+// 작성자·승인자·Case 자동 복구
+(function restoreAuthors(){
+  try{
+    const full=JSON.parse(localStorage.getItem('ces_op01_cs_full')||'{}');
+    if(full.author){
+      const el=document.getElementById('author');
+      if(el&&!el.value)el.value=full.author;
+    }
+    if(full.approver){
+      const el=document.getElementById('approver');
+      if(el&&!el.value)el.value=full.approver;
+    }
+    // Case 예비분류 복구: csData._caseVal 우선, 없으면 full.caseVal
+    const savedCase = csData._caseVal || full.caseVal;
+    if(savedCase) selCase(savedCase);
+    // 계측 후보 구역, 현장 종합 의견 복구 (csData 우선, 없으면 full)
+    const mz = csData._measZones || full.measZones;
+    if(mz){ const el=document.getElementById('meas-zones'); if(el)el.value=mz; }
+    const ov = csData._overall || full.overall;
+    if(ov){ const el=document.getElementById('overall'); if(el)el.value=ov; }
+    const er = csData._extraRisks || full.extraRisks;
+    if(er){ const el=document.getElementById('extra-risks'); if(el)el.value=er; }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
