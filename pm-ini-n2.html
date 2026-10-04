@@ -35,7 +35,8 @@
 
   <div class="panel" id="panel" style="display:none">
     <!-- ① 결재선 표시 -->
-    <div class="mk-note approval-note" id="line1">★<b>과제 축</b>(1층) — 작성 <b>과제 담당자</b> → 검토 <b>품질팀장</b> → 승인 <b>부대표</b> · 이 화면은 <b>상신까지</b>입니다. <b>대표이사는 1층에 나오지 않습니다</b> — 2층 게이트 PG0·PG5 에서만 합니다(판정 MST2-20260901-010 §1·§2). ★자리 이름은 <b>pm_approval_lines</b> 가 정합니다 — 화면이 결재자를 적지 않습니다(W-17).</div>
+    <div class="mk-note approval-note keep" id="line1">순서는 <b>작성(과제 담당자) → 검토(품질팀장) → 승인(부대표)</b>입니다. 이 화면에서는 <b>올리기(상신)까지</b> 합니다.</div>
+    <div class="mk-note dev-detail">★<b>과제 축</b>(1층) — 작성 <b>과제 담당자</b> → 검토 <b>품질팀장</b> → 승인 <b>부대표</b> · 이 화면은 <b>상신까지</b>입니다. <b>대표이사는 1층에 나오지 않습니다</b> — 2층 게이트 PG0·PG5 에서만 합니다(판정 MST2-20260901-010 §1·§2). ★자리 이름은 <b>pm_approval_lines</b> 가 정합니다 — 화면이 결재자를 적지 않습니다(W-17).</div>
     <h2 id="ttl">과제 착수 승인서</h2>
     <div class="count-info" id="sub"></div>
 
@@ -256,7 +257,7 @@
 
       if (!(await pmCanEdit())) {
         $('state').innerHTML = '<div class="banner warn"><b>상신 권한이 없습니다</b><br>'
-          + '1층 서류 작성은 <b>관리자 · 임원 · 프로젝트관리 사용 권한(can_use_pm)</b> 가운데 하나에게 열려 있습니다(<code>pm_can_edit()</code> 실측 2026-09-01).</div>';
+          + '1층 서류 작성은 <b>관리자 · 임원 · 프로젝트관리 사용 권한</b> 가운데 하나에게 열려 있습니다.</div>';
         $('btn-submit').disabled = true; $('btn-draft').disabled = true;
         $('foot-note').textContent = '작성 권한 없음';
       }

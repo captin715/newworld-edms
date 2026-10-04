@@ -23,7 +23,8 @@
   </div>
 </header>
 <main>
-  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). ★<b>직무분리 셋</b>(값 V4.2 · 판정 MST2-20260901-013 §1 · <b>게이트 축에도 그대로</b>) — <b>작성자 ≠ 승인자</b> ★금지 · <b>검토자 ≠ 승인자</b> ★금지(<b>한 사람이 두 자리를 잡지 않습니다</b>) · <b>작성자 ≠ 검토자</b> 사유를 적으면 건너뜁니다. ★<b>왜</b> — 결재는 <b>서로 다른 눈</b>이 보는 것입니다. 한 사람이 두 자리를 잡으면 자기가 본 것을 자기가 다시 보는 것이라 <b>결재가 아닙니다</b>. ★<b>아래 표의 「검토(정의)·승인(정의)」 두 줄이 그것을 보시라고 나란히 있습니다</b> — 한 줄로 줄이면 대조할 수 없습니다(M-007). ★<b>실측 2026-09-01</b> — 게이트 7개 전수 대조 <b>위반 0건</b>(PG-1·PG1~PG4 품질팀장≠부대표 · PG0·PG5 부대표≠대표이사). (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
+  <div class="mk-note approval-note keep">이 화면은 <b>보기 전용</b>입니다. 결재는 <a href="pm-approve.html">프로젝트 축 결재</a> 화면에서 올리고 처리합니다.<br>아래 표의 <b>검토 · 승인</b> 두 칸은 서로 다른 사람이어야 합니다 — 한 사람이 두 자리를 맡지 않습니다.</div>
+  <div class="mk-note dev-detail">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). ★<b>직무분리 셋</b>(값 V4.2 · 판정 MST2-20260901-013 §1 · <b>게이트 축에도 그대로</b>) — <b>작성자 ≠ 승인자</b> ★금지 · <b>검토자 ≠ 승인자</b> ★금지(<b>한 사람이 두 자리를 잡지 않습니다</b>) · <b>작성자 ≠ 검토자</b> 사유를 적으면 건너뜁니다. ★<b>왜</b> — 결재는 <b>서로 다른 눈</b>이 보는 것입니다. 한 사람이 두 자리를 잡으면 자기가 본 것을 자기가 다시 보는 것이라 <b>결재가 아닙니다</b>. ★<b>아래 표의 「검토(정의)·승인(정의)」 두 줄이 그것을 보시라고 나란히 있습니다</b> — 한 줄로 줄이면 대조할 수 없습니다(M-007). ★<b>실측 2026-09-01</b> — 게이트 7개 전수 대조 <b>위반 0건</b>(PG-1·PG1~PG4 품질팀장≠부대표 · PG0·PG5 부대표≠대표이사). (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
   <div class="mk-note" id="ribbon"></div>
   <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <b>게이트 현황 보드</b></div>
 
@@ -42,7 +43,7 @@
       </table>
     </div>
     <div class="legend" id="legend"></div>
-    <div class="sec-title">개발형 판정 근거 — <code>pm_v_gate_d_pass</code> <span id="dpCnt"></span></div>
+    <div class="sec-title">게이트 통과 근거 <span id="dpCnt"></span></div>
     <div id="dpass"></div>
   </div>
 </main>
@@ -85,12 +86,12 @@ function render(defs, projects, inst, dpass) {
   /* ★M-007 결재선 3단계 — 검토·승인을 2줄로 함께 보인다(판정 20260816_02 §6 ㉠).
      「검토자 숨기면 SoD 확인 불가」. 값은 pm_gate_defs 에서 읽는다 — 화면에 박지 않는다.
      ★「대표이사 전권」 배지는 is_ceo_authority 로만 그린다(approver 문자열로 판단하지 않는다). */
-  var th = '<th class="pj">프로젝트<br><span style="font-weight:normal;font-size:10px">작성 = 담당자(owner)</span></th>';
+  var th = '<th class="pj">프로젝트<br><span style="font-weight:normal;font-size:10px">작성 = 담당자</span></th>';
   defs.forEach(function (d) {
     th += '<th>' + pmEsc(d.gate_code) + '<br><span style="font-weight:normal;font-size:10px">'
         + pmEsc(d.gate_name) + '</span>'
-        + '<br><span style="font-weight:normal;font-size:10px">검토(정의) ' + pmVal(d.reviewer) + '</span>'
-        + '<br><span style="font-weight:normal;font-size:10px">승인(정의) ' + pmVal(d.approver) + '</span>'
+        + '<br><span style="font-weight:normal;font-size:10px">검토 ' + pmVal(d.reviewer) + '</span>'
+        + '<br><span style="font-weight:normal;font-size:10px">승인 ' + pmVal(d.approver) + '</span>'
         + (d.ceo_only ? '<br><span class="ceo-mark">대표이사 전권</span>' : '')
         + '</th>';
   });
@@ -134,17 +135,16 @@ function render(defs, projects, inst, dpass) {
     document.getElementById('dpass').innerHTML = pmStateBox('B', null, '개발형 게이트 판정 행');
   } else {
     var nT = dpass.filter(function (r) { return r.passed === true; }).length;
-    var h = '<div class="banner warn">판정 <b>' + dpass.length + '행</b> 중 <code>passed = true</code> <b>' + nT + '행</b>. '
-          + '★<code>passed = false</code> 는 <b>「부결」이 아닙니다</b> — 아직 충족되지 않았다는 뜻이며 '
-          + '사유는 아래 <code>reason</code> 문자열 그대로입니다. 이 화면은 통과 여부를 다시 계산하지 않습니다.</div>'
+    var h = '<div class="banner warn">모두 <b>' + dpass.length + '건</b> 가운데 <b>' + nT + '건</b>이 통과했습니다. '
+          + '「아직」은 <b>부결이 아니라</b> 조건이 아직 덜 채워졌다는 뜻입니다. 사유는 기록된 그대로 보입니다.</div>'
           + '<div class="table-wrap"><table class="std" style="min-width:760px"><thead><tr>'
-          + '<th class="sticky-col c1">프로젝트</th><th>게이트</th><th>seq</th><th>passed</th><th>reason(원문)</th>'
+          + '<th class="sticky-col c1">프로젝트</th><th>게이트</th><th>순서</th><th>통과</th><th>사유</th>'
           + '</tr></thead><tbody>';
     dpass.forEach(function (r) {
       h += '<tr><td class="sticky-col c1">' + pmEsc(r.project_code) + '</td>'
         +  '<td>' + pmEsc(r.gate_code) + '</td><td>' + pmEsc(r.seq) + '</td>'
         +  '<td><span class="req-ic ' + (r.passed ? 'req-ok' : 'req-part') + '">'
-        +  (r.passed ? 'true' : 'false') + '</span></td>'
+        +  (r.passed ? '✔ 통과' : '⏸ 아직') + '</span></td>'
         +  '<td class="title-cell" style="white-space:normal">' + pmVal(r.reason) + '</td></tr>';
     });
     document.getElementById('dpass').innerHTML = h + '</tbody></table></div>';

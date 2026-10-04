@@ -23,7 +23,8 @@
   </div>
 </header>
 <main>
-  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
+  <div class="mk-note approval-note keep">이 화면은 <b>보기 전용</b>입니다. 결재는 <a href="pm-approve.html">프로젝트 축 결재</a> 화면에서 올리고 처리합니다.<br>문서 · 기록의 결재와는 따로 진행됩니다.</div>
+  <div class="mk-note dev-detail">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
   <div class="mk-note" id="ribbon"></div>
   <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <a href="pm-list.html">프로젝트 대장</a> &nbsp;›&nbsp; <b id="crumbCode">상세</b></div>
 
@@ -178,8 +179,7 @@ function row(k, v) { return '<div class="dl-row"><div class="k">' + k + '</div><
       + row('③ PG0 착수 승인', (rd.has_pg0 ? '<span class="req-ic req-ok">있음</span>' : '<span class="req-ic req-no">없음</span>')
             + ' ' + pmDate(p.pg0_at))
       + '</div>'
-      + '<div class="hint">① 코드 채번은 열이 아닙니다 — 대장에 있다는 것이 채번 완료를 뜻합니다'
-      + '(<code>project_code</code> NOT NULL·PK · M-005).</div>';
+      + '<div class="hint">① 대장에 올라 있으면 프로젝트 코드는 이미 붙은 것입니다.</div>';
   }
 
   /* ── ④ 게이트 ── */
@@ -213,15 +213,14 @@ function row(k, v) { return '<div class="dl-row"><div class="k">' + k + '</div><
     });
     document.getElementById('gates').innerHTML = h + '</tbody></table></div>'
       + '<div class="hint">결재선 3단계 — <b>작성</b> = 담당자(' + pmVal(p.owner) + ') · '
-      + '<b>검토·승인</b> = <code>pm_gate_defs</code> 값. 화면에 박지 않습니다(M-007).</div>';
+      + '<b>검토 · 승인</b> = 게이트마다 정해진 사람.</div>';
   }
 
   /* ── ⑤ 산출물 — ★Draft 를 정본처럼 보이게 하지 않는다 ── */
   document.getElementById('recGuide').innerHTML =
-      '상태 값역 <b>Draft · 승인 · 보관 · 발번불요</b> — '
-    + '<span class="req-ic req-no">원고 · 검토 전</span> 는 <b>정본이 아닙니다</b>(마스터 검토 전·발번 전). '
-    + '<span class="req-ic req-ok">정본</span> 은 승인분입니다. '
-    + '★<b>「미발번」(관리번호 없음)과 「원고」(검토 전)는 다른 축</b>이며 따로 표시합니다.';
+      '<span class="req-ic req-no">원고 · 검토 전</span> 은 아직 검토 전이라 <b>정식 문서가 아닙니다</b>. '
+    + '<span class="req-ic req-ok">정본</span> 은 승인된 정식 문서입니다. '
+    + '관리번호가 아직 없는 것은 「미발번」으로 따로 표시합니다.';
   document.getElementById('recSum').textContent = records.length + '행';
   if (recErr) {
     document.getElementById('records').innerHTML =

@@ -30,7 +30,8 @@
   </div>
 </header>
 <main>
-  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). 결재선은 <b>현행확정 조직·결재선 참조표</b>가 정본입니다. (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
+  <div class="mk-note approval-note keep">이 화면은 <b>보기 전용</b>입니다. 결재는 <a href="pm-approve.html">프로젝트 축 결재</a> 화면에서 올리고 처리합니다.<br>프로젝트 이름을 누르면 상세 화면이 열립니다.</div>
+  <div class="mk-note dev-detail">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). 결재선은 <b>현행확정 조직·결재선 참조표</b>가 정본입니다. (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
   <div class="mk-note" id="ribbon"></div>
   <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <b>프로젝트 대장</b></div>
 
@@ -110,8 +111,8 @@ function render(rows, gates) {
     '성립요건 미충족 ' + unmet + ' / ' + rows.length + '건 — ② 부속서 · ③ PG0 착수 승인 2요건';
   /* ★미채번은 DB 행이 아니다. 정적 문구로만 알린다. */
   document.getElementById('unnumbered').innerHTML =
-    '① 코드 채번은 열이 아닙니다 — 대장에 있다는 것이 채번 완료를 뜻합니다(<b>project_code</b> NOT NULL·PK). '
-  + '<b>미채번 「KOLAS 인정」은 대장 밖</b>이며 채번 시 편입됩니다 — 채번은 운영 담당 창 소관입니다.';
+    '대장에 올라 있으면 프로젝트 코드가 이미 붙은 것입니다. '
+  + '<b>「KOLAS 인정」은 아직 코드가 없어 대장 밖</b>에 있으며, 코드가 붙으면 이 대장에 들어옵니다.';
   document.getElementById('panel').style.display = '';
 }
 

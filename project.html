@@ -120,8 +120,8 @@ function render(rows, gates) {
     '성립요건 미충족 ' + unmet + ' / ' + rows.length + '건 — ② 부속서 · ③ PG0 착수 승인 2요건';
   /* ★미채번은 DB 행이 아니다. 정적 문구로만 알린다. */
   document.getElementById('unnumbered').innerHTML =
-    '① 코드 채번은 열이 아닙니다 — 대장에 있다는 것이 채번 완료를 뜻합니다(<b>project_code</b> NOT NULL·PK). '
-  + '<b>미채번 「KOLAS 인정」은 대장 밖</b>이며 채번 시 편입됩니다 — 채번은 운영 담당 창 소관입니다.';
+    '대장에 올라 있으면 프로젝트 코드가 이미 붙은 것입니다. '
+  + '<b>「KOLAS 인정」은 아직 코드가 없어 대장 밖</b>에 있으며, 코드가 붙으면 이 대장에 들어옵니다.';
   document.getElementById('panel').style.display = '';
 }
 

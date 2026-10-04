@@ -193,3 +193,106 @@ header.mk .userbox { display:flex; align-items:center; gap:8px; flex-wrap:wrap; 
   .edms-nav .nav-right { width:100%; }
 }
 @media (max-width:700px) { input:not([type=checkbox]):not([type=radio]), select, textarea { max-width:100%; } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+★2차 다듬기 (MST2-20261005-004) — 길 안내는 늘 보임 · 작업 메모는 맨 아래 한 곳 · 입력 칸은 카드
+═══════════════════════════════════════════════════════════════════════ */
+/* 길 안내 상자 — 「여기서 무엇을 · 어디서」 한두 줄 */
+.mk-note.approval-note { display:block !important; background:var(--runb) !important; border:none !important; border-left:8px solid var(--run) !important;
+  color:var(--ink) !important; border-radius:var(--r3) !important; padding:14px 18px 14px 18px !important; margin:14px 0 !important;
+  font-size:17px !important; line-height:1.65 !important; box-shadow:var(--sh); }
+.mk-note.approval-note::before { content:"길 안내"; display:inline-block; margin-right:10px; padding:2px 10px; border-radius:var(--pillr);
+  background:var(--run); color:#fff; font-size:14px; font-weight:800; vertical-align:2px; }
+.mk-note.approval-note b { color:var(--ink); } .mk-note.approval-note a { color:var(--run); font-weight:800; }
+/* 작업 메모 — 화면 맨 아래 한 곳 */
+details.edms-devbox { margin:28px 0 12px; padding:10px 16px; background:#fff; border:1px dashed #c9d3e3; border-radius:var(--r3); }
+details.edms-devbox[open] > :not(summary) { margin-top:10px; font-size:14px !important; color:var(--sub) !important; }
+details.edms-devbox .mk-note, details.edms-devbox .prov-note { background:var(--soft) !important; border:none !important; border-left:4px solid #c9d3e3 !important; }
+/* 프로젝트관리 머리줄 이름 · 직함 */
+header.mk #who { font-weight:800; }
+header.mk .role-badge { display:inline-flex; align-items:center; min-height:30px; padding:0 12px; border-radius:var(--pillr); background:#ffffff26 !important; color:#fff !important; font-size:14px !important; font-weight:800; border:1px solid #ffffff40; }
+/* 프로젝트관리 공통 — 판 · 거르개 · 알림 */
+main .form, main .filter, main .panel { background:#fff !important; border:none !important; border-radius:var(--r) !important; box-shadow:var(--sh) !important; padding:18px 22px !important; font-size:16px !important; margin-bottom:18px !important; }
+main .filter { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+main .axis { font-size:15px !important; color:var(--sub) !important; }
+main .err { border-radius:var(--r3) !important; font-size:15px !important; border-width:0 0 0 8px !important; }
+footer.mk { font-size:14px !important; color:var(--sub) !important; text-align:center; padding:16px !important; background:transparent !important; border:none !important; }
+/* 결재 올리기 — 시안 「새 문서」 : 차례 띠 + 칸 묶음 카드 + 같은 칸 폭 */
+.pa-form .pa-head { font-size:var(--fs-card); font-weight:800; margin-bottom:6px; }
+.pa-form .pa-head .axis { font-weight:600; margin-left:8px; }
+.pa-steps { display:flex; }
+.pa-cards { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; }
+.pa-card { background:var(--soft); border:1px solid var(--line); border-radius:var(--r3); padding:16px 18px; }
+.pa-card h3 { margin:0 0 10px; font-size:18px; font-weight:800; color:var(--ink); }
+.pa-f { display:grid; grid-template-columns:84px 1fr; align-items:center; gap:10px; margin-bottom:10px; }
+.pa-f label { min-width:0 !important; font-weight:800; color:var(--ink) !important; margin:0 !important; }
+.pa-f select, .pa-f input { width:100% !important; box-sizing:border-box; padding:8px 12px !important; border:2px solid var(--line) !important; background:#fff !important; }
+.pa-rule { margin:6px 0 0; font-size:15px; color:var(--blk); font-weight:700; }
+.pa-rule::before { content:"⚠ "; }
+.pa-go { display:flex; justify-content:flex-end; margin-top:16px; }
+.pa-go .btn.go { min-width:180px; background:var(--run) !important; color:#fff !important; border:none !important; font-size:18px !important; box-shadow:0 4px 12px #1565c040; }
+@media (max-width:800px) { .pa-cards { grid-template-columns:1fr; } .pa-f { grid-template-columns:1fr; gap:4px; } .pa-go .btn.go { width:100%; } }
+.mk-note.approval-note { font-weight:500 !important; } .mk-note.approval-note b { font-weight:800 !important; }
+main .form.pa-form { max-width:none !important; width:auto !important; }
+.pa-steps .step { display:flex; align-items:center; gap:8px; }
+.pa-steps .step .dot { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%; background:#fff !important; color:var(--sub) !important; font-size:14px; font-weight:900; }
+.pa-steps .step.on .dot { color:var(--run) !important; }
+/* 프로젝트관리 표 머리 — 옛 갈색 → 남색 · 칸 가운데 맞춤 */
+header.mk ~ main table th { background:var(--head) !important; color:#fff !important; border-color:#2b3a5c !important; }
+header.mk ~ main table td { vertical-align:middle !important; border-color:var(--line) !important; }
+header.mk ~ main table { border-radius:var(--r3); overflow:hidden; box-shadow:var(--sh); background:#fff; }
+/* 결재 화면(.st) 상태 — 색 + 아이콘 + 글자 */
+table.ap .st { display:inline-flex; align-items:center; gap:4px; border:none !important; border-radius:var(--pillr); padding:3px 11px !important; font-size:15px !important; font-weight:800; background:var(--runb) !important; color:var(--run) !important; }
+table.ap .st::before { content:"▶"; }
+table.ap .st.wait { background:var(--waitb) !important; color:var(--wait-t) !important; } table.ap .st.wait::before { content:"⏸"; }
+table.ap .st.done { background:var(--okb) !important; color:var(--ok) !important; } table.ap .st.done::before { content:"✔"; }
+table.ap .st.rej { background:var(--blkb) !important; color:var(--blk) !important; } table.ap .st.rej::before { content:"⚠"; }
+table.ap tr.turn td { background:#fff8e1 !important; }
+a.btn, span.btn, label.btn { display:inline-flex !important; align-items:center; justify-content:center; text-decoration:none; }
+@media (max-width:700px) { header.mk ~ main table { display:block; overflow-x:auto; max-width:100%; } }
+/* 프로젝트관리 표 — 16px 글자가 잘리지 않게 : 화면 폭 넓힘 · 칸 줄바꿈 허용 */
+header.mk ~ main, body:has(header.mk) > main { max-width:1360px !important; }
+table.std, table.gboard { table-layout:auto !important; }
+table.std td, table.gboard td.pj { white-space:normal !important; overflow:visible !important; text-overflow:clip !important; word-break:keep-all; overflow-wrap:anywhere; }
+table.std th, table.gboard th { white-space:nowrap !important; overflow:visible !important; text-overflow:clip !important; }
+table.std td.code, table.std td:first-child { white-space:nowrap !important; }
+.rst, .pgb, .plv, .dstat, .req-ic, .gcell, .site-badge { font-size:15px !important; padding:3px 10px !important; }
+/* 게이트 상태(.gcell) — 색 + 아이콘 + 글자 */
+.gcell { display:inline-flex !important; align-items:center; gap:4px; font-weight:800; border-radius:var(--pillr) !important; border:none !important; }
+.gcell.gc-pass { background:var(--okb) !important; color:var(--ok) !important; } .gcell.gc-pass::before { content:"✔"; }
+.gcell.gc-cond, .gcell.gc-wait { background:var(--waitb) !important; color:var(--wait-t) !important; } .gcell.gc-cond::before, .gcell.gc-wait::before { content:"⏸"; }
+.gcell.gc-reject, .gcell.gc-del { background:var(--blkb) !important; color:var(--blk) !important; } .gcell.gc-reject::before, .gcell.gc-del::before { content:"⚠"; }
+.gcell.gc-none { background:#edf1f7 !important; color:#5a6b86 !important; } .gcell.gc-none::before { content:"○"; }
+.gcell.gc-ext { background:var(--runb) !important; color:var(--run) !important; } .gcell.gc-ext::before { content:"▶"; }
+/* 글자만 있던 상태 딱지 — edms-design.js 가 글자를 보고 붙임 */
+.edms-s-ok, .edms-s-run, .edms-s-wait, .edms-s-blk { display:inline-flex !important; align-items:center; gap:4px; border:none !important; border-radius:var(--pillr) !important; font-weight:800 !important; padding:3px 11px !important; font-size:15px !important; }
+.edms-s-ok { background:var(--okb) !important; color:var(--ok) !important; } .edms-s-ok::before { content:"✔"; }
+.edms-s-run { background:var(--runb) !important; color:var(--run) !important; } .edms-s-run::before { content:"▶"; }
+.edms-s-wait { background:var(--waitb) !important; color:var(--wait-t) !important; } .edms-s-wait::before { content:"⏸"; }
+.edms-s-blk { background:var(--blkb) !important; color:var(--blk) !important; } .edms-s-blk::before { content:"⚠"; }
+.ap-row.mine { border-left-color:var(--run) !important; }
+/* 간트 — 날짜 머리는 7일마다 · 앞 네 칸 폭 */
+table.gantt th.d { font-size:0 !important; padding:8px 0 !important; overflow:visible !important; position:relative; }
+table.gantt th.d.edms-tick { font-size:13px !important; text-align:left !important; white-space:nowrap; }
+table.gantt th.d.edms-tick::before { content:""; position:absolute; left:0; top:4px; bottom:4px; border-left:1px solid #ffffff55; }
+table.gantt td.cell { padding:0 !important; }
+table.gantt th:nth-child(1) { width:64px !important; } table.gantt th:nth-child(2) { width:220px !important; }
+table.gantt th:nth-child(3) { width:72px !important; } table.gantt th:nth-child(4) { width:92px !important; }
+table.gantt td.lbl { overflow:visible !important; text-overflow:clip !important; }
+table.gantt th.d.edms-tick { z-index:5 !important; padding-left:4px !important; }
+/* 프로젝트 화면 — 위 EDMS 머리줄이 이미 있으면 아래 머리줄은 흰 제목 띠로(머리줄 두 겹 · 이름 두 번 안 보이게) */
+header.edms-nav ~ header.mk { background:#fff !important; color:var(--ink) !important; box-shadow:var(--sh) !important; border-bottom:4px solid #E2AD33 !important; padding:12px 28px !important; }
+header.edms-nav ~ header.mk h1, header.edms-nav ~ header.mk h1 small { color:var(--ink) !important; }
+header.edms-nav ~ header.mk h1 small { color:var(--sub) !important; }
+header.edms-nav ~ header.mk .userbox #who, header.edms-nav ~ header.mk .userbox .role-badge { display:none !important; }
+header.edms-nav ~ header.mk .homebtn, header.edms-nav ~ header.mk .mk-home { color:var(--run) !important; background:#fff !important; border:2px solid #bcd3f3 !important; }
+.edms-nav .nav-btn { padding:0 12px !important; font-size:15px !important; }
+/* 프로젝트관리 입력칸 — 같은 꼴 */
+header.mk ~ main :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]), select, textarea) { border:2px solid var(--line) !important; padding:8px 12px !important; background:#fff; color:var(--ink); }
+header.mk ~ main :is(input, select, textarea):focus { border-color:var(--run) !important; outline:none; box-shadow:0 0 0 3px #1565c022; }
+@media (max-width:800px) { .pa-steps .step { padding:8px 12px 8px 18px; } .pa-steps .step .lbl { white-space:nowrap; font-size:14px !important; } .pa-steps .step .dot { width:22px; height:22px; } }
+/* 결재 화면 상태 — 글자로 판단(줄의 「내 차례」 노랑과 섞지 않음) */
+table.ap .st.edms-s-ok { background:var(--okb) !important; color:var(--ok) !important; } table.ap .st.edms-s-ok::before { content:"✔"; }
+table.ap .st.edms-s-run { background:var(--runb) !important; color:var(--run) !important; } table.ap .st.edms-s-run::before { content:"▶"; }
+table.ap .st.edms-s-wait { background:var(--waitb) !important; color:var(--wait-t) !important; } table.ap .st.edms-s-wait::before { content:"⏸"; }
+table.ap .st.edms-s-blk { background:var(--blkb) !important; color:var(--blk) !important; } table.ap .st.edms-s-blk::before { content:"⚠"; }

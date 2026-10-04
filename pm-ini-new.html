@@ -319,7 +319,7 @@
       /* ★권한이 없으면 저장 버튼을 눌리게 두지 않는다. 이유를 먼저 말한다. */
       $('state').innerHTML =
         '<div class="banner warn"><b>과제를 등록할 권한이 없습니다</b><br>'
-      + '1층 과제 등록은 <b>관리자 또는 임원</b>에게 열려 있습니다(<code>pm_can_edit()</code>). '
+      + '1층 과제 등록은 <b>관리자 또는 임원</b>에게 열려 있습니다. '
       + '아래 칸은 보실 수 있으나 저장은 서버가 거부합니다.</div>';
       $('btn-save').disabled = true;
       $('foot-note').textContent = '저장 권한 없음';

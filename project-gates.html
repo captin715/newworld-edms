@@ -43,7 +43,7 @@
       </table>
     </div>
     <div class="legend" id="legend"></div>
-    <div class="sec-title">개발형 판정 근거 — <code>pm_v_gate_d_pass</code> <span id="dpCnt"></span></div>
+    <div class="sec-title">게이트 통과 근거 <span id="dpCnt"></span></div>
     <div id="dpass"></div>
   </div>
 </main>
@@ -85,7 +85,7 @@ function render(defs, projects, inst, dpass) {
   /* ★M-007 결재선 3단계 — 검토·승인을 2줄로 함께 보인다(판정 20260816_02 §6 ㉠).
      「검토자 숨기면 SoD 확인 불가」. 값은 pm_gate_defs 에서 읽는다 — 화면에 박지 않는다.
      ★「대표이사 전권」 배지는 is_ceo_authority 로만 그린다(approver 문자열로 판단하지 않는다). */
-  var th = '<th class="pj">프로젝트<br><span style="font-weight:normal;font-size:10px">작성 = 담당자(owner)</span></th>';
+  var th = '<th class="pj">프로젝트<br><span style="font-weight:normal;font-size:10px">작성 = 담당자</span></th>';
   defs.forEach(function (d) {
     th += '<th>' + pmEsc(d.gate_code) + '<br><span style="font-weight:normal;font-size:10px">'
         + pmEsc(d.gate_name) + '</span>'
@@ -134,17 +134,16 @@ function render(defs, projects, inst, dpass) {
     document.getElementById('dpass').innerHTML = pmStateBox('B', null, '개발형 게이트 판정 행');
   } else {
     var nT = dpass.filter(function (r) { return r.passed === true; }).length;
-    var h = '<div class="banner warn">판정 <b>' + dpass.length + '행</b> 중 <code>passed = true</code> <b>' + nT + '행</b>. '
-          + '★<code>passed = false</code> 는 <b>「부결」이 아닙니다</b> — 아직 충족되지 않았다는 뜻이며 '
-          + '사유는 아래 <code>reason</code> 문자열 그대로입니다. 이 화면은 통과 여부를 다시 계산하지 않습니다.</div>'
+    var h = '<div class="banner warn">모두 <b>' + dpass.length + '건</b> 가운데 <b>' + nT + '건</b>이 통과했습니다. '
+          + '「아직」은 <b>부결이 아니라</b> 조건이 아직 덜 채워졌다는 뜻입니다. 사유는 기록된 그대로 보입니다.</div>'
           + '<div class="pm-table-wrap"><table class="std" style="min-width:760px"><thead><tr>'
-          + '<th class="sticky-col c1">프로젝트</th><th>게이트</th><th>seq</th><th>passed</th><th>reason(원문)</th>'
+          + '<th class="sticky-col c1">프로젝트</th><th>게이트</th><th>순서</th><th>통과</th><th>사유</th>'
           + '</tr></thead><tbody>';
     dpass.forEach(function (r) {
       h += '<tr><td class="sticky-col c1">' + pmEsc(r.project_code) + '</td>'
         +  '<td>' + pmEsc(r.gate_code) + '</td><td>' + pmEsc(r.seq) + '</td>'
         +  '<td><span class="req-ic ' + (r.passed ? 'req-ok' : 'req-part') + '">'
-        +  (r.passed ? 'true' : 'false') + '</span></td>'
+        +  (r.passed ? '✔ 통과' : '⏸ 아직') + '</span></td>'
         +  '<td class="title-cell" style="white-space:normal">' + pmVal(r.reason) + '</td></tr>';
     });
     document.getElementById('dpass').innerHTML = h + '</tbody></table></div>';

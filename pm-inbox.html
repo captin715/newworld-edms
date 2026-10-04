@@ -78,6 +78,7 @@
   </div>
 </header>
 <main>
+  <div class="mk-note approval-note keep">여기서 <b>내 결재 차례</b>와 <b>내가 올린 것</b>을 한눈에 봅니다. 내 차례인 건은 이 자리에서 <b>검토 · 승인 · 반려</b>를 누릅니다.<br>[열람]을 누르면 결재란과 내용이 그 자리에 펼쳐집니다.</div>
   <div class="mk-note">
     이 화면은 <b>내게 걸린 결재만</b> 모읍니다.
     <b>내 차례인지</b>는 <b>뷰(<code>pm_v_my_approvals</code>)</b>가 <code>auth.uid()</code>로 판정합니다 —
@@ -96,7 +97,7 @@
   <div class="panel">
     <h2>내 할 일</h2>
     <div class="todo-bar" id="todobar"><span class="todo-none">세는 중…</span></div>
-    <div class="hint" style="font-size:12px;color:#5a564c">
+    <div class="hint dev-detail" style="font-size:12px;color:#5a564c">
       <b>0건이어도 칸을 지우지 않습니다</b> — 있다가 없어지면 「고장인가」 합니다.
       <b>셋 다 0이면</b> <b>「지금 하실 것 없습니다」</b> 한 줄만 남습니다(지시 MST2-20260902-019 §3-3).
     </div>
@@ -177,7 +178,7 @@
      (지시 MST2-20260902-014 §5 · 019 §5). 없으면 ★감추지 않고 「표기 없음」이라 적는다. */
   function sig(id, fallbackName) {
     if (id && LABEL[id]) return pmEsc(LABEL[id]);
-    if (fallbackName) return pmEsc(fallbackName) + ' <small style="color:#8a8578">(표기 없음 — 이름으로 보임)</small>';
+    if (fallbackName) return pmEsc(fallbackName);
     return '<span class="masked">모름</span>';
   }
   function fmt(t) {
@@ -204,7 +205,7 @@
     return '<div class="ap-row' + (withActs && r.my_turn ? ' mine' : '') + '" data-id="' + pmEsc(r.approval_id) + '">'
       + '<div class="ap-top"><span class="tier ' + ti.t + '">' + ti.n + '</span>'
       + '<span class="ap-title">' + pmEsc(r.title || r.entity_type || '(제목 없음)') + '</span>'
-      + (r.my_turn ? '<span class="dstat turn">★' + pmEsc(r.my_turn) + '</span>' : '')
+      + (r.my_turn ? '<span class="dstat turn">' + pmEsc(r.my_turn) + '</span>' : '')
       + '<span class="dstat">' + pmEsc(r.status) + '</span></div>'
       + '<div class="ap-meta">'
       +   (r.initiative_code || r.project_code ? pmEsc(r.initiative_code || r.project_code) + ' &nbsp;·&nbsp; ' : '')

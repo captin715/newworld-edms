@@ -54,7 +54,11 @@
     (지시 MST2-20260831-017 §4). <b>줄 첫 칸의 층 배지</b>로 1층·2층을 가르십시오.
     ★<b>L3 가 서면 1층은 그리로 옮기고 이 화면은 2층으로 돌아갑니다.</b>
   </div>
-  <div class="mk-note approval-note">여기가 <b>프로젝트 축 결재선</b>입니다 — 작성 <b>프로젝트 담당자</b> → 검토 <b>소관 팀장</b> → 승인 <b>부대표</b>. ★<b>축 코드를 적지 않습니다</b> — 축 체계가 확정되기 전까지 코드를 달지 않습니다(폐기값 18 · 2026-08-27). ★<b>직무분리 셋</b>(값 V4.2 · 판정 MST2-20260901-013 §1) —
+  <div class="mk-note approval-note keep">
+    <b>여기서 프로젝트 서류의 결재를 올리고 처리합니다.</b> 순서는 <b>작성(프로젝트 담당자) → 검토(소관 팀장) → 승인(부대표)</b>입니다.<br>
+    작성한 사람은 같은 건의 검토 · 승인을 할 수 없습니다. 1층 과제 서류도 잠시 함께 보이니, 줄 첫 칸의 <b>층 표시</b>로 구분하십시오.
+  </div>
+  <div class="mk-note dev-detail">여기가 <b>프로젝트 축 결재선</b>입니다 — 작성 <b>프로젝트 담당자</b> → 검토 <b>소관 팀장</b> → 승인 <b>부대표</b>. ★<b>축 코드를 적지 않습니다</b> — 축 체계가 확정되기 전까지 코드를 달지 않습니다(폐기값 18 · 2026-08-27). ★<b>직무분리 셋</b>(값 V4.2 · 판정 MST2-20260901-013 §1) —
   <b>작성자 ≠ 승인자</b> ★금지(사유를 적어도 통과하지 않습니다) ·
   <b>검토자 ≠ 승인자</b> ★금지(<b>한 사람이 두 자리를 잡지 않습니다</b>) ·
   <b>작성자 ≠ 검토자</b> 사유를 적으면 검토를 건너뜁니다 —
@@ -64,31 +68,37 @@
   <div class="mk-note" id="ribbon"></div>
   <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <b>프로젝트 축 결재</b></div>
 
-  <div class="form" id="draftBox">
-    <div class="row"><b>기안</b> <span class="axis">— 상태는 항상 <b>작성중</b>으로 시작합니다(전이표 진입점).</span></div>
-    <div class="row"><label>프로젝트</label><select id="fProject"></select></div>
-    <div class="row"><label>대상</label>
-      <select id="fType"><option>계획서</option><option>게이트</option><option>산출물등록</option><option>WBS변경</option></select>
-      <label style="min-width:40px">참조</label><input id="fRef" size="16" placeholder="FR-2 / PG0 / DA-01 / 1.7">
+  <div class="form pa-form" id="draftBox">
+    <div class="pa-head"><b>새 결재 올리기</b> <span class="axis">올리면 <b>작성중</b> 상태로 시작합니다.</span></div>
+    <div class="stepper pa-steps"><div class="step on"><span class="dot">1</span><span class="lbl">기본 정보</span></div><div class="step on"><span class="dot">2</span><span class="lbl">결재선</span></div><div class="step"><span class="dot">3</span><span class="lbl">기안</span></div></div>
+    <div class="pa-cards">
+      <section class="pa-card"><h3>① 기본 정보</h3>
+        <div class="pa-f"><label for="fProject">프로젝트</label><select id="fProject"></select></div>
+        <div class="pa-f"><label for="fType">대상</label><select id="fType"><option>계획서</option><option>게이트</option><option>산출물등록</option><option>WBS변경</option></select></div>
+        <div class="pa-f"><label for="fRef">참조</label><input id="fRef" placeholder="예 : FR-2 / PG0 / DA-01 / 1.7"></div>
+        <div class="pa-f"><label for="fTitle">제목</label><input id="fTitle" placeholder="결재 제목"></div>
+      </section>
+      <section class="pa-card"><h3>② 결재선</h3>
+        <div class="pa-f"><label for="fDrafter">작성</label><select id="fDrafter"></select></div>
+        <div class="pa-f"><label for="fReviewer">검토</label><select id="fReviewer"></select></div>
+        <div class="pa-f"><label for="fApprover">승인</label><select id="fApprover"></select></div>
+        <p class="pa-rule">작성한 사람은 같은 건의 검토 · 승인을 할 수 없습니다.</p>
+      </section>
     </div>
-    <div class="row"><label>제목</label><input id="fTitle" size="52"></div>
-    <div class="row"><label>작성</label><select id="fDrafter"></select>
-      <label style="min-width:40px">검토</label><select id="fReviewer"></select>
-      <label style="min-width:40px">승인</label><select id="fApprover"></select></div>
-    <div class="row"><button class="btn go" id="btnDraft">기안</button>
-      <span class="axis">★작성자 = 검토자는 넣을 수 없습니다(W-10). ★작성자 = 승인자도 막힙니다.
+    <div class="pa-go"><button class="btn go" id="btnDraft">기안</button></div>
+    <div class="dev-detail">★작성자 = 검토자는 넣을 수 없습니다(W-10). ★작성자 = 승인자도 막힙니다.
       ★결재선은 <b>pm_approval_lines</b>와 대조됩니다 — <b>프로젝트 축</b>: 작성 <b>프로젝트 담당자</b> → 검토 <b>소관 팀장</b>(동일인이면 생략+사유) → 승인 <b>부대표</b> · <b>게이트 축</b>: 승인은 <b>게이트 정의</b>대로 · <b>2단 양식</b>: 승인 단이 <b>없습니다</b>.
       ★<b>직무분리 셋은 <code>pm_approval_guard</code> 가 막습니다</b>(2026-09-01 apply) —
       다만 <b>검토·승인 자리는 결재선 대장 대조가 ★먼저</b> 잡고,
       <b>작성 자리(가변 이름)</b>는 대장이 건너뛰므로 <b>직무분리가 잡습니다</b>. ★<b>축 코드는 적지 않습니다</b>(폐기값 18).
       ★<b>축은 화면이 고르지 않습니다</b> — <b>pm_form_axis</b>(양식↔축)를 DB가 보고 채웁니다(판정 MST2-20260822_74 §2).
-      <span class="tmp">★소관 팀장은 부서 표가 없어 아직 대조하지 않습니다.</span></span></div>
+      <span class="tmp">★소관 팀장은 부서 표가 없어 아직 대조하지 않습니다.</span></div>
   </div>
 
   <div class="filter">
     <b>프로젝트별 보기</b>
     <select id="fFilter"><option value="">(전체)</option></select>
-    <span class="axis">★결재자가 <b>내용을 보고</b> 판정하도록, 행을 누르면 <b>본문 경로·첨부</b>가 펼쳐집니다(㉰).</span>
+    <span class="axis">줄을 누르면 <b>본문 · 첨부</b>가 펼쳐집니다.</span>
   </div>
   <div id="msg"></div>
   <div id="state"></div>
