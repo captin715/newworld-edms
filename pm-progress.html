@@ -96,7 +96,7 @@
         /* ★번호 2번째 글자는 2026-08-24 부터 ★부서(Q·M·C·D) 입니다 — ★유형이 아닙니다.
            예전 번호(PRJ-D-·PRJ-G-)에서는 유형이었으므로, 번호로 유형을 짐작하지 않습니다.
            type_char 는 NOT NULL 이라 이 자리는 원래 비지 않습니다. */
-        type: p.type_char || '?',
+        type: p.type_char || p.type || '?',   /* ★pmFetchProjects 는 유형을 type(이름)으로 넘깁니다 — MST2-20261005-006 §2 */
         status: p.status,
         gate: p.current_gate || p.gate || '',
         passedMain: passedMain,
