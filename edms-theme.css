@@ -1,0 +1,25 @@
+/* edms-theme.css — EDMS 공통 디자인 값 V1 (MST2-20261004-017 · 부대표 승인 시안 EDMS_디자인시안_V1)
+ * ★CES 와 한 시스템으로 보이게 — 01_app\ces\ces-theme.css 의 값을 ★같은 변수 이름으로 그대로 복사했습니다.
+ * ★고칠 때는 ces-theme.css 와 함께 고칩니다(두 곳이 어긋나면 두 시스템이 달라 보입니다).
+ * common.css 맨 앞 @import 로 읽힘 → 모든 EDMS 화면이 같은 값을 봅니다. */
+:root{
+  --ok:#2e7d32;--okb:#e8f5e9;--run:#1565c0;--runb:#e3f2fd;--wait:#e65100;--waitb:#fff3e0;--blk:#c62828;--blkb:#ffebee;
+  --navy:#0f1f3d;--navy2:#1b3263;--ink:#152033;--sub:#5d6b80;--line:#e4e9f1;--bg:#f2f5fa;--card:#fff;--gray:#d3dae5;--accent:#17a2b8;
+  --r:18px;--sh:0 1px 2px #0f1f3d0d,0 8px 24px #0f1f3d12;
+  --sh2:0 2px 4px #0f1f3d14,0 16px 32px #0f1f3d1f;
+  --r2:12px;--r3:14px;--pillr:999px;
+  --font:'Pretendard','Malgun Gothic','맑은 고딕','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  --fs-hero:34px;--fs-title:24px;--fs-card:21px;--fs-body:18px;--fs-hint:15px;--fs-num:54px;
+  --btn-h:48px;
+  --head:linear-gradient(120deg,var(--navy) 0%,var(--navy2) 100%);
+  --hero:radial-gradient(1200px 300px at 85% -40%,#29b6f655,transparent),linear-gradient(120deg,#0f1f3d,#1d3a74);
+  --logo:linear-gradient(135deg,#29b6f6,#1565c0);
+  --off:#b0bec5;
+  --soft:#f4f7fb;--track:#edf1f7;--bar0:#c5d4ea;
+  --line0:#e4e9f1;
+  --wait-t:#b53d00;
+  /* ── EDMS 만의 값(시안 EDMS_디자인시안_V1) ── */
+  --cf:#1565c0;--qe:#00897b;--nt:#6a1b9a;--ce:#ef6c00;           /* 시리즈 색 4 : CFSPS · QEMS · NT · CES */
+  --edms-logo:linear-gradient(135deg,#7e57c2,#3949ab);             /* EDMS 로고 (CES 는 하늘색 · EDMS 는 보라) */
+  --edms-hero:radial-gradient(1000px 300px at 85% -40%,#7e57c255,transparent),linear-gradient(120deg,#0f1f3d,#24306e);
+}

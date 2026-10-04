@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>문서관리 시스템 — 뉴월드 EDMS</title>
 <link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="edms-design.css"><!-- ★디자인 개편 V1 · 모든 화면 (MST2-20261005-002) — 맨 끝에서 덮음 -->
 </head>
 <body>
 <header id="edmsHeader" data-system="docs"></header>
@@ -165,13 +166,17 @@
     <div class="dd-body">
       <div class="dd-grid" id="ddGrid"></div>
       <div class="dd-actions" id="ddActions"></div>
+      <div class="dd-x" id="ddX"></div><!-- ★디자인 개편 V1 — 이번 판 결재 흐름 · 이 문서를 쓰는 곳 -->
       <div class="dd-sec"> 개정 이력 (변경 내용)</div>
+      <div id="ddTl" style="margin:10px 0 4px"></div><!-- ★디자인 개편 V1 — 위가 최근 판 타임라인 -->
+      <details class="dd-tbl"><summary style="cursor:pointer;font-size:14px;color:#5d6b80;margin:6px 0">표로 보기</summary>
       <div class="table-wrap" style="max-height:38vh;overflow:auto">
         <table class="hist-table">
           <thead><tr><th>버전</th><th>개정일</th><th>구분</th><th>변경내용</th><th>개정자</th></tr></thead>
           <tbody id="ddHistBody"></tbody>
         </table>
       </div>
+      </details>
       <div id="ddHistEmpty" class="hist-empty" style="display:none">개정이력이 없습니다.</div>
     </div>
   </div>
@@ -269,6 +274,7 @@
 <script src="assets/vendor/pdf.min.js"></script>
 <script src="edms-config.js"></script>
 <script src="common.js"></script>
+<script src="edms-graph.js"></script>
 <script>
 EDMS.ready.then(async function (ctx) {
   if (!ctx) return;
@@ -574,6 +580,8 @@ EDMS.ready.then(async function (ctx) {
     const empty = document.getElementById('ddHistEmpty');
     body.innerHTML = '<tr><td colspan="5" style="color:#888">불러오는 중...</td></tr>';
     empty.style.display = 'none';
+    document.getElementById('ddTl').innerHTML = '';
+    ddExtra(d);   /* ★디자인 개편 V1 — 읽기만(결재 흐름 1건 조회) · 기다리지 않음 */
     docDetailModal.classList.add('open');
     const { data, error } = await edmsClient.from('edms_revisions')
       .select('version, revision_date, revision_reason, changes_summary, revised_by')
@@ -582,6 +590,12 @@ EDMS.ready.then(async function (ctx) {
       .order('created_at', { ascending: false });
     if (error) { body.innerHTML = `<tr><td colspan="5" style="color:#c0392b">조회 오류: ${escHtml(error.message)}</td></tr>`; return; }
     if (!data.length) { body.innerHTML = ''; empty.style.display = ''; return; }
+    /* ★디자인 개편 V1 — 같은 값을 타임라인으로(위가 최근 · 지금 판 녹색 · 첫 판 회색) */
+    if (window.EDMSG) document.getElementById('ddTl').innerHTML = EDMSG.timeline(data.map((r, i) => ({
+      c: r.version === d.current_version ? '#2e7d32' : (i === data.length - 1 ? '#9aa6b8' : '#1565c0'),
+      t: (r.version === d.current_version ? '✔ ' : '') + (r.version || '') + ' · ' + (r.revision_reason || ''),
+      d: [r.revision_date, r.changes_summary, r.revised_by].filter(Boolean).join(' · ')
+    })));
     body.innerHTML = data.map(r => `<tr>
       <td>${escHtml(r.version)}${verMark(r.version, d.current_version)}</td>
       <td>${r.revision_date || ''}</td>
@@ -589,6 +603,29 @@ EDMS.ready.then(async function (ctx) {
       <td class="chg">${escHtml(r.changes_summary) || '—'}</td>
       <td>${escHtml(r.revised_by)}</td>
     </tr>`).join('');
+  }
+
+  // ── ★디자인 개편 V1 (MST2-20261004-017) — 문서 한 장 : 이번 판 결재 흐름 · 이 문서를 쓰는 곳 ──
+  //   읽기만 합니다(edms_approvals 1건). 쓰는 곳은 담을 자리가 아직 없어 「준비 중」.
+  async function ddExtra(d) {
+    const box = document.getElementById('ddX'); if (!box || !window.EDMSG) return;
+    const use = '<div><h3>이 문서를 쓰는 곳 <span class="eh-prep">준비 중</span></h3><div class="hint">CES 화면 · 다른 문서가 이 문서를 근거로 쓰는 자리 — 담을 자리가 아직 없습니다</div></div>';
+    box.innerHTML = '<div><h3>이번 판 결재</h3><div class="hint">불러오는 중…</div></div>' + use;
+    const { data, error } = await edmsClient.from('edms_approvals')
+      .select('status, approval_type, created_at, drafter:edms_profiles!drafter_id(name), reviewer:edms_profiles!reviewer_id(name), approver:edms_profiles!approver_id(name)')
+      .eq('doc_number', d.doc_number).order('created_at', { ascending: false }).limit(1);
+    let flow;
+    if (error) flow = '<div class="hint" style="color:#c62828">읽지 못했습니다 — ' + escHtml(error.message) + '</div>';
+    else if (!data || !data.length) flow = '<div class="hint">이 시스템을 거친 결재 기록이 없습니다(이관 문서).</div>';
+    else {
+      const a = data[0], nm = (o, k) => k + (o && o.name ? ' · ' + o.name : '');
+      const M = { '작성중': ['wait','none','none'], '검토중': ['ok','wait','none'], '보류': ['ok','wait','none'], '승인대기': ['ok','ok','wait'],
+                  '승인완료': ['ok','ok','ok'], '반려': ['ok','blk','none'], '취소': ['none','none','none'] };
+      const k = M[a.status] || ['none','none','none'];
+      flow = '<div class="hint">' + escHtml(a.approval_type || '') + ' · ' + escHtml(a.status || '') + ' · 작성 → 검토 → 승인 · 승인되면 자동 발행</div>'
+        + EDMSG.chain([[nm(a.drafter, '작성'), k[0]], [nm(a.reviewer, '검토'), k[1]], [nm(a.approver, '승인'), k[2]]]);
+    }
+    box.innerHTML = '<div><h3>이번 판 결재</h3>' + flow + '</div>' + use;
   }
 
   // ── [DEF-01] 문서 폐기 (관리자) — 사유 필수, status='폐기' 전이 ─────────────
@@ -1281,6 +1318,8 @@ EDMS.ready.then(async function (ctx) {
     if (top) { const b = document.getElementById('nb-' + top.dataset.toggle); if (b) b.classList.toggle('open'); }
   });
   await loadNotices();
+  /* ★디자인 개편 V1 — 홈 「최근 바뀐 문서」에서 docs.html?doc=<id> 로 오면 그 문서 한 장을 바로 엶 */
+  { const _d = new URLSearchParams(location.search).get('doc'); if (_d) openDocDetail(_d); }
 
   // [워크플로 이관] CFSPS 일괄 개정 등재·상신은 establish.html로 이관됨.
 
@@ -1322,5 +1361,6 @@ EDMS.ready.then(async function (ctx) {
 
 });
 </script>
+<script src="edms-design.js"></script><!-- ★디자인 개편 V1 · 모든 화면 보정 (MST2-20261005-002) -->
 </body>
 </html>

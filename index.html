@@ -3,56 +3,168 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>뉴월드 EDMS — 대문</title>
+<title>뉴월드 EDMS — 홈</title>
 <link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="edms-design.css"><!-- ★디자인 개편 V1 · 모든 화면 (MST2-20261005-002) — 맨 끝에서 덮음 -->
 </head>
-<body>
+<body class="eh">
 <header id="edmsHeader" data-system="gate"></header>
-<main>
+<main class="eh-main">
   <div id="loading" style="text-align:center;padding:60px 0;color:#26324a">불러오는 중...</div>
   <div id="gate" style="display:none">
-    <div class="crumbs"><b>뉴월드 EDMS</b><span class="sep">›</span>대문</div>
-    <div class="gate-hero">
-      <div class="top">NEWWORLD EDMS</div>
-      <h1>뉴월드 EDMS</h1>
-      <p>이용하실 영역을 선택하세요. <b>문서관리</b>는 표준문서의 제정·개정·열람을, <b>기록관리</b>는 승인된 양식으로 남기는 기록의 등재·보관·배포를 다룹니다. 두 영역은 <b>하나의 데이터</b>를 공유하며 로그인 세션은 전환 시 유지됩니다.</p>
+    <!-- ★디자인 개편 V1 (MST2-20261004-017 · 부대표 승인 시안 EDMS_디자인시안_V1 「홈」)
+         ★숫자는 모두 지금 EDMS 가 읽는 표에서 · 각자 권한(RLS) 안에서 보이는 만큼만 셉니다.
+         ★읽기만 합니다 — 쓰기 · 결재 · 다운로드는 각 시스템 화면이 그대로 합니다. -->
+    <section class="eh-hero">
+      <div>
+        <div class="when" id="ehWhen"></div>
+        <h1 id="ehTitle">회사 표준 문서를 한곳에서</h1>
+        <p>공법 표준(CFSPS) · 품질 매뉴얼(QEMS) · 신기술(NT) · 현장 시스템(CES) 문서를 한곳에서 찾고 · 열람하고 · 결재합니다.</p>
+        <a class="eh-search" href="docs.html">🔍 문서 이름 · 번호 · 낱말로 찾기 <span style="margin-left:auto;color:#1565c0;font-weight:800">문서 찾기 →</span></a>
+      </div>
+      <div class="eh-kp">
+        <a href="establish.html"><div class="h" style="color:#ffcc80">⏸ 결재 기다림</div><div class="n" id="kApv">–</div><div class="l">내 검토 · 승인 차례</div><div class="s" id="kApvS"></div></a>
+        <a href="docs.html"><div class="h" style="color:#ffcc80">⏸ 다운로드 요청</div><div class="n" id="kDl">–</div><div class="l">원본 받기 요청</div><div class="s">승인되면 10분 뒤 링크 자동 만료</div></a>
+        <a href="docs.html"><div class="h" style="color:#90caf9">▶ 이번 달 제정 · 개정</div><div class="n" id="kMon">–</div><div class="l" id="kMonL"></div><div class="s" id="kMonS"></div></a>
+        <a href="docs.html"><div class="h" style="color:#a5d6a7">✔ 발행</div><div class="n" id="kPub">–</div><div class="l">지금 쓰는 판</div><div class="s" id="kPubS"></div></a>
+      </div>
+    </section>
+
+    <div class="eh-ser" id="ehSer"></div>
+
+    <div class="eh-grid">
+      <section class="eh-card"><h2>시리즈별 문서</h2><div class="hint">지금 쓰는 판 · 내가 볼 수 있는 범위</div><div class="eh-pie" id="ehPie1"></div></section>
+      <section class="eh-card"><h2>달마다 제정 · 개정</h2><div class="hint"><span style="color:#2e7d32">■</span> 제정 · <span style="color:#1565c0">■</span> 개정 · 최근 6달</div><div id="ehBar"></div></section>
+      <section class="eh-card"><h2>등급별 열람 범위</h2><div class="hint">P1 공개 ~ P4 대표이사 · 품질팀장</div><div class="eh-pie" id="ehPie2"></div></section>
     </div>
-    <div class="gate-tiles" id="tiles"></div>
-    <div class="gate-info" id="info"></div>
+
+    <section class="eh-card" style="margin-top:20px">
+      <h2>최근 바뀐 문서 <a href="docs.html" style="margin-left:auto;font-size:15px;color:#1565c0;text-decoration:none">모두 보기 →</a></h2>
+      <div class="hint">위가 최근 · 누르면 문서 한 장</div>
+      <div id="ehRecent"></div>
+    </section>
+
+    <section class="eh-card" style="margin-top:20px">
+      <h2>영역 들어가기</h2><div class="hint">문서관리 · 기록관리 · 프로젝트관리 — 로그인은 그대로 이어집니다</div>
+      <div class="gate-tiles eh-areas" id="tiles" style="margin-top:0"></div>
+      <div class="gate-info" id="info"></div>
+    </section>
+    <div id="ehErr"></div>
   </div>
 </main>
-<footer style="text-align:center;padding:18px;font-size:11px;color:#aaa">뉴월드 EDMS · 문서관리 · 기록관리 · 접속 주소(루트)는 이 대문으로 연결됩니다.</footer>
+<footer style="text-align:center;padding:18px;font-size:13px;color:#8a96a8">뉴월드 EDMS · CFSPS · QEMS · NT · CES · 접속 주소(루트)는 이 홈으로 연결됩니다.</footer>
 
 <script src="assets/vendor/supabase.js"></script>
 <script src="edms-config.js"></script>
 <script src="common.js"></script>
+<script src="edms-graph.js"></script>
 <script>
-  // 대문 2단 개편(지시 20260802_05) — 3타일 평면 → 2카드(문서관리·기록관리) → 서브 대문
-  //   권한 분기는 대문에서 제거하고 docs-gate.html 로 이동한다(지시 §4).
-  EDMS.ready.then(function (ctx) {
+  // 대문 2단 개편(지시 20260802_05) — 영역 타일(문서관리 · 기록관리 · 프로젝트관리)은 그대로 둡니다.
+  // ★디자인 개편 V1(MST2-20261004-017) — 그 위에 시안 「홈」을 얹습니다. 읽기만 합니다.
+  EDMS.ready.then(async function (ctx) {
     if (!ctx) return;  // 미로그인 → common.js가 login.html로 이동
     document.getElementById('loading').style.display = 'none';
     document.getElementById('gate').style.display = '';
-    var ico = EDMS.ico;
+    var ico = EDMS.ico, esc = EDMSG.esc, $ = function (id) { return document.getElementById(id); };
+    var errs = [];
 
     function area(cls, icon, name, file, desc) {
       return '<a class="gate-tile ' + cls + '" href="' + file + '"><span class="t-ico">' + ico(icon) + '</span>'
         + '<div class="t-title">' + name + '</div><div class="t-desc">' + desc + '</div>'
         + '<div class="t-go">' + ico('arrowR') + ' 들어가기</div></a>';
     }
-
-    document.getElementById('tiles').innerHTML =
+    $('tiles').innerHTML =
       area('docs', 'doc', '문서관리', 'docs-gate.html',
            '표준문서의 제정·개정·열람·배포 — <b>문서관리시스템</b>과 <b>문서 제·개정 시스템</b>')
       + area('recs', 'archive', '기록관리', 'records-gate.html',
            '승인된 양식으로 남기는 기록 — <b>기록관리시스템</b>과 <b>기록작성시스템</b>')
       + area('prj', 'stamp', '프로젝트관리', 'pm-entry.html',
            'CES 개발·EDMS 구축처럼 만드는 일을 착수부터 종료까지 게이트로 관리합니다.');
-
-    document.getElementById('info').innerHTML =
+    $('info').innerHTML =
       '<div class="gate-card docs"><div class="label">문서관리 · 접속</div><div class="value">전원</div></div>'
       + '<div class="gate-card recs"><div class="label">기록관리 · 접속</div><div class="value">전원</div></div>';
+
+    var now = new Date(), ym = now.toISOString().slice(0, 7), myId = ctx.session.user.id;
+    $('ehWhen').textContent = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }) + ' · ' + (ctx.myName || '') + ' 님';
+
+    /* 시리즈 넷 — 시안 색 · DB 의 series 값을 넷으로 묶음
+       CFSPS = CFSPS · NT = NT-SPEC · CES = CES · DS · DS-PLAN(문서번호 CFSP-DS-… = CES 개발 문서) · QEMS = 그 밖(C · E · G · Q · R · S · W-…) */
+    var SER = [['CFSPS', '공법 표준 · 시방서', '#1565c0'], ['QEMS', '품질 · 환경 매뉴얼 · 지침 · 양식', '#00897b'], ['NT', '신기술 문서', '#6a1b9a'], ['CES', '현장 시스템 · 개발 문서', '#ef6c00']];
+    function grp(s) { s = s || ''; if (s === 'CFSPS') return 'CFSPS'; if (/^NT/.test(s)) return 'NT'; if (s === 'CES' || /^DS/.test(s)) return 'CES'; return 'QEMS'; }
+    function col(g) { for (var i = 0; i < SER.length; i++) if (SER[i][0] === g) return SER[i][2]; return '#5d6b80'; }
+
+    /* ── 읽기 — 서로 기다리지 않게 한꺼번에 ── */
+    var since = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().slice(0, 10);
+    var q = await Promise.all([
+      edmsClient.from('edms_documents').select('id, doc_number, title, series, security_level, status, current_version, registered_at, updated_at').neq('status', '폐기').limit(3000),
+      edmsClient.from('edms_revisions').select('document_id, revision_date').gte('revision_date', since).limit(5000),
+      edmsClient.from('edms_approvals').select('id, status, reviewer_id, approver_id, archived_at').in('status', ['검토중', '승인대기']).is('archived_at', null).limit(500),
+      (edmsClient.schema ? edmsClient.schema('staging') : edmsClient).from('edms_records').select('id, status, reviewer_id, approver_id').in('status', ['검토중', '승인대기']).limit(500),
+      edmsClient.from('edms_download_requests').select('id', { count: 'exact', head: true }).eq('status', '요청')
+    ]);
+    ['문서', '개정 이력', '문서 결재', '기록 결재', '다운로드 요청'].forEach(function (n, i) { if (q[i].error) errs.push(n + ' — ' + q[i].error.message); });
+    var docs = q[0].data || [], revs = q[1].data || [];
+
+    /* 결재 기다림 — 문서(제·개정) + 기록, 내 차례만 (관리자는 문서 결재 전부 — establish.html 과 같은 규칙) */
+    var dA = (q[2].data || []).filter(function (a) { return (a.status === '검토중' && (a.reviewer_id === myId || ctx.isAdmin)) || (a.status === '승인대기' && (a.approver_id === myId || ctx.isAdmin)); }).length;
+    var rA = (q[3].data || []).filter(function (a) { return (a.status === '검토중' && a.reviewer_id === myId) || (a.status === '승인대기' && a.approver_id === myId); }).length;
+    $('kApv').textContent = dA + rA; $('kApvS').textContent = '문서 ' + dA + ' · 기록 ' + rA;
+    $('kDl').textContent = q[4].error ? '–' : (q[4].count || 0);
+
+    var pub = docs.filter(function (d) { return d.status === '등록완료'; });
+    var other = docs.length - pub.length;
+    $('kPub').textContent = pub.length; $('kPubS').textContent = '작성 · 검토 중 ' + other;
+
+    /* 이번 달 — 제정 = 이달 등재 · 개정 = 이달 개정 이력에서 제정분을 뺀 수 */
+    var monEnact = docs.filter(function (d) { return (d.registered_at || '').slice(0, 7) === ym; }).length;
+    var monRev = revs.filter(function (r) { return (r.revision_date || '').slice(0, 7) === ym; }).length;
+    var monAmend = Math.max(0, monRev - monEnact);
+    $('kMon').textContent = monEnact + monAmend; $('kMonL').textContent = '제정 ' + monEnact + ' · 개정 ' + monAmend;
+    var byId = {}; docs.forEach(function (d) { byId[d.id] = d; });
+    var monSer = {}; revs.forEach(function (r) { if ((r.revision_date || '').slice(0, 7) !== ym) return; var d = byId[r.document_id]; if (d) { var g = grp(d.series); monSer[g] = (monSer[g] || 0) + 1; } });
+    $('kMonS').textContent = Object.keys(monSer).map(function (g) { return g + ' ' + monSer[g]; }).join(' · ') || '이달 바뀐 문서 없음';
+
+    $('ehTitle').innerHTML = '회사 표준 문서 <span class="a">' + pub.length + '종</span>,<br>오늘 손볼 결재 <span class="b">' + (dA + rA) + '건</span>';
+
+    /* 시리즈 카드 넷 */
+    var cnt = { CFSPS: 0, QEMS: 0, NT: 0, CES: 0 };
+    pub.forEach(function (d) { cnt[grp(d.series)]++; });
+    $('ehSer').innerHTML = SER.map(function (s) {
+      return '<a href="docs.html" style="background:linear-gradient(135deg,' + s[2] + ',' + s[2] + 'cc)"><div class="l">' + s[0] + '</div><div class="n">' + cnt[s[0]] + '</div><div class="s">' + esc(s[1]) + '</div></a>';
+    }).join('');
+
+    /* 도넛 둘 */
+    $('ehPie1').innerHTML = EDMSG.donut(SER.map(function (s) { return { c: s[2], v: cnt[s[0]] }; }), 170, pub.length, '문서')
+      + '<div class="eh-leg">' + SER.map(function (s) { return '<div><i style="background:' + s[2] + '"></i>' + s[0] + ' <b>' + cnt[s[0]] + '</b></div>'; }).join('') + '</div>';
+    var LV = [['P1', '#2e7d32'], ['P2', '#1565c0'], ['P3', '#e65100'], ['P4', '#c62828']], lv = [0, 0, 0, 0];
+    pub.forEach(function (d) { var k = (+d.security_level || 0) - 1; if (k >= 0 && k < 4) lv[k]++; });
+    $('ehPie2').innerHTML = EDMSG.donut(LV.map(function (x, i) { return { c: x[1], v: lv[i] }; }), 170, pub.length, '4등급')
+      + '<div class="eh-leg">' + LV.map(function (x, i) { return '<div><i style="background:' + x[1] + '"></i>' + x[0] + ' <b>' + lv[i] + '</b></div>'; }).join('') + '</div>';
+
+    /* 쌓은 막대 — 최근 6달 */
+    var months = [], data = [];
+    for (var i = 5; i >= 0; i--) { var m = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push(m.toISOString().slice(0, 7)); }
+    months.forEach(function (mm) {
+      var e = docs.filter(function (d) { return (d.registered_at || '').slice(0, 7) === mm; }).length;
+      var r = revs.filter(function (x) { return (x.revision_date || '').slice(0, 7) === mm; }).length;
+      data.push([e, Math.max(0, r - e)]);
+    });
+    $('ehBar').innerHTML = EDMSG.stack(data, months.map(function (mm) { return (+mm.slice(5)) + '월'; }), 480, 210);
+
+    /* 최근 바뀐 문서 5 — 누르면 docs.html?doc=<id> 로 문서 한 장 */
+    var recent = pub.slice().sort(function (a, b) { return String(b.updated_at || b.registered_at || '').localeCompare(String(a.updated_at || a.registered_at || '')); }).slice(0, 5);
+    $('ehRecent').innerHTML = recent.length ? recent.map(function (d) {
+      var g = grp(d.series), day = String(d.updated_at || d.registered_at || '').slice(5, 10).replace('-', '/');
+      return '<a class="eh-doc" href="docs.html?doc=' + encodeURIComponent(d.id) + '"><div class="ic" style="background:' + col(g) + '">' + g + '</div>'
+        + '<div><div class="nm">' + esc(d.title || '') + '</div><div class="cd">' + esc(d.doc_number) + '</div></div>'
+        + '<div style="font-weight:800">' + esc(d.current_version || '') + '</div>'
+        + '<div><span class="eh-pill ok">✔ 발행</span></div>'
+        + '<div style="color:#5d6b80;font-size:15px">P' + esc(d.security_level) + ' · ' + esc(day) + '</div></a>';
+    }).join('') : '<div class="hint">볼 수 있는 문서가 없습니다.</div>';
+
+    if (errs.length) $('ehErr').innerHTML = '<div class="eh-err"><b>일부 숫자를 읽지 못했습니다</b> — 그 칸은 「–」로 둡니다.<br>' + errs.map(esc).join('<br>') + '</div>';
   });
 </script>
+<script src="edms-design.js"></script><!-- ★디자인 개편 V1 · 모든 화면 보정 (MST2-20261005-002) -->
 </body>
 </html>

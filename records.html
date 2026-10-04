@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>기록관리 시스템 — 뉴월드 EDMS</title>
 <link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="edms-design.css"><!-- ★디자인 개편 V1 · 모든 화면 (MST2-20261005-002) — 맨 끝에서 덮음 -->
 </head>
 <body>
 <header id="edmsHeader" data-system="records"></header>
@@ -1243,5 +1244,6 @@ EDMS.ready.then(async function (ctx) {
   setInterval(function () { if (document.visibilityState === "visible" && typeof window.__recRefresh === "function") window.__recRefresh(); }, 15000);
 });
 </script>
+<script src="edms-design.js"></script><!-- ★디자인 개편 V1 · 모든 화면 보정 (MST2-20261005-002) -->
 </body>
 </html>
