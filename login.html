@@ -33,6 +33,12 @@
   }
   button:hover { background:#16294a; }
   button:disabled { background:#9aa7bd; cursor:wait; }
+  /* 비밀번호 재설정 글자 단추(MST2-20261021-510) — 위 button 꼴을 덮음 */
+  .link-btn { display:block; width:auto; margin:12px auto 0; padding:8px 10px; background:none; color:#1F3864;
+    font-size:15px; font-weight:normal; text-decoration:underline; }
+  .link-btn:hover { background:none; color:#16294a; }
+  .link-btn:disabled { background:none; color:#9aa7bd; }
+  .msg.ok { color:#2e7d32; }
   .msg { margin-top:14px; font-size:13px; text-align:center; min-height:18px; }
   .msg.error { color:#c0392b; }
   .foot { margin-top:24px; text-align:center; font-size:12px; color:#aaa; }
@@ -54,9 +60,10 @@
       <label for="password">비밀번호</label>
       <input type="password" id="password" autocomplete="current-password" required placeholder="비밀번호">
       <button type="submit" id="btn">로그인</button>
+      <button type="button" id="resetBtn" class="link-btn">비밀번호 재설정</button>
       <div class="msg" id="msg"></div>
     </form>
-    <div class="foot">© 주식회사 뉴월드 · 계정 문의는 관리자에게</div>
+    <div class="foot">© 주식회사 뉴월드 · 비밀번호를 잊으셨으면 비밀번호 재설정을 누르십시오</div>
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -82,6 +89,32 @@
       btn.disabled = false;
     } else {
       location.replace('index.html');
+    }
+  });
+
+  // 비밀번호 재설정(MST2-20261021-510) — 인증 서비스가 이메일로 링크를 보냄 · 링크는 새 비밀번호 정하기 화면으로 돌아옴
+  // ★돌아올 주소(reset-password.html)는 인증 설정의 돌아올 주소 허용 목록에 있어야 함
+  document.getElementById('resetBtn').addEventListener('click', async () => {
+    const rb = document.getElementById('resetBtn');
+    const msg = document.getElementById('msg');
+    const email = document.getElementById('email').value.trim();
+    if (!email) {
+      msg.textContent = '⚠ 이메일 칸에 이메일을 넣고 비밀번호 재설정을 누르십시오.';
+      msg.className = 'msg error';
+      document.getElementById('email').focus();
+      return;
+    }
+    rb.disabled = true; msg.textContent = '보내는 중...'; msg.className = 'msg';
+    const { error } = await edmsClient.auth.resetPasswordForEmail(email, {
+      redirectTo: new URL('reset-password.html', location.href).href,
+    });
+    rb.disabled = false;
+    if (error) {
+      msg.textContent = '⚠ 메일을 보내지 못했습니다. 잠시 뒤 다시 누르십시오.';
+      msg.className = 'msg error';
+    } else {
+      msg.textContent = '✔ 재설정 메일을 보냈습니다(등록된 이메일일 때만 갑니다). 메일의 링크를 누르면 새 비밀번호를 정하는 화면이 열립니다.';
+      msg.className = 'msg ok';
     }
   });
 </script>
