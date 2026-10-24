@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뉴월드 EDMS — 로그인</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Malgun Gothic','Segoe UI',sans-serif; }
+  body {
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#1F3864 0%,#2d4f8a 100%); padding:16px;
+  }
+  .card {
+    background:#fff; border-radius:14px; padding:40px 32px; width:100%; max-width:400px;
+    box-shadow:0 12px 40px rgba(0,0,0,.25);
+  }
+  .logo { text-align:center; margin-bottom:28px; }
+  .logo .badge {
+    display:inline-block; background:#1F3864; color:#fff; font-size:13px;
+    padding:4px 12px; border-radius:20px; letter-spacing:2px; margin-bottom:10px;
+  }
+  .logo h1 { font-size:22px; color:#1F3864; }
+  .logo p { font-size:13px; color:#888; margin-top:6px; }
+  label { display:block; font-size:13px; color:#444; margin:14px 0 6px; font-weight:bold; }
+  input {
+    width:100%; padding:12px 14px; border:1.5px solid #d5dbe7; border-radius:8px;
+    font-size:15px; outline:none;
+  }
+  input:focus { border-color:#1F3864; }
+  button {
+    width:100%; margin-top:22px; padding:13px; background:#1F3864; color:#fff;
+    border:none; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer;
+  }
+  button:hover { background:#16294a; }
+  button:disabled { background:#9aa7bd; cursor:wait; }
+  /* 비밀번호 재설정 글자 단추(MST2-20261021-510) — 위 button 꼴을 덮음 */
+  .link-btn { display:block; width:auto; margin:12px auto 0; padding:8px 10px; background:none; color:#1F3864;
+    font-size:15px; font-weight:normal; text-decoration:underline; }
+  .link-btn:hover { background:none; color:#16294a; }
+  .link-btn:disabled { background:none; color:#9aa7bd; }
+  .msg.ok { color:#2e7d32; }
+  /* 비밀번호 보기 눈 단추(MST2-20261023-518) — 누르는 동안만 보임 · 위 button 꼴을 덮음 · 엣지 자체 눈은 숨겨 겹치지 않게 */
+  .pw-wrap { position:relative; }
+  .pw-wrap input { padding-right:52px; }
+  input::-ms-reveal, input::-ms-clear { display:none; }
+  .pw-eye { position:absolute; top:0; right:0; width:48px; height:100%; margin:0; padding:0; background:none; color:#5a6b88;
+    border-radius:0 8px 8px 0; display:flex; align-items:center; justify-content:center;
+    touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  .pw-eye:hover { background:none; color:#1F3864; }
+  .pw-eye[aria-pressed="true"] { color:#1F3864; }
+  .pw-eye:focus-visible { outline:2px solid #1F3864; outline-offset:-2px; }
+  .pw-eye svg { width:22px; height:22px; pointer-events:none; }
+  .msg { margin-top:14px; font-size:13px; text-align:center; min-height:18px; }
+  .msg.error { color:#c0392b; }
+  .foot { margin-top:24px; text-align:center; font-size:12px; color:#aaa; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <span class="badge">NEW WORLD</span>
+      <h1>뉴월드 EDMS</h1>
+      <p>표준문서 관리시스템</p>
+      <!-- E-1 안내 1줄 (지시 20260818_03 §E-1) — 저장된 계정으로 들어간다는 사실을 알립니다.
+           ★입력칸과 그 속성은 무접촉입니다(판정 20260817_09 §1). -->
+      <p style="font-size:12px;color:#8894a8;margin-top:4px">이 브라우저에 저장된 계정으로 들어갑니다.</p>
+    </div>
+    <form id="loginForm">
+      <label for="email">이메일</label>
+      <input type="email" id="email" autocomplete="username" required placeholder="이메일 주소">
+      <label for="password">비밀번호</label>
+      <div class="pw-wrap">
+      <input type="password" id="password" autocomplete="current-password" required placeholder="비밀번호">
+      <button type="button" id="pwEye" class="pw-eye" aria-label="비밀번호 보기" aria-pressed="false" title="누르는 동안 비밀번호가 보입니다"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <button type="submit" id="btn">로그인</button>
+      <button type="button" id="resetBtn" class="link-btn">비밀번호 재설정</button>
+      <div class="msg" id="msg"></div>
+    </form>
+    <div class="foot">© 주식회사 뉴월드 · 비밀번호를 잊으셨으면 비밀번호 재설정을 누르십시오</div>
+  </div>
+
+<script>
+  // 비밀번호 보기 눈 단추(MST2-20261023-518) — 누르는 동안만 보임 · 손 떼면 가림 · 30초 뒤 저절로 가림
+  // · 칸의 type 만 바꿈 — 비밀번호 값은 읽지도 남기지도 않음 · 인증 라이브러리보다 앞이라 그쪽이 못 떠도 돎
+  (() => {
+    const pw = document.getElementById('password');
+    const eye = document.getElementById('pwEye');
+    let timer = null;
+    const hide = () => { pw.type = 'password'; eye.setAttribute('aria-pressed', 'false'); clearTimeout(timer); timer = null; };
+    const show = () => { pw.type = 'text'; eye.setAttribute('aria-pressed', 'true'); clearTimeout(timer); timer = setTimeout(hide, 30000); };
+    eye.addEventListener('pointerdown', e => { e.preventDefault(); show(); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(k => eye.addEventListener(k, hide));
+    eye.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); show(); } });
+    eye.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') hide(); });
+    eye.addEventListener('blur', hide);
+    eye.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) hide(); });
+    document.getElementById('loginForm').addEventListener('submit', hide, true);
+  })();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="edms-config.js"></script>
+<script>
+  // 이미 로그인되어 있으면 대시보드로
+  edmsClient.auth.getSession().then(({ data }) => {
+    if (data.session) location.replace('index.html');
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn');
+    const msg = document.getElementById('msg');
+    btn.disabled = true; msg.textContent = '확인 중...'; msg.className = 'msg';
+    const { error } = await edmsClient.auth.signInWithPassword({
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+    });
+    if (error) {
+      msg.textContent = '로그인 실패: 이메일 또는 비밀번호를 확인하세요.';
+      msg.className = 'msg error';
+      btn.disabled = false;
+    } else {
+      location.replace('index.html');
+    }
+  });
+
+  // 비밀번호 재설정(MST2-20261021-510) — 인증 서비스가 이메일로 링크를 보냄 · 링크는 새 비밀번호 정하기 화면으로 돌아옴
+  // ★돌아올 주소(reset-password.html)는 인증 설정의 돌아올 주소 허용 목록에 있어야 함
+  document.getElementById('resetBtn').addEventListener('click', async () => {
+    const rb = document.getElementById('resetBtn');
+    const msg = document.getElementById('msg');
+    const email = document.getElementById('email').value.trim();
+    if (!email) {
+      msg.textContent = '⚠ 이메일 칸에 이메일을 넣고 비밀번호 재설정을 누르십시오.';
+      msg.className = 'msg error';
+      document.getElementById('email').focus();
+      return;
+    }
+    rb.disabled = true; msg.textContent = '보내는 중...'; msg.className = 'msg';
+    const { error } = await edmsClient.auth.resetPasswordForEmail(email, {
+      redirectTo: new URL('reset-password.html', location.href).href,
+    });
+    rb.disabled = false;
+    if (error) {
+      msg.textContent = '⚠ 메일을 보내지 못했습니다. 잠시 뒤 다시 누르십시오.';
+      msg.className = 'msg error';
+    } else {
+      msg.textContent = '✔ 재설정 메일을 보냈습니다(등록된 이메일일 때만 갑니다). 메일의 링크를 누르면 새 비밀번호를 정하는 화면이 열립니다.';
+      msg.className = 'msg ok';
+    }
+  });
+</script>
+</body>
+</html>
