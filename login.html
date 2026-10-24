@@ -39,6 +39,17 @@
   .link-btn:hover { background:none; color:#16294a; }
   .link-btn:disabled { background:none; color:#9aa7bd; }
   .msg.ok { color:#2e7d32; }
+  /* 비밀번호 보기 눈 단추(MST2-20261023-518) — 누르는 동안만 보임 · 위 button 꼴을 덮음 · 엣지 자체 눈은 숨겨 겹치지 않게 */
+  .pw-wrap { position:relative; }
+  .pw-wrap input { padding-right:52px; }
+  input::-ms-reveal, input::-ms-clear { display:none; }
+  .pw-eye { position:absolute; top:0; right:0; width:48px; height:100%; margin:0; padding:0; background:none; color:#5a6b88;
+    border-radius:0 8px 8px 0; display:flex; align-items:center; justify-content:center;
+    touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  .pw-eye:hover { background:none; color:#1F3864; }
+  .pw-eye[aria-pressed="true"] { color:#1F3864; }
+  .pw-eye:focus-visible { outline:2px solid #1F3864; outline-offset:-2px; }
+  .pw-eye svg { width:22px; height:22px; pointer-events:none; }
   .msg { margin-top:14px; font-size:13px; text-align:center; min-height:18px; }
   .msg.error { color:#c0392b; }
   .foot { margin-top:24px; text-align:center; font-size:12px; color:#aaa; }
@@ -58,7 +69,10 @@
       <label for="email">이메일</label>
       <input type="email" id="email" autocomplete="username" required placeholder="이메일 주소">
       <label for="password">비밀번호</label>
+      <div class="pw-wrap">
       <input type="password" id="password" autocomplete="current-password" required placeholder="비밀번호">
+      <button type="button" id="pwEye" class="pw-eye" aria-label="비밀번호 보기" aria-pressed="false" title="누르는 동안 비밀번호가 보입니다"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
       <button type="submit" id="btn">로그인</button>
       <button type="button" id="resetBtn" class="link-btn">비밀번호 재설정</button>
       <div class="msg" id="msg"></div>
@@ -66,6 +80,25 @@
     <div class="foot">© 주식회사 뉴월드 · 비밀번호를 잊으셨으면 비밀번호 재설정을 누르십시오</div>
   </div>
 
+<script>
+  // 비밀번호 보기 눈 단추(MST2-20261023-518) — 누르는 동안만 보임 · 손 떼면 가림 · 30초 뒤 저절로 가림
+  // · 칸의 type 만 바꿈 — 비밀번호 값은 읽지도 남기지도 않음 · 인증 라이브러리보다 앞이라 그쪽이 못 떠도 돎
+  (() => {
+    const pw = document.getElementById('password');
+    const eye = document.getElementById('pwEye');
+    let timer = null;
+    const hide = () => { pw.type = 'password'; eye.setAttribute('aria-pressed', 'false'); clearTimeout(timer); timer = null; };
+    const show = () => { pw.type = 'text'; eye.setAttribute('aria-pressed', 'true'); clearTimeout(timer); timer = setTimeout(hide, 30000); };
+    eye.addEventListener('pointerdown', e => { e.preventDefault(); show(); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(k => eye.addEventListener(k, hide));
+    eye.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); show(); } });
+    eye.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') hide(); });
+    eye.addEventListener('blur', hide);
+    eye.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) hide(); });
+    document.getElementById('loginForm').addEventListener('submit', hide, true);
+  })();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="edms-config.js"></script>
 <script>
