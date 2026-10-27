@@ -20,6 +20,12 @@
   var MAX_BYTES = 52428800;               /* 50MB — DB 가드와 같은 값 */
   var LEVELS = [1, 2, 3];                 /* 4(P4)는 없음 */
   var DEFAULT_LEVEL = 2;
+  /* ★edms-config.js 의 const edmsClient 는 window 속성이 아님 — 맨 이름으로 찾는다 (10/27 운영 오류 「reading 'from'」 고침) */
+  function cli() {
+    if (typeof edmsClient !== 'undefined' && edmsClient) return edmsClient;
+    if (root.edmsClient) return root.edmsClient;
+    throw new Error('[붙임] EDMS 연결(edmsClient)을 찾지 못했습니다 — edms-config.js 를 먼저 불러야 합니다.');
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -41,7 +47,7 @@
     return Array.prototype.map.call(new Uint8Array(d), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
   }
   async function userId() {
-    var s = await root.edmsClient.auth.getSession();
+    var s = await cli().auth.getSession();
     var u = s && s.data && s.data.session && s.data.session.user;
     if (!u || !u.id) throw new Error('[붙임] 로그인 세션이 없습니다 — 파일을 붙일 수 없습니다.');
     return u.id;
@@ -51,7 +57,7 @@
   /* ── 자료 길 (화면 없이도 부를 수 있게 따로 둠 — 시험이 이 함수들을 직접 부른다) ── */
   async function list(o) {
     if (!o.ownerRef) return [];
-    var q = root.edmsClient.from('pm_attachments')
+    var q = cli().from('pm_attachments')
       .select('attachment_id,project_code,initiative_code,owner_kind,owner_ref,seq,file_name,storage_path,'
             + 'file_hash,file_size,file_ext,security_level,source,status,withdraw_reason,created_at')
       .eq('owner_kind', o.kind).eq('owner_ref', String(o.ownerRef));
@@ -71,7 +77,7 @@
     var lv = Number(level || DEFAULT_LEVEL);
     if (LEVELS.indexOf(lv) < 0) throw new Error('[붙임] 보안 등급은 1 · 2 · 3 가운데 하나입니다 — 4등급(내부 단가 · 원가)은 붙이지 않습니다.');
     var hash = await sha256(file), ext = extOf(file.name), path = pathOf(o, hash, ext);
-    var up = await root.edmsClient.storage.from(BUCKET).upload(path, file,
+    var up = await cli().storage.from(BUCKET).upload(path, file,
       { upsert: false, contentType: file.type || 'application/octet-stream' });
     if (up.error && !/exists|duplicate/i.test(String(up.error.message || ''))) throw await err('storage.documents(올리기)', up.error);
     var row = {
@@ -81,19 +87,19 @@
     };
     if (o.kind === 'ini_doc') { row.initiative_code = o.initiative_code; row.project_code = null; }
     else row.project_code = o.project_code;
-    var r = await root.edmsClient.from('pm_attachments').insert(row).select().single();
+    var r = await cli().from('pm_attachments').insert(row).select().single();
     if (r.error) throw await err('pm_attachments(넣기)', r.error);
     return r.data;
   }
   async function withdraw(id, reason) {
-    var r = await root.edmsClient.from('pm_attachments')
+    var r = await cli().from('pm_attachments')
       .update({ status: '철회', withdraw_reason: reason || '작성 중 지움' })
       .eq('attachment_id', id).select().single();
     if (r.error) throw await err('pm_attachments(지움)', r.error);
     return r.data;
   }
   async function openUrl(path) {
-    var r = await root.edmsClient.storage.from(BUCKET).createSignedUrl(path, 60);
+    var r = await cli().storage.from(BUCKET).createSignedUrl(path, 60);
     if (r.error) throw await err('storage.documents(열기)', r.error);
     return r.data && r.data.signedUrl;
   }
