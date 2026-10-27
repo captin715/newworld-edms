@@ -15,7 +15,7 @@
 <!-- ★header class="mk pm" — 프로젝트관리 화면 = 노랑 띠 + 먹색 글자(㉯ 확정 2026-08-11) -->
 <header class="mk pm">
   <a class="mk-home" href="index.html" title="대문으로 돌아갑니다"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"/></svg>대문</a>
-  <h1>프로젝트관리 시스템 <small>게이트 현황 보드 — 실앱 v1(읽기 전용)</small></h1>
+  <h1>프로젝트관리 시스템 <small>게이트 현황 보드 · 게이트 승인 올리기 — 실앱 v1</small></h1>
   <div class="userbox">
     <span id="who">세션 확인 중…</span>
     <span class="role-badge" id="roleBadge">—</span>
@@ -23,8 +23,7 @@
   </div>
 </header>
 <main>
-  <div class="mk-note approval-note keep">이 화면은 <b>보기 전용</b>입니다. 결재는 <a href="pm-approve.html">프로젝트 축 결재</a> 화면에서 올리고 처리합니다.<br>아래 표의 <b>검토 · 승인</b> 두 칸은 서로 다른 사람이어야 합니다 — 한 사람이 두 자리를 맡지 않습니다.</div>
-  <div class="mk-note dev-detail">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). ★<b>직무분리 셋</b>(값 V4.2 · 판정 MST2-20260901-013 §1 · <b>게이트 축에도 그대로</b>) — <b>작성자 ≠ 승인자</b> ★금지 · <b>검토자 ≠ 승인자</b> ★금지(<b>한 사람이 두 자리를 잡지 않습니다</b>) · <b>작성자 ≠ 검토자</b> 사유를 적으면 건너뜁니다. ★<b>왜</b> — 결재는 <b>서로 다른 눈</b>이 보는 것입니다. 한 사람이 두 자리를 잡으면 자기가 본 것을 자기가 다시 보는 것이라 <b>결재가 아닙니다</b>. ★<b>아래 표의 「검토(정의)·승인(정의)」 두 줄이 그것을 보시라고 나란히 있습니다</b> — 한 줄로 줄이면 대조할 수 없습니다(M-007). ★<b>실측 2026-09-01</b> — 게이트 7개 전수 대조 <b>위반 0건</b>(PG-1·PG1~PG4 품질팀장≠부대표 · PG0·PG5 부대표≠대표이사). (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
+  <div class="mk-note approval-note">이 화면은 <b>조회</b>입니다. 결재는 <b><a href="pm-approve.html">프로젝트 축 결재</a></b>에서 진행합니다 — 문서 축·기록 축과 <b>서로를 대신하지 않습니다</b>(W-16). 게이트 승인자는 <b>게이트 정의(pm_gate_defs)</b>가 정합니다 — <b>화면에 적지 않습니다</b>(W-17 · 결재자 하드코딩 금지). ★<b>직무분리 셋</b>(값 V4.2 · 판정 MST2-20260901-013 §1 · <b>게이트 축에도 그대로</b>) — <b>작성자 ≠ 승인자</b> ★금지 · <b>검토자 ≠ 승인자</b> ★금지(<b>한 사람이 두 자리를 잡지 않습니다</b>) · <b>작성자 ≠ 검토자</b> 사유를 적으면 건너뜁니다. ★<b>왜</b> — 결재는 <b>서로 다른 눈</b>이 보는 것입니다. 한 사람이 두 자리를 잡으면 자기가 본 것을 자기가 다시 보는 것이라 <b>결재가 아닙니다</b>. ★<b>아래 표의 「검토(정의)·승인(정의)」 두 줄이 그것을 보시라고 나란히 있습니다</b> — 한 줄로 줄이면 대조할 수 없습니다(M-007). ★<b>실측 2026-09-01</b> — 게이트 7개 전수 대조 <b>위반 0건</b>(PG-1·PG1~PG4 품질팀장≠부대표 · PG0·PG5 부대표≠대표이사). (근거: 판정 MST2-20260820_24 §4·§5 ㉲)</div>
   <div class="mk-note" id="ribbon"></div>
   <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <b>게이트 현황 보드</b></div>
 
@@ -43,15 +42,35 @@
       </table>
     </div>
     <div class="legend" id="legend"></div>
-    <div class="sec-title">게이트 통과 근거 <span id="dpCnt"></span></div>
+    <div class="sec-title">개발형 판정 근거 — <code>pm_v_gate_d_pass</code> <span id="dpCnt"></span></div>
     <div id="dpass"></div>
   </div>
+  <div class="panel" id="gsub" style="display:none">
+    <style>
+      .gs-form { display:grid; grid-template-columns:1fr; gap:6px; max-width:560px; margin:10px 0; }
+      .gs-form label { font-weight:700; }
+      .gs-form .inp { width:100%; box-sizing:border-box; }
+    </style>
+    <h2 id="gsub-h">게이트 승인 올리기</h2>
+    <div class="count-info">담당자가 근거 문서를 붙여 올립니다. 검토 · 승인하실 분은 게이트 정의가 정하고, 승인은 결재함에서 그분이 합니다. 앞 게이트가 통과되어야 다음 게이트를 올립니다.</div>
+    <div class="gs-form">
+      <label for="gs-prj">프로젝트</label><select class="inp" id="gs-prj"></select>
+      <label for="gs-gate">게이트</label><select class="inp" id="gs-gate"></select>
+      <label for="gs-file">붙일 문서 (예 : 과제 기획서)</label><input class="inp" type="file" id="gs-file" multiple>
+    </div>
+    <div class="lane-btns"><button class="btn primary big" id="gs-draft">① 초안 저장 · 문서 붙이기</button>
+      <button class="btn primary big" id="gs-send" disabled>② 상신 — 결재함으로</button></div>
+    <div id="gs-msg"></div>
+    <div id="gs-list"></div>
+  </div>
 </main>
-<footer class="mk">프로젝트관리 실앱 v1 · 셀 = 해당 (프로젝트, 게이트)의 최신 판정 · 조회 전용</footer>
+<footer class="mk">프로젝트관리 실앱 v1 · 셀 = 해당 (프로젝트, 게이트)의 최신 판정 · 보드는 조회 · 승인 올리기는 위 칸</footer>
 
 <script src="assets/vendor/supabase.js"></script>
 <script src="edms-config.js"></script>
 <script src="pm-data.js"></script>
+<script src="pm-write.js"></script>
+<script src="pm-attach.js"></script>
 <script>
 /* pm_project_gates.status 7값 → 목업 .gc-* 클래스 승계 */
 var GC = { '통과':'gc-pass', '조건부':'gc-cond', '부결':'gc-reject', '미도달':'gc-none',
@@ -86,12 +105,12 @@ function render(defs, projects, inst, dpass) {
   /* ★M-007 결재선 3단계 — 검토·승인을 2줄로 함께 보인다(판정 20260816_02 §6 ㉠).
      「검토자 숨기면 SoD 확인 불가」. 값은 pm_gate_defs 에서 읽는다 — 화면에 박지 않는다.
      ★「대표이사 전권」 배지는 is_ceo_authority 로만 그린다(approver 문자열로 판단하지 않는다). */
-  var th = '<th class="pj">프로젝트<br><span style="font-weight:normal;font-size:10px">작성 = 담당자</span></th>';
+  var th = '<th class="pj">프로젝트<br><span style="font-weight:normal;font-size:10px">작성 = 담당자(owner)</span></th>';
   defs.forEach(function (d) {
     th += '<th>' + pmEsc(d.gate_code) + '<br><span style="font-weight:normal;font-size:10px">'
         + pmEsc(d.gate_name) + '</span>'
-        + '<br><span style="font-weight:normal;font-size:10px">검토 ' + pmVal(d.reviewer) + '</span>'
-        + '<br><span style="font-weight:normal;font-size:10px">승인 ' + pmVal(d.approver) + '</span>'
+        + '<br><span style="font-weight:normal;font-size:10px">검토(정의) ' + pmVal(d.reviewer) + '</span>'
+        + '<br><span style="font-weight:normal;font-size:10px">승인(정의) ' + pmVal(d.approver) + '</span>'
         + (d.ceo_only ? '<br><span class="ceo-mark">대표이사 전권</span>' : '')
         + '</th>';
   });
@@ -135,16 +154,17 @@ function render(defs, projects, inst, dpass) {
     document.getElementById('dpass').innerHTML = pmStateBox('B', null, '개발형 게이트 판정 행');
   } else {
     var nT = dpass.filter(function (r) { return r.passed === true; }).length;
-    var h = '<div class="banner warn">모두 <b>' + dpass.length + '건</b> 가운데 <b>' + nT + '건</b>이 통과했습니다. '
-          + '「아직」은 <b>부결이 아니라</b> 조건이 아직 덜 채워졌다는 뜻입니다. 사유는 기록된 그대로 보입니다.</div>'
+    var h = '<div class="banner warn">판정 <b>' + dpass.length + '행</b> 중 <code>passed = true</code> <b>' + nT + '행</b>. '
+          + '★<code>passed = false</code> 는 <b>「부결」이 아닙니다</b> — 아직 충족되지 않았다는 뜻이며 '
+          + '사유는 아래 <code>reason</code> 문자열 그대로입니다. 이 화면은 통과 여부를 다시 계산하지 않습니다.</div>'
           + '<div class="table-wrap"><table class="std" style="min-width:760px"><thead><tr>'
-          + '<th class="sticky-col c1">프로젝트</th><th>게이트</th><th>순서</th><th>통과</th><th>사유</th>'
+          + '<th class="sticky-col c1">프로젝트</th><th>게이트</th><th>seq</th><th>passed</th><th>reason(원문)</th>'
           + '</tr></thead><tbody>';
     dpass.forEach(function (r) {
       h += '<tr><td class="sticky-col c1">' + pmEsc(r.project_code) + '</td>'
         +  '<td>' + pmEsc(r.gate_code) + '</td><td>' + pmEsc(r.seq) + '</td>'
         +  '<td><span class="req-ic ' + (r.passed ? 'req-ok' : 'req-part') + '">'
-        +  (r.passed ? '✔ 통과' : '⏸ 아직') + '</span></td>'
+        +  (r.passed ? 'true' : 'false') + '</span></td>'
         +  '<td class="title-cell" style="white-space:normal">' + pmVal(r.reason) + '</td></tr>';
     });
     document.getElementById('dpass').innerHTML = h + '</tbody></table></div>';
@@ -152,15 +172,98 @@ function render(defs, projects, inst, dpass) {
   document.getElementById('panel').style.display = '';
 }
 
+/* ══ 게이트 승인 올리기 (메모 MST2-20261016-539 · DB pm_draft_gate · pm_send_gate) ══════════
+   ★승인 단추는 여기 없다 — 승인은 결재함에서 그 차례인 사람이 한다.
+   ★결재선(검토 · 승인하실 분)은 DB 가 게이트 정의에서 읽는다 — 화면이 사람을 고르지 않는다(W-17). */
+function gqs(k) {
+  var m = new RegExp('[?&]' + k + '=([^&]*)').exec(location.search);
+  return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+}
+async function gateSubmitPanel(defs, projects, inst) {
+  var $ = function (id) { return document.getElementById(id); };
+  var CUR = null;   /* 지금 초안 결재 번호 */
+  function say(html, kind) { $('gs-msg').innerHTML = html ? '<div class="banner ' + (kind || 'info') + '">' + html + '</div>' : ''; }
+  var gname = {}; defs.forEach(function (d) { gname[d.gate_code] = d.gate_name; });
+  $('gs-prj').innerHTML = projects.map(function (p) {
+    return '<option value="' + pmEsc(p.project_code) + '">' + pmEsc(p.project_code) + ' — ' + pmEsc(p.project_name) + '</option>'; }).join('');
+  if (gqs('project')) $('gs-prj').value = gqs('project');
+  function reset() { CUR = null; $('gs-send').disabled = true; $('gs-list').innerHTML = ''; say(''); }
+  function fillGates() {
+    var pc = $('gs-prj').value;
+    var rows = inst.filter(function (g) { return g.project_code === pc && !g.is_subgate; });
+    $('gs-gate').innerHTML = rows.length ? rows.map(function (g) {
+        return '<option value="' + pmEsc(g.gate_code) + '">' + pmEsc(g.gate_code) + ' ' + pmEsc(gname[g.gate_code] || '')
+             + ' — 지금 ' + pmEsc(g.status) + '</option>'; }).join('')
+      : '<option value="">(이 프로젝트에는 게이트 줄이 없습니다)</option>';
+    var want = gqs('gate');
+    if (want && rows.some(function (g) { return g.gate_code === want; })) $('gs-gate').value = want;
+    reset();
+  }
+  /* 붙인 문서 목록 = 붙임 파일 칸 부품(pm-attach.js · MST2-20261027-509) — 이름 · 크기 · 열기 · 지움 · 더 붙이기 */
+  async function drawList() {
+    if (!CUR) { $('gs-list').innerHTML = ''; return 0; }
+    var att = PmAttach.mount($('gs-list'), {
+      kind: '결재', project_code: $('gs-prj').value, ownerRef: String(CUR), editable: true, canWrite: true,
+      onChange: function (n) { $('gs-send').disabled = n === 0; }
+    });
+    var ok = (await att.refresh()).filter(function (a) { return a.status === '유효'; });
+    $('gs-send').disabled = ok.length === 0;
+    return ok.length;
+  }
+  $('gs-prj').onchange = fillGates;
+  $('gs-gate').onchange = reset;
+  fillGates();
+  var can = null;
+  try { can = await pmCanEdit(); } catch (e) { can = null; }
+  if (can !== true) {
+    $('gs-draft').disabled = true;
+    say(can === false ? '<b>[잠김] 이 계정은 게이트 승인을 올릴 권한이 없습니다.</b> 보드는 그대로 볼 수 있습니다.'
+                      : '<b>[경고] 권한을 확인하지 못했습니다.</b> 권한이 없다는 뜻이 아니라 물어보지 못했다는 뜻입니다.', 'warn');
+  }
+  $('gs-draft').onclick = async function () {
+    var pc = $('gs-prj').value, gc = $('gs-gate').value, files = $('gs-file').files;
+    if (!pc || !gc) { say('<b>프로젝트와 게이트를 고르십시오.</b>', 'warn'); return; }
+    $('gs-draft').disabled = true; say('초안을 저장하는 중…');
+    try {
+      CUR = await pmDraftGate(pc, gc);
+      var have = await drawList(), n = 0;
+      for (var i = 0; i < files.length; i++) { n++; await pmUploadGateFile(pc, CUR, files[i], have + n); }
+      var cnt = await drawList();
+      say('<b>초안을 저장했습니다</b>' + (n ? ' — 문서 ' + n + '건을 붙였습니다' : '') + '. '
+        + (cnt ? '이제 <b>② 상신</b>을 누르면 검토하실 분 결재함으로 갑니다.'
+               : '<b>붙인 문서가 없어 아직 상신할 수 없습니다.</b> 문서를 고른 뒤 ①을 다시 누르십시오.'), cnt ? 'info' : 'warn');
+    } catch (e) {
+      say('<b>막혔습니다 — DB 가 막은 문면을 그대로 옮깁니다.</b><br>' + pmEsc(e.message), 'crit');
+      try { await drawList(); } catch (e2) { /* 표시만 */ }
+    }
+    $('gs-draft').disabled = false;
+  };
+  $('gs-send').onclick = async function () {
+    if (!CUR) return;
+    $('gs-send').disabled = true; say('상신하는 중…');
+    try {
+      await pmSendGate(CUR);
+      say('<b>상신했습니다</b> — 검토하실 분 결재함에 올라갔습니다. 승인은 결재함에서 그분이 합니다. '
+        + '<a class="btn view" id="gs-go" href="pm-approve.html?id=' + encodeURIComponent(CUR) + '">결재함에서 보기</a>', 'info');
+      CUR = null;
+    } catch (e) {
+      say('<b>상신하지 못했습니다</b><br>' + pmEsc(e.message), 'crit');
+      $('gs-send').disabled = false;
+    }
+  };
+  $('gsub').style.display = '';
+  if (gqs('project')) $('gsub').scrollIntoView({ block: 'start' });
+}
+
 (async function () {
   document.getElementById('ribbon').innerHTML =
-    '<b>실앱(조회 전용)</b> — 편집 정책 미적용. 게이트 상신은 프로젝트 관리자 권한이며 아직 열려 있지 않습니다.';
+    '<b>실앱</b> — 보드는 조회입니다. 게이트 승인은 아래 <b>「게이트 승인 올리기」</b>에서 담당자가 올리고, 승인은 <b>결재함</b>에서 승인하실 분이 합니다.';
   /* ★목업 문면 그대로 */
   document.getElementById('calcNote').innerHTML =
       '<b>이 보드는 통과 여부를 계산하지 않습니다.</b> 뷰 <b>pm_v_gate_d_pass</b> 가 반환한 값을 표시만 합니다. '
     + '계산식 정본은 <b>W-SOP-G152100 / G152200 Rev1.00 Annex E-2</b> 이며 화면·사양에 재서술하지 않습니다(SHALL NOT).';
   document.getElementById('mgmtTop').innerHTML =
-    '<span class="rec-lock">조회 전용 — 상신은 프로젝트 관리자</span>';
+    '<span class="rec-lock">보드는 조회 · 올리기는 아래</span>';
   await pmFillSession();
   try {
     var defs     = await pmFetchGateDefs();
@@ -172,6 +275,7 @@ function render(defs, projects, inst, dpass) {
       return;
     }
     render(defs, projects, inst, dpass);
+    await gateSubmitPanel(defs, projects, inst);
   } catch (e) {
     /* ★A — 권한 없음. 「데이터 없음」으로 그리지 않는다 */
     document.getElementById('state').innerHTML =

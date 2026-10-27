@@ -67,6 +67,9 @@
         <div class="err" id="e-fu">결과 처리를 「가 표준화 반영」으로 정하셨으므로 넘길 것을 적으셔야 합니다.</div>
       </div>
 
+      <!-- 붙임 파일 (MST2-20261027-509 · 부품 pm-attach.js) -->
+      <div id="att-box"></div>
+
       <div class="form-actions">
         <span class="spacer" id="foot-note"></span>
         <a class="btn ghost big" id="btn-cancel" href="#">취소</a>
@@ -83,6 +86,7 @@
 <script src="edms-config.js"></script>
 <script src="pm-data.js"></script>
 <script src="pm-write.js"></script>
+<script src="pm-attach.js"></script>
 <script>
 (function () {
   'use strict';
@@ -277,6 +281,20 @@
     $('f').addEventListener('submit', function (ev) { ev.preventDefault(); save(true); });
 
     paint();
+    /* 붙임 파일 칸 — 서류가 아직 없으면 첫 파일을 붙일 때 임시 저장부터 하고 그 서류에 붙임 */
+    PmAttach.mount($('att-box'), {
+      kind: 'ini_doc', initiative_code: CODE,
+      ownerRef: DOC ? String(DOC.doc_id) : null,
+      editable: !DOC || DOC.status === '작성중',
+      canWrite: !$('btn-draft').disabled,
+      ensureOwner: async function () {
+        DOC = await pmSaveInitiativeDoc({
+          initiative_code: CODE, doc_type: '종료보고서',
+          doc_id: DOC ? DOC.doc_id : null, status: '작성중', fields: collect()
+        });
+        return DOC.doc_id;
+      }
+    });
     $('panel').style.display = '';
   })();
 })();

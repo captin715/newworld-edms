@@ -33,6 +33,14 @@
   .wd { color:#8a8578; text-decoration:line-through; }
   .noatt { color:#B03A2E; font-weight:700; }
   .hash { font-family:Consolas,monospace; font-size:10px; color:#8a8578; }
+  .focus-card { background:#e3f2fd; border-left:6px solid #1565c0; padding:12px 14px; margin:0 0 12px; font-size:15px; line-height:1.5; }
+  .focus-card.warn { background:#fff3e0; border-left-color:#e65100; }
+  .focus-card .fc-t { font-size:16px; margin:4px 0; word-break:keep-all; }
+  .focus-card .fc-b { margin:8px 0; display:flex; flex-wrap:wrap; gap:6px; }
+  .focus-card .btn { font-size:15px; padding:8px 14px; }
+  .focus-card .fc-f { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .qa { margin-top:6px; padding:6px 8px; background:#fff8e1; border:1px solid #e8d9a8; font-size:13px; }
+  .ap-wrap { overflow-x:auto; max-width:100%; }
 </style>
 <link rel="stylesheet" href="edms-design.css"><!-- ★디자인 개편 V1 · 모든 화면 (MST2-20261005-002) — 맨 끝에서 덮음 -->
 </head>
@@ -48,17 +56,14 @@
   </div>
 </header>
 <main>
+  <div id="focusBox"></div>
   <div class="mk-note" style="border-color:#e8b931;background:#fdf6e3">
     ★<b>2026-08-31 임시</b> — 이 화면은 <b>2층 프로젝트 축</b>으로 지었으나,
     <b>1층 과제서류 건도 함께 보입니다</b>. <b>L3 「내 할 일·결재함」이 서기 전까지의 임시 자리</b>입니다
     (지시 MST2-20260831-017 §4). <b>줄 첫 칸의 층 배지</b>로 1층·2층을 가르십시오.
     ★<b>L3 가 서면 1층은 그리로 옮기고 이 화면은 2층으로 돌아갑니다.</b>
   </div>
-  <div class="mk-note approval-note keep">
-    <b>여기서 프로젝트 서류의 결재를 올리고 처리합니다.</b> 순서는 <b>작성(프로젝트 담당자) → 검토(소관 팀장) → 승인(부대표)</b>입니다.<br>
-    작성한 사람은 같은 건의 검토 · 승인을 할 수 없습니다. 1층 과제 서류도 잠시 함께 보이니, 줄 첫 칸의 <b>층 표시</b>로 구분하십시오.
-  </div>
-  <div class="mk-note dev-detail">여기가 <b>프로젝트 축 결재선</b>입니다 — 작성 <b>프로젝트 담당자</b> → 검토 <b>소관 팀장</b> → 승인 <b>부대표</b>. ★<b>축 코드를 적지 않습니다</b> — 축 체계가 확정되기 전까지 코드를 달지 않습니다(폐기값 18 · 2026-08-27). ★<b>직무분리 셋</b>(값 V4.2 · 판정 MST2-20260901-013 §1) —
+  <div class="mk-note approval-note">여기가 <b>프로젝트 축 결재선</b>입니다 — 작성 <b>프로젝트 담당자</b> → 검토 <b>소관 팀장</b> → 승인 <b>부대표</b>. ★<b>축 코드를 적지 않습니다</b> — 축 체계가 확정되기 전까지 코드를 달지 않습니다(폐기값 18 · 2026-08-27). ★<b>직무분리 셋</b>(값 V4.2 · 판정 MST2-20260901-013 §1) —
   <b>작성자 ≠ 승인자</b> ★금지(사유를 적어도 통과하지 않습니다) ·
   <b>검토자 ≠ 승인자</b> ★금지(<b>한 사람이 두 자리를 잡지 않습니다</b>) ·
   <b>작성자 ≠ 검토자</b> 사유를 적으면 검토를 건너뜁니다 —
@@ -68,37 +73,31 @@
   <div class="mk-note" id="ribbon"></div>
   <div class="crumbs"><a href="pm-entry.html">프로젝트관리 시스템</a> &nbsp;›&nbsp; <b>프로젝트 축 결재</b></div>
 
-  <div class="form pa-form" id="draftBox">
-    <div class="pa-head"><b>새 결재 올리기</b> <span class="axis">올리면 <b>작성중</b> 상태로 시작합니다.</span></div>
-    <div class="stepper pa-steps"><div class="step on"><span class="dot">1</span><span class="lbl">기본 정보</span></div><div class="step on"><span class="dot">2</span><span class="lbl">결재선</span></div><div class="step"><span class="dot">3</span><span class="lbl">기안</span></div></div>
-    <div class="pa-cards">
-      <section class="pa-card"><h3>① 기본 정보</h3>
-        <div class="pa-f"><label for="fProject">프로젝트</label><select id="fProject"></select></div>
-        <div class="pa-f"><label for="fType">대상</label><select id="fType"><option>계획서</option><option>게이트</option><option>산출물등록</option><option>WBS변경</option></select></div>
-        <div class="pa-f"><label for="fRef">참조</label><input id="fRef" placeholder="예 : FR-2 / PG0 / DA-01 / 1.7"></div>
-        <div class="pa-f"><label for="fTitle">제목</label><input id="fTitle" placeholder="결재 제목"></div>
-      </section>
-      <section class="pa-card"><h3>② 결재선</h3>
-        <div class="pa-f"><label for="fDrafter">작성</label><select id="fDrafter"></select></div>
-        <div class="pa-f"><label for="fReviewer">검토</label><select id="fReviewer"></select></div>
-        <div class="pa-f"><label for="fApprover">승인</label><select id="fApprover"></select></div>
-        <p class="pa-rule">작성한 사람은 같은 건의 검토 · 승인을 할 수 없습니다.</p>
-      </section>
+  <div class="form" id="draftBox">
+    <div class="row"><b>기안</b> <span class="axis">— 상태는 항상 <b>작성중</b>으로 시작합니다(전이표 진입점).</span></div>
+    <div class="row"><label>프로젝트</label><select id="fProject"></select></div>
+    <div class="row"><label>대상</label>
+      <select id="fType"><option>계획서</option><option>게이트</option><option>산출물등록</option><option>WBS변경</option></select>
+      <label style="min-width:40px">참조</label><input id="fRef" size="16" placeholder="FR-2 / PG0 / DA-01 / 1.7">
     </div>
-    <div class="pa-go"><button class="btn go" id="btnDraft">기안</button></div>
-    <div class="dev-detail">★작성자 = 검토자는 넣을 수 없습니다(W-10). ★작성자 = 승인자도 막힙니다.
+    <div class="row"><label>제목</label><input id="fTitle" size="52"></div>
+    <div class="row"><label>작성</label><select id="fDrafter"></select>
+      <label style="min-width:40px">검토</label><select id="fReviewer"></select>
+      <label style="min-width:40px">승인</label><select id="fApprover"></select></div>
+    <div class="row"><button class="btn go" id="btnDraft">기안</button>
+      <span class="axis">★작성자 = 검토자는 넣을 수 없습니다(W-10). ★작성자 = 승인자도 막힙니다.
       ★결재선은 <b>pm_approval_lines</b>와 대조됩니다 — <b>프로젝트 축</b>: 작성 <b>프로젝트 담당자</b> → 검토 <b>소관 팀장</b>(동일인이면 생략+사유) → 승인 <b>부대표</b> · <b>게이트 축</b>: 승인은 <b>게이트 정의</b>대로 · <b>2단 양식</b>: 승인 단이 <b>없습니다</b>.
       ★<b>직무분리 셋은 <code>pm_approval_guard</code> 가 막습니다</b>(2026-09-01 apply) —
       다만 <b>검토·승인 자리는 결재선 대장 대조가 ★먼저</b> 잡고,
       <b>작성 자리(가변 이름)</b>는 대장이 건너뛰므로 <b>직무분리가 잡습니다</b>. ★<b>축 코드는 적지 않습니다</b>(폐기값 18).
       ★<b>축은 화면이 고르지 않습니다</b> — <b>pm_form_axis</b>(양식↔축)를 DB가 보고 채웁니다(판정 MST2-20260822_74 §2).
-      <span class="tmp">★소관 팀장은 부서 표가 없어 아직 대조하지 않습니다.</span></div>
+      <span class="tmp">★소관 팀장은 부서 표가 없어 아직 대조하지 않습니다.</span></span></div>
   </div>
 
   <div class="filter">
     <b>프로젝트별 보기</b>
     <select id="fFilter"><option value="">(전체)</option></select>
-    <span class="axis">줄을 누르면 <b>본문 · 첨부</b>가 펼쳐집니다.</span>
+    <span class="axis">★결재자가 <b>내용을 보고</b> 판정하도록, 행을 누르면 <b>본문 경로·첨부</b>가 펼쳐집니다(㉰).</span>
   </div>
   <div id="msg"></div>
   <div id="state"></div>
@@ -111,6 +110,7 @@
 <script src="edms-config.js"></script>
 <script src="pm-data.js"></script>
 <script src="pm-write.js"></script>
+<script src="pm-attach.js"></script>
 <script>
 (async function () {
   document.getElementById('ribbon').innerHTML =
@@ -164,7 +164,7 @@
           + pmEsc(r.owner_code || r.project_code) + '</b></td>'
           + '<td>' + pmEsc(r.entity_type) + '</td>'
           + '<td>' + pmVal(r.entity_ref) + '</td>'
-          + '<td>' + pmEsc(r.title) + (r.skip_reason ? '<br><span class="axis">축약사유: ' + pmEsc(r.skip_reason) + '</span>' : '') + '</td>'
+          + '<td>' + pmEsc(r.title) + '<div data-qbox="' + r.approval_id + '"></div>' + (r.skip_reason ? '<br><span class="axis">축약사유: ' + pmEsc(r.skip_reason) + '</span>' : '') + '</td>'
           + '<td><span class="st ' + cls + '">' + pmEsc(r.status) + '</span>'
           + (r.my_turn ? '<br><span class="axis">' + pmEsc(r.my_turn) + '</span>' : '') + '</td>'
           + '<td>' + pmVal(r.drafter_name) + '</td>'
@@ -175,8 +175,8 @@
           + '<tr id="d_' + r.approval_id + '" style="display:none"><td colspan="9">'
           + '<div class="detail" id="dc_' + r.approval_id + '">여는 중…</div></td></tr>';
       });
-      document.getElementById('listBox').innerHTML = h + '</tbody></table>';
-      bind(); bindRows(rows);
+      document.getElementById('listBox').innerHTML = '<div class="ap-wrap">' + h + '</tbody></table></div>';
+      await drawQuestions(rows); await focusRow(rows); bind(); bindQA(); bindRows(rows);
     } catch (e) {
       document.getElementById('state').innerHTML = pmStateBox(pmIsAuthProblem(e) ? 'A' : 'B', e, '결재');
     }
@@ -217,6 +217,8 @@
     else if (r.status === '검토중') { b.push(mk(r, '승인대기', '검토 완료')); b.push(mk(r, '반려', '반려')); }
     if (r.status === '승인대기') { b.push(mk(r, '승인완료', '승인')); b.push(mk(r, '반려', '반려')); }
     if (r.status === '반려')     { b.push(mk(r, '작성중', '재작성')); }
+    /* ★되묻기(메모 MST2-20261016-539) — 지금 차례인 검토자 · 승인자만 · 답 전에는 넘기지 못함(DB) */
+    if (r.my_turn && (r.status === '검토중' || r.status === '승인대기')) b.push('<button class="btn" data-ask="' + r.approval_id + '">되묻기</button>');
     if (r.status !== '승인완료' && r.status !== '취소') b.push(mk(r, '취소', '취소'));
     /* ★끝난 것은 끝났다고 적는다 — 버튼이 없는 까닭을 비워 두지 않는다 */
     if (r.status === '확인') b.push('<span class="axis">확인으로 끝났습니다 — 이 양식은 승인 단이 없습니다</span>');
@@ -226,7 +228,7 @@
     return '<button class="btn' + (r.my_turn ? ' go' : '') + '" data-id="' + r.approval_id + '" data-to="' + to + '">' + label + '</button>';
   }
   function bind() {
-    Array.prototype.forEach.call(document.querySelectorAll('#listBox button'), function (el) {
+    Array.prototype.forEach.call(document.querySelectorAll('#listBox button[data-to], #focusBox button[data-to]'), function (el) {
       el.onclick = async function () {
         var to = el.getAttribute('data-to'), extra = {};
         var r0 = (LAST_ROWS || []).filter(function (x) { return x.approval_id === el.getAttribute('data-id'); })[0];
@@ -253,6 +255,114 @@
     });
   }
 
+  /* ══ 되묻기 · 실행판에서 연 결재 건 (메모 MST2-20261016-539) ══════════════════════════
+     ★되묻기 = 지금 차례인 검토자 · 승인자가 반려하지 않고 묻는다. 답이 오기 전에는 승인 쪽으로 넘어가지 않는다(DB 가 막음).
+     ★실행판 「EDMS 에서 승인하기」 → 이 화면 ?id=<결재> 또는 ?project=<프로젝트>&gate=<게이트> — 그 건을 맨 위 카드로 엽니다.
+     ★승인은 여기(EDMS)에서만 합니다. 실행판은 알림과 길 안내만 합니다. */
+  function aqs(k) {
+    var m = new RegExp('[?&]' + k + '=([^&]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  }
+  async function drawQuestions(rows) {
+    var qs;
+    try { qs = await pmFetchQuestions(rows.map(function (r) { return r.approval_id; })); }
+    catch (e) { qs = null; }
+    rows.forEach(function (r) {
+      var mine = (qs || []).filter(function (q) { return q.approval_id === r.approval_id; });
+      var h = qs === null ? '<div class="axis">되묻기 기록을 읽지 못했습니다 — 「없음」이 아니라 「모름」입니다</div>'
+        : mine.map(function (q) {
+            return '<div class="qa"><b>되물음(' + pmEsc(q.asked_role) + ')</b> ' + pmEsc(q.question)
+              + (q.answer ? '<br><b>답</b> ' + pmEsc(q.answer)
+                          : '<br><span class="st wait">답 기다림</span> <button class="btn go" data-answer="' + pmEsc(q.question_id) + '">답하기</button>')
+              + '</div>'; }).join('');
+      r._qa = h;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-qbox="' + r.approval_id + '"]'), function (el) { el.innerHTML = h; });
+    });
+  }
+  var FOCUS_ID = null, FOCUS_DONE = false;
+  async function focusRow(rows) {
+    var box = document.getElementById('focusBox');
+    if (!FOCUS_DONE) {
+      FOCUS_DONE = true;
+      FOCUS_ID = aqs('id') || null;
+      if (!FOCUS_ID && aqs('project') && aqs('gate')) {
+        try {
+          var gs = await pmFetchProjectGates(aqs('project'));
+          var g = gs.filter(function (x) { return x.gate_code === aqs('gate') && !x.is_subgate; })[0];
+          FOCUS_ID = g && g.approval_ref ? g.approval_ref : null;
+        } catch (e) { FOCUS_ID = null; }
+      }
+      if (!FOCUS_ID && (aqs('id') || aqs('project'))) {
+        box.innerHTML = '<div class="focus-card warn"><b>찾는 결재 건이 아직 없습니다</b> — 담당자가 아직 올리지 않았거나 이미 끝났습니다. 아래 목록을 보십시오.</div>';
+        return;
+      }
+    }
+    if (!FOCUS_ID) { box.innerHTML = ''; return; }
+    var r = rows.filter(function (x) { return x.approval_id === FOCUS_ID; })[0];
+    if (!r) {
+      box.innerHTML = '<div class="focus-card warn"><b>찾는 결재 건이 이 계정 목록에 없습니다</b> — 다른 분 차례이거나 이미 끝났습니다.</div>';
+      return;
+    }
+    box.innerHTML = '<div class="focus-card">'
+      + '<div class="axis">실행판에서 연 결재 건 — 승인 · 반려 · 되묻기는 여기 EDMS 에서만 합니다</div>'
+      + '<div class="fc-t"><b>' + pmEsc(r.title) + '</b></div>'
+      + '<div>상태 <span class="st ' + (r.status === '승인완료' ? 'done' : (r.status === '반려' ? 'rej' : (r.my_turn ? 'wait' : ''))) + '">'
+      + pmEsc(r.status) + '</span>' + (r.my_turn ? ' · <b>' + pmEsc(r.my_turn) + '</b>' : '') + ' · 붙인 문서 <span id="focusN">' + pmEsc(String(r.n_attach || 0)) + '</span>건</div>'
+      + '<div class="fc-b">' + btns(r) + '</div>'
+      + '<div data-qbox="' + r.approval_id + '">' + (r._qa || '') + '</div>'
+      + '<div class="fc-f" id="focusFiles">붙인 문서를 읽는 중…</div></div>';
+    var tr = document.querySelector('tr[data-row="' + r.approval_id + '"]');
+    if (tr) tr.classList.add('turn');
+    /* 승인 전에 근거 문서를 이 카드에서 바로 연다(서명 주소는 그때그때 · 저장하지 않음) */
+    try {
+      var at = (await filesOf(r)).filter(function (a) { return a.status === '유효'; });
+      document.getElementById('focusN').textContent = String(at.length);   /* 1층 서류 붙임은 뷰 n_attach 에 안 잡혀 실제 목록 수로 고침 */
+      var ff = document.getElementById('focusFiles');
+      ff.innerHTML = at.length
+        ? '<b>붙인 문서</b> ' + at.map(function (a) {
+            return '<button class="btn" data-fopen="' + pmEsc(a.storage_path) + '">열기 · ' + pmEsc(a.file_name) + '</button>'; }).join(' ')
+        : '<span class="noatt">붙인 문서가 없습니다 — 근거 없이 누르지 마십시오.</span>';
+      Array.prototype.forEach.call(ff.querySelectorAll('button[data-fopen]'), function (el) {
+        el.onclick = async function () {
+          try { var u = await pmSignedUrl(el.getAttribute('data-fopen'), 60); window.open(u, '_blank'); }
+          catch (err) { say('<b>파일을 열지 못했습니다.</b>\n' + pmEsc(String(err && err.message || err)), true); }
+        };
+      });
+    } catch (e) {
+      document.getElementById('focusFiles').innerHTML = '<span class="noatt">붙인 문서를 읽지 못했습니다 — 「없음」이 아니라 「모름」입니다</span>';
+    }
+  }
+  function bindQA() {
+    Array.prototype.forEach.call(document.querySelectorAll('#listBox button[data-ask], #focusBox button[data-ask]'), function (el) {
+      el.onclick = async function (ev) {
+        ev.stopPropagation();
+        var q = prompt('되물을 말(필수) — 반려하지 않고 묻습니다. 답이 오기 전에는 다음 단계로 넘기지 못합니다.');
+        if (!q || !q.trim()) { say('물을 말이 없어 보내지 않았습니다.', true); return; }
+        say('보내는 중…');
+        try { await pmAskQuestion(el.getAttribute('data-ask'), q.trim()); say('<b>되물었습니다</b> — 올린 분 결재함에 「답 기다림」 으로 보입니다.'); await refresh(); }
+        catch (e) { say('<b>DB 가 막았습니다 — 문면 그대로 옮깁니다.</b>\n' + pmEsc(String(e && e.message || e)), true); }
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#listBox button[data-answer], #focusBox button[data-answer]'), function (el) {
+      el.onclick = async function (ev) {
+        ev.stopPropagation();
+        var a = prompt('답(필수)');
+        if (!a || !a.trim()) { say('답이 없어 보내지 않았습니다.', true); return; }
+        say('보내는 중…');
+        try { await pmAnswerQuestion(el.getAttribute('data-answer'), a.trim()); say('<b>답했습니다</b> — 이제 검토 · 승인을 이어 갈 수 있습니다.'); await refresh(); }
+        catch (e) { say('<b>DB 가 막았습니다 — 문면 그대로 옮깁니다.</b>\n' + pmEsc(String(e && e.message || e)), true); }
+      };
+    });
+  }
+
+  /* 붙임 읽기 (MST2-20261027-509) — 1층 서류 결재(착수 승인서 · 결과 검증서 · 종료보고서)는 서류(doc_id)에 붙어 있고,
+     2층 결재는 결재 번호에 붙어 있다. 읽는 길은 붙임 파일 칸 부품(pm-attach.js) 하나. */
+  async function filesOf(r) {
+    if (PmAttach.INI_DOC_TYPES.indexOf(r.entity_type) >= 0 && r.entity_ref && r.initiative_code)
+      return PmAttach.list({ kind: 'ini_doc', initiative_code: r.initiative_code, ownerRef: r.entity_ref });
+    return pmFetchAttachments(r.project_code, '결재', r.approval_id);
+  }
+
   /* ★상세 펼침 — 본문 경로 · 첨부 목록 · 미리보기 */
   function bindRows(rows) {
     rows.forEach(function (r) {
@@ -266,7 +376,7 @@
         box.style.display = '';
         var c = document.getElementById('dc_' + r.approval_id);
         try {
-          var at = await pmFetchAttachments(r.project_code, '결재', r.approval_id);
+          var at = await filesOf(r);
           var h = '<b>본문</b> ' + (r.body_path
                 ? pmEsc(r.body_path)
                 : '<span class="noatt">경로 없음 — 결재 대상의 실물이 대장에 없습니다</span>')
