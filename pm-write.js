@@ -310,3 +310,67 @@ async function pmUnlinkProject(projectCode) {
   }
   return r.data[0];
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   ★EDMS 승인 화면 셋 (메모 MST2-20261016-539 · DB 문안 pm_03 V0.1)
+   · 프로젝트 만들기(S14) · 게이트 승인 초안 / 상신 · 파일 붙이기 · 되묻기
+   · ★번호 · 결재선 · 개설 이력 · 게이트 줄은 DB 함수가 만든다 — 화면은 부르기만 한다(W-17).
+   · ★승인 단추는 여기 없다 — 승인은 결재함(pm-approve)에서 그 차례인 사람이 누른다.
+   ════════════════════════════════════════════════════════════════════════ */
+async function pmOpenProject(o) {
+  var r = await edmsClient.rpc('pm_open_project', {
+    p_initiative_code: o.initiative_code, p_project_name: o.project_name, p_type_char: o.type_char,
+    p_planned_start: o.planned_start || null, p_planned_end: o.planned_end || null });
+  if (r.error) throw await pmErr('pm_open_project', r.error);
+  return r.data;
+}
+
+/* 게이트 승인 초안(작성중) — 같은 사람이 쓰던 초안이 있으면 그 번호를 돌려준다 */
+async function pmDraftGate(projectCode, gateCode) {
+  var r = await edmsClient.rpc('pm_draft_gate', { p_project_code: projectCode, p_gate_code: gateCode });
+  if (r.error) throw await pmErr('pm_draft_gate', r.error);
+  return r.data;
+}
+
+/* 상신(작성중 → 검토중) — 붙인 문서가 없으면 DB 가 막는다 */
+async function pmSendGate(approvalId) {
+  var r = await edmsClient.rpc('pm_send_gate', { p_approval_id: approvalId });
+  if (r.error) throw await pmErr('pm_send_gate', r.error);
+  return r.data;
+}
+
+/* 파일 붙이기 — 저장소 documents/pm/<프로젝트>/<결재>/<해시>.<확장자> 에 올리고 첨부 표에 한 줄.
+   ★해시는 브라우저가 파일에서 계산한다(사람이 적지 않음). 같은 파일을 두 번 붙이면 DB 가 막는다. */
+async function pmUploadGateFile(projectCode, approvalId, file, seq) {
+  var hash = await pmSha256(file);
+  var dot = file.name.lastIndexOf('.');
+  var ext = dot > 0 ? file.name.slice(dot + 1).toLowerCase() : '';
+  var path = 'pm/' + projectCode + '/' + approvalId + '/' + hash + (ext ? '.' + ext : '');
+  var up = await edmsClient.storage.from('documents').upload(path, file,
+    { upsert: false, contentType: file.type || 'application/octet-stream' });
+  if (up.error && !/exists|duplicate/i.test(String(up.error.message || ''))) throw await pmErr('storage.documents(올리기)', up.error);
+  return pmAddAttachment({ project_code: projectCode, owner_kind: '결재', owner_ref: String(approvalId), seq: seq || 1,
+    file_name: file.name, storage_path: path, file_hash: hash, file_size: file.size, file_ext: ext || null,
+    registered_by: await pmCurrentUserId() });
+}
+
+/* 되묻기 — 읽기(묻고 답한 기록) · 묻기(차례인 검토자 · 승인자) · 답하기(올린 사람) */
+async function pmFetchQuestions(ids) {
+  if (!ids || !ids.length) return [];
+  var r = await edmsClient.from('pm_approval_questions')
+    .select('question_id,approval_id,asked_role,question,asked_at,answer,answered_at')
+    .in('approval_id', ids).order('asked_at', { ascending: true });
+  if (r.error) throw await pmErr('pm_approval_questions', r.error);
+  return r.data || [];
+}
+async function pmAskQuestion(approvalId, question) {
+  var r = await edmsClient.rpc('pm_ask_question', { p_approval_id: approvalId, p_question: question });
+  if (r.error) throw await pmErr('pm_ask_question', r.error);
+  return r.data;
+}
+async function pmAnswerQuestion(questionId, answer) {
+  var r = await edmsClient.rpc('pm_answer_question', { p_question_id: questionId, p_answer: answer });
+  if (r.error) throw await pmErr('pm_answer_question', r.error);
+  return r.data;
+}
