@@ -149,7 +149,7 @@
       : '결과 처리가 「가」가 아니면 비워 두어도 됩니다';
     if (!nf) setBad('fld-fu', false);
 
-    $('btn-submit').disabled = (c.미충족 > 0) || (c.미판정 > 0);
+    $('btn-submit').disabled = window.__lockSubmit || (c.미충족 > 0) || (c.미판정 > 0);
     $('foot-note').textContent = c.미충족 ? '미충족 ' + c.미충족 + '건 — 상신 불가' : '';
     setBad('fld-cc', false);
   }
@@ -264,8 +264,16 @@
       $('i-na').value = DOC.close_na_reason || '';
       $('i-rs').value = DOC.result_summary || '';
       $('i-fu').value = DOC.followup_item || '';
-      if (DOC.status === '상신') {
-        $('state').innerHTML = '<div class="banner info">이 종료보고서는 <b>이미 상신</b>되었습니다.</div>';
+      if (DOC.status === '상신' || DOC.status === '승인') {
+        /* ★상신 · 승인 뒤에는 「부대표께 상신」 대신 「결재함에서 보기」(메모 519 4-2 같은 갈래) */
+        $('state').innerHTML = '<div class="banner info">이 종료보고서는 <b>' + (DOC.status === '승인' ? '승인되었습니다' : '상신되어 결재 중입니다')
+          + '</b>. 진행은 결재함에서 봅니다.</div>';
+        window.__lockSubmit = true;
+        var go = document.createElement('a');
+        go.className = 'btn primary big'; go.textContent = '결재함에서 보기';
+        go.href = 'pm-approve.html' + (DOC.approval_id ? '?id=' + encodeURIComponent(DOC.approval_id) : '');
+        $('btn-submit').disabled = true; $('btn-submit').style.display = 'none';
+        $('btn-submit').after(go); $('btn-draft').disabled = true;
       }
     }
 

@@ -209,7 +209,16 @@
     return { refresh: refresh, rows: function () { return ST.rows.slice(); }, opts: o };
   }
 
-  root.PmAttach = { mount: mount, list: list, upload: upload, withdraw: withdraw, openUrl: openUrl, pathOf: pathOf,
+  var INI_DOC_TYPES = ['과제 착수 승인서', '결과 검증서', '종료보고서'];
+  /* 결재 한 건의 붙임 — 1층 서류 결재(착수 승인서 · 결과 검증서 · 종료보고서)는 서류(doc_id)에, 2층 결재는 결재 번호에 붙는다.
+     결재함(pm-approve) · 내 할 일(pm-inbox) 이 함께 부르는 한 함수(MST2-20261029-507 · 앞 자리 = pm-approve filesOf). */
+  async function ofApproval(r) {
+    if (INI_DOC_TYPES.indexOf(r.entity_type) >= 0 && r.entity_ref && r.initiative_code)
+      return list({ kind: 'ini_doc', initiative_code: r.initiative_code, ownerRef: r.entity_ref });
+    return root.pmFetchAttachments(r.project_code, '결재', r.approval_id);
+  }
+
+  root.PmAttach = { mount: mount, list: list, upload: upload, withdraw: withdraw, openUrl: openUrl, pathOf: pathOf, ofApproval: ofApproval,
                     MAX_BYTES: MAX_BYTES, LEVELS: LEVELS, DEFAULT_LEVEL: DEFAULT_LEVEL,
-                    INI_DOC_TYPES: ['과제 착수 승인서', '결과 검증서', '종료보고서'] };
+                    INI_DOC_TYPES: INI_DOC_TYPES };
 })(typeof window !== 'undefined' ? window : globalThis);

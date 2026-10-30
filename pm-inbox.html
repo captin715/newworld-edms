@@ -86,8 +86,9 @@
     ★<b>내 차례가 아닌 줄에는 결재 단추가 없습니다</b>(판정 MST2-20260901-017 §4 ㉮) —
     <b>관리자여도 같습니다</b>. 전체는 아래 <b>「전체 보기」</b>에서 <b>읽기만</b> 합니다.
     ★<b>[열람]은 모든 줄에 있습니다</b>(지시 MST2-20260901-016 §1) — <b>내 차례가 아니어도 열립니다</b>.<br>
-    ★<b>아직 못 하는 것</b> — <b>PDF 열람</b>은 짓지 않았습니다(기록작성_개발창의 인쇄 모양과 <b>한 벌</b>이어야 합니다) ·
-    <b>여러 건 한 번에 결재</b>는 없습니다 · <b>첨부</b>는 아직 붙지 않습니다.
+    ★<b>[열람]에서 붙인 문서(기획서 등)를 바로 엽니다</b> — 결재함과 같은 길입니다.<br>
+    ★<b>아직 못 하는 것</b> — 서류를 <b>인쇄 모양(PDF)으로 짓기</b>는 없습니다(기록작성_개발창과 <b>한 벌</b>이어야 합니다) ·
+    <b>여러 건 한 번에 결재</b>는 없습니다.
     <b>「완성했습니다」가 아니라 「잠정으로 세웠습니다」</b>입니다.
   </div>
 
@@ -164,6 +165,7 @@
 <script src="edms-config.js"></script>
 <script src="pm-data.js"></script>
 <script src="pm-write.js"></script>
+<script src="pm-attach.js"></script>
 <script>
 (function () {
   'use strict';
@@ -254,16 +256,36 @@
              + '결재는 있는데 서류가 없습니다. 신고할 자리입니다.</span></div>';
         }
       } else {
-        h += '<div style="margin-top:9px"><a href="pm-approve.html"><b>2층 결재 화면에서 보기</b></a></div>';
+        h += '<div style="margin-top:9px"><a href="pm-approve.html?id=' + encodeURIComponent(r.approval_id)
+           + '"><b>결재함에서 이 건 보기</b></a></div>';
       }
     } catch (e) {
       h += '<div class="err">본문을 열지 못했습니다\n' + pmEsc((e && e.message) || String(e)) + '</div>';
     }
-    h += '<div class="hidden-note">★<b>PDF 열람은 아직 짓지 않았습니다.</b> '
-       + '<b>기록작성_개발창의 인쇄 모양과 한 벌</b>로 가야 합니다(지시 MST2-20260901-011 §3 · 016 §3) — '
-       + '두 창이 따로 만들면 <b>두 가지 종이</b>가 생깁니다. '
-       + '지금은 <b>위 값이 서류에 든 전부</b>입니다.</div>';
+    h += '<div class="ib-files" style="margin-top:9px" id="files-' + pmEsc(id) + '">붙인 문서를 읽는 중…</div>';
     box.innerHTML = h;
+    await drawFiles(r, $('files-' + id));
+  }
+  /* ★붙인 문서 — 결재함과 같은 한 함수(PmAttach.ofApproval)로 읽고 서명 주소(60초)로 연다(MST2-20261029-507).
+     ★못 읽으면 「없음」 이 아니라 「모름」 이라 적는다. */
+  async function drawFiles(r, el) {
+    if (!el) return;
+    try {
+      var at = (await PmAttach.ofApproval(r)).filter(function (a) { return a.status === '유효'; });
+      el.innerHTML = at.length
+        ? '<b>붙인 문서</b> ' + at.map(function (a) {
+            return '<button class="btn" data-fopen="' + pmEsc(a.storage_path) + '">열기 · ' + pmEsc(a.file_name) + '</button>'; }).join(' ')
+        : '<span class="masked">붙인 문서가 없습니다 — 근거 없이 누르지 마십시오.</span>';
+      Array.prototype.forEach.call(el.querySelectorAll('button[data-fopen]'), function (bt) {
+        bt.onclick = async function (ev) {
+          ev.stopPropagation();
+          try { var u = await pmSignedUrl(bt.getAttribute('data-fopen'), 60); window.open(u, '_blank'); }
+          catch (err) { fail(err, '파일을 열지 못했습니다'); }
+        };
+      });
+    } catch (e) {
+      el.innerHTML = '<span class="masked">붙인 문서를 읽지 못했습니다 — 「없음」이 아니라 「모름」입니다</span>';
+    }
   }
   function pageOf(t) {
     if (t === '과제 착수 승인서') return 'pm-ini-n2.html';

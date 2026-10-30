@@ -50,16 +50,20 @@
       .gs-form { display:grid; grid-template-columns:1fr; gap:6px; max-width:560px; margin:10px 0; }
       .gs-form label { font-weight:700; }
       .gs-form .inp { width:100%; box-sizing:border-box; }
+      .gs-file-kind { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:4px 0; font-size:15px; }
+      .gs-file-kind span { word-break:break-all; }
     </style>
     <h2 id="gsub-h">게이트 승인 올리기</h2>
-    <div class="count-info">담당자가 근거 문서를 붙여 올립니다. 검토 · 승인하실 분은 게이트 정의가 정하고, 승인은 결재함에서 그분이 합니다. 앞 게이트가 통과되어야 다음 게이트를 올립니다.</div>
+    <div class="count-info">담당자가 근거 문서를 붙여 올립니다. 검토 · 승인하실 분은 게이트 정의가 정하고, 승인은 결재함에서 그분이 합니다. 앞 게이트가 통과되어야 다음 게이트를 올립니다. 게이트마다 꼭 붙일 서류(절차서 9 표)를 갈래별로 다 붙여야 ② 상신이 열립니다.</div>
     <div class="gs-form">
       <label for="gs-prj">프로젝트</label><select class="inp" id="gs-prj"></select>
       <label for="gs-gate">게이트</label><select class="inp" id="gs-gate"></select>
-      <label for="gs-file">붙일 문서 (예 : 과제 기획서)</label><input class="inp" type="file" id="gs-file" multiple>
+      <label for="gs-kind">붙일 문서의 서류 갈래</label><select class="inp" id="gs-kind"><option value="">— 갈래를 고르십시오 —</option></select>
+      <label for="gs-file">붙일 문서 (고른 갈래로 붙습니다)</label><input class="inp" type="file" id="gs-file" multiple>
     </div>
     <div class="lane-btns"><button class="btn primary big" id="gs-draft">① 초안 저장 · 문서 붙이기</button>
       <button class="btn primary big" id="gs-send" disabled>② 상신 — 결재함으로</button></div>
+    <div id="gs-need"></div>
     <div id="gs-msg"></div>
     <div id="gs-list"></div>
   </div>
@@ -96,6 +100,9 @@ function cellHtml(cells) {
        ★둘이 다를 때 어긋남인지 기록인지 가릴 수 없어, 낱말을 갈랐다. */
     if (g.approver)  h += '<span class="gc-note">승인자(실적) ' + pmEsc(g.approver) + '</span>';
     if (g.open_items) h += '<span class="gc-note">잔여 · ' + pmEsc(g.open_items) + '</span>';
+    /* ★판정 3종(절차서 6.2.6 b) · pm_09) — 조건부 = 기한 · 책임자 · 부결 = 롤백 범위 */
+    if (g.cond_due || g.cond_owner) h += '<span class="gc-note">조건 기한 ' + pmVal(g.cond_due) + ' · 책임자 ' + pmVal(g.cond_owner) + '</span>';
+    if (g.rollback_scope) h += '<span class="gc-note">롤백 범위 · ' + pmEsc(g.rollback_scope) + '</span>';
     return h;
   }).join('');
 }
@@ -187,27 +194,71 @@ async function gateSubmitPanel(defs, projects, inst) {
   $('gs-prj').innerHTML = projects.map(function (p) {
     return '<option value="' + pmEsc(p.project_code) + '">' + pmEsc(p.project_code) + ' — ' + pmEsc(p.project_name) + '</option>'; }).join('');
   if (gqs('project')) $('gs-prj').value = gqs('project');
-  function reset() { CUR = null; $('gs-send').disabled = true; $('gs-list').innerHTML = ''; say(''); }
+  function reset() { CUR = null; $('gs-send').disabled = true; $('gs-list').innerHTML = ''; say(''); drawNeed(); }
+  /* ★게이트 목록 = 게이트 정의 전부(절차서 6.2.6 f) · pm_09 J06) — 줄이 아직 없는 게이트는 「미도달」. 줄은 초안 저장 때 DB 가 만든다.
+     ★올릴 수 있는지(앞 게이트 통과)는 DB 가 정한다 — 화면은 고르게 두고 막힌 문면을 그대로 보인다. */
   function fillGates() {
     var pc = $('gs-prj').value;
-    var rows = inst.filter(function (g) { return g.project_code === pc && !g.is_subgate; });
-    $('gs-gate').innerHTML = rows.length ? rows.map(function (g) {
-        return '<option value="' + pmEsc(g.gate_code) + '">' + pmEsc(g.gate_code) + ' ' + pmEsc(gname[g.gate_code] || '')
-             + ' — 지금 ' + pmEsc(g.status) + '</option>'; }).join('')
-      : '<option value="">(이 프로젝트에는 게이트 줄이 없습니다)</option>';
-    var want = gqs('gate');
-    if (want && rows.some(function (g) { return g.gate_code === want; })) $('gs-gate').value = want;
+    var st = {}; inst.forEach(function (g) { if (g.project_code === pc && !g.is_subgate) st[g.gate_code] = g.status; });
+    $('gs-gate').innerHTML = defs.map(function (d) {
+        return '<option value="' + pmEsc(d.gate_code) + '">' + pmEsc(d.gate_code) + ' ' + pmEsc(gname[d.gate_code] || '')
+             + ' — 지금 ' + pmEsc(st[d.gate_code] || '미도달') + '</option>'; }).join('');
+    var cur = (projects.filter(function (p) { return p.project_code === pc; })[0] || {}).gate;   /* pmFetchProjects 의 현재 게이트 칸 */
+    var want = gqs('gate') || cur;
+    if (want && defs.some(function (d) { return d.gate_code === want; })) $('gs-gate').value = want;
     reset();
+  }
+  /* ★꼭 붙일 서류(절차서 9 표 · 6.2.6 c) · 6.5 a)) — 셈은 DB 한 곳(pm_gate_docs · I082). 화면은 보이기만 하고, 다 갖춰야 ② 상신을 연다.
+     ★DB 에 아직 이 기능이 없으면(옛 판) 갈래 칸을 숨기고 예전처럼 「붙인 문서 1건 이상」 만 본다. */
+  var KINDS = null;
+  async function drawNeed(nFiles) {
+    var pc = $('gs-prj').value, gc = $('gs-gate').value, box = $('gs-need'), info;
+    if (!pc || !gc) { box.innerHTML = ''; return; }
+    try { info = await pmGateDocs(pc, gc, CUR); }
+    catch (e) {
+      box.innerHTML = ''; KINDS = null;
+      $('gs-kind').style.display = 'none'; $('gs-kind').previousElementSibling.style.display = 'none';
+      if (CUR) $('gs-send').disabled = !(nFiles > 0);
+      return;
+    }
+    if (!KINDS) {
+      KINDS = info.kinds || [];
+      $('gs-kind').innerHTML = '<option value="">— 갈래를 고르십시오 —</option>' + KINDS.map(function (k) {
+        return '<option value="' + pmEsc(k.kind) + '">' + pmEsc(k.kind === k.label ? k.label : k.kind + ' ' + k.label) + '</option>'; }).join('');
+    }
+    var need = info.need || [], files = info.files || [];
+    var miss = need.filter(function (n) { return !n.have; });
+    var h = '<div class="banner ' + (miss.length ? 'warn' : 'info') + '"><b>' + pmEsc(gc) + ' 에 꼭 붙일 서류</b> '
+      + (need.length ? need.length + '가지 · 빠짐 ' + miss.length : '— 절차서에 정한 서류가 없습니다(붙인 문서 1건 이상이면 상신)')
+      + need.map(function (n) {
+          return '<br>' + (n.have ? '✔ ' : '⚠ ') + pmEsc(n.kind) + ' ' + pmEsc(n.label) + (n.form_no ? ' (' + pmEsc(n.form_no) + ')' : '')
+               + (n.have ? ' — ' + n.have + '건' : ' — <b>빠짐</b>'); }).join('') + '</div>';
+    if (CUR && files.length) {
+      h += '<div class="count-info">붙인 문서의 갈래 — 잘못 골랐으면 여기서 고칩니다(상신 전 · 올린 분만)</div>'
+        + files.map(function (f) {
+            return '<div class="gs-file-kind"><span>' + pmEsc(f.name) + '</span> <select class="inp" data-kind-of="' + pmEsc(f.id) + '">'
+              + '<option value="">(갈래 없음)</option>' + KINDS.map(function (k) {
+                  return '<option value="' + pmEsc(k.kind) + '"' + (k.kind === f.kind ? ' selected' : '') + '>' + pmEsc(k.kind === k.label ? k.label : k.kind + ' ' + k.label) + '</option>'; }).join('')
+              + '</select></div>'; }).join('');
+    }
+    box.innerHTML = h;
+    Array.prototype.forEach.call(box.querySelectorAll('select[data-kind-of]'), function (el) {
+      el.onchange = async function () {
+        try { await pmSetDocKind(el.getAttribute('data-kind-of'), el.value); await drawNeed(files.length); }
+        catch (e) { say('<b>갈래를 고치지 못했습니다 — DB 가 막은 문면을 그대로 옮깁니다.</b><br>' + pmEsc(e.message), 'crit'); }
+      };
+    });
+    $('gs-send').disabled = !(CUR && files.length > 0 && miss.length === 0);
   }
   /* 붙인 문서 목록 = 붙임 파일 칸 부품(pm-attach.js · MST2-20261027-509) — 이름 · 크기 · 열기 · 지움 · 더 붙이기 */
   async function drawList() {
     if (!CUR) { $('gs-list').innerHTML = ''; return 0; }
     var att = PmAttach.mount($('gs-list'), {
       kind: '결재', project_code: $('gs-prj').value, ownerRef: String(CUR), editable: true, canWrite: true,
-      onChange: function (n) { $('gs-send').disabled = n === 0; }
+      onChange: function (n) { drawNeed(n); }
     });
     var ok = (await att.refresh()).filter(function (a) { return a.status === '유효'; });
-    $('gs-send').disabled = ok.length === 0;
+    await drawNeed(ok.length);
     return ok.length;
   }
   $('gs-prj').onchange = fillGates;
@@ -223,15 +274,20 @@ async function gateSubmitPanel(defs, projects, inst) {
   $('gs-draft').onclick = async function () {
     var pc = $('gs-prj').value, gc = $('gs-gate').value, files = $('gs-file').files;
     if (!pc || !gc) { say('<b>프로젝트와 게이트를 고르십시오.</b>', 'warn'); return; }
+    if (files.length && KINDS && !$('gs-kind').value) { say('<b>붙일 문서의 서류 갈래를 먼저 고르십시오</b> (예 : FR-1 프로젝트 착수보고서).', 'warn'); return; }
     $('gs-draft').disabled = true; say('초안을 저장하는 중…');
     try {
       CUR = await pmDraftGate(pc, gc);
       var have = await drawList(), n = 0;
-      for (var i = 0; i < files.length; i++) { n++; await pmUploadGateFile(pc, CUR, files[i], have + n); }
+      var kind = $('gs-kind').value || null;
+      for (var i = 0; i < files.length; i++) { n++; await pmUploadGateFile(pc, CUR, files[i], have + n, kind); }
       var cnt = await drawList();
+      $('gs-file').value = '';
+      var ready = !$('gs-send').disabled;
       say('<b>초안을 저장했습니다</b>' + (n ? ' — 문서 ' + n + '건을 붙였습니다' : '') + '. '
-        + (cnt ? '이제 <b>② 상신</b>을 누르면 검토하실 분 결재함으로 갑니다.'
-               : '<b>붙인 문서가 없어 아직 상신할 수 없습니다.</b> 문서를 고른 뒤 ①을 다시 누르십시오.'), cnt ? 'info' : 'warn');
+        + (ready ? '이제 <b>② 상신</b>을 누르면 검토하실 분 결재함으로 갑니다.'
+                 : (cnt ? '<b>위 「꼭 붙일 서류」 에 빠진 것이 있어 아직 상신할 수 없습니다.</b> 갈래를 바꿔 고르고 문서를 골라 ①을 다시 누르십시오.'
+                        : '<b>붙인 문서가 없어 아직 상신할 수 없습니다.</b> 문서를 고른 뒤 ①을 다시 누르십시오.')), ready ? 'info' : 'warn');
     } catch (e) {
       say('<b>막혔습니다 — DB 가 막은 문면을 그대로 옮깁니다.</b><br>' + pmEsc(e.message), 'crit');
       try { await drawList(); } catch (e2) { /* 표시만 */ }

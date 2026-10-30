@@ -183,6 +183,7 @@
 
   async function save(submitting) {
     if (BUSY) return;
+    if (submitting && window.__lockSubmit) return;   /* 판정 028 나-3 — 숨긴 상신 단추를 엔터로 부르는 길도 닫음 */
 
     if (submitting) {
       /* ★기계가 막는 것 — ② 미지정 · ③(라인데) 공란 */
@@ -224,7 +225,7 @@
       location.href = 'pm-ini-detail.html?code=' + encodeURIComponent(CODE);
     } catch (e) {
       BUSY = false;
-      $('btn-submit').disabled = false; $('btn-draft').disabled = false;
+      $('btn-submit').disabled = !!window.__lockSubmit; $('btn-draft').disabled = false;
       $('btn-submit').textContent = '부대표께 상신'; $('btn-draft').textContent = '임시 저장';
       fail(e, submitting ? '상신하지 못했습니다 — 이동하지 않았습니다' : '저장하지 못했습니다');
     }
@@ -267,6 +268,15 @@
       }
     } catch (e) { fail(e, '화면을 준비하지 못했습니다'); return; }
 
+    /* ★「전환」 된 과제는 착수 승인서를 새로 상신하지 않음 — 서류는 프로젝트 게이트(PG-1 기획 등)로 올림(메모 520 · DB pm_06 V0.2 가드와 같은 규칙) */
+    if (INI.status === '전환') {
+      $('state').innerHTML = '<div class="banner warn"><b>이 과제는 프로젝트로 넘어갔습니다(전환)</b><br>'
+        + '이 서류는 여기서 상신하지 않습니다. 프로젝트 화면의 게이트(예 : PG-1 기획)로 올려 주십시오. '
+        + '<a href="pm-ini-detail.html?code=' + encodeURIComponent(CODE) + '">과제 상세로 돌아가기</a></div>';
+      window.__lockSubmit = true;
+      $('btn-submit').disabled = true; $('btn-submit').style.display = 'none';   /* 지우지 않고 숨김 */
+    }
+
     $('ttl').textContent = '과제 착수 승인서 · ' + INI.initiative_code;
     $('sub').innerHTML = pmVal(INI.initiative_name) + ' · ' + pmEsc(INI.owner_dept_char)
                        + ' · 담당 ' + pmVal(INI.owner);
@@ -281,9 +291,23 @@
       $('i-ps').value = DOC.planned_start || '';
       $('i-pe').value = DOC.planned_end || '';
       $('i-bg').value = comma(DOC.separate_budget);
-      if (DOC.status === '상신') {
-        $('state').innerHTML = '<div class="banner info">이 승인서는 <b>이미 상신</b>되었습니다. '
-          + '고쳐 다시 상신하면 새 결재가 붙습니다.</div>';
+      if (DOC.status === '상신' || DOC.status === '승인') {
+        /* ★상신 · 승인 뒤에는 「부대표께 상신」 단추를 「결재함에서 보기」 로 바꿈(메모 519 4-2 같은 갈래) — 두 번 올려 결재가 겹치지 않게.
+           반려 · 취소되면 서류가 「작성중」 으로 돌아와(DB pm_06) 다시 상신 단추가 보임. */
+        if (INI.status === '전환') {
+          /* 판정 028 다-1 — 전환 과제면 전환 안내를 덮지 않고, 앞서 이 길로 올린 승인서는 기록으로만 남는다고 덧붙임(의도 I152) */
+          $('state').querySelector('.banner').insertAdjacentHTML('beforeend',
+            '<br>앞서 이 화면에서 올린 승인서(서류 상태 「' + pmEsc(DOC.status) + '」)는 길이 잘못되어 기록으로만 남깁니다.');
+        } else {
+          $('state').innerHTML = '<div class="banner info">이 승인서는 <b>' + (DOC.status === '승인' ? '승인되었습니다' : '상신되어 결재 중입니다')
+            + '</b>. 진행은 결재함에서 봅니다.</div>';
+        }
+        window.__lockSubmit = true;
+        var go = document.createElement('a');
+        go.className = 'btn primary big'; go.textContent = '결재함에서 보기';
+        go.href = 'pm-approve.html' + (DOC.approval_id ? '?id=' + encodeURIComponent(DOC.approval_id) : '');
+        $('btn-submit').disabled = true; $('btn-submit').style.display = 'none';   /* 지우지 않고 숨김 — 다른 줄이 이 단추를 부름 */
+        $('btn-submit').after(go); $('btn-draft').disabled = true;
       }
     }
 

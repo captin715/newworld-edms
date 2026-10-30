@@ -41,6 +41,10 @@
   .focus-card .fc-f { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
   .qa { margin-top:6px; padding:6px 8px; background:#fff8e1; border:1px solid #e8d9a8; font-size:13px; }
   .ap-wrap { overflow-x:auto; max-width:100%; }
+  .btn.btn-kill { border-color:#c62828; color:#c62828; margin-left:18px; }
+  .focus-card .btn.btn-kill { margin-left:auto; }
+  details.done-box { margin-top:12px; }
+  details.done-box > summary { cursor:pointer; font-size:15px; padding:6px 0; color:#1565c0; }
 </style>
 <link rel="stylesheet" href="edms-design.css"><!-- ★디자인 개편 V1 · 모든 화면 (MST2-20261005-002) — 맨 끝에서 덮음 -->
 </head>
@@ -128,6 +132,42 @@
   }
 
   var people = [], projects = [], CUR_FILTER = null, LAST_ROWS = [];
+  /* ★결재 취소 단추를 볼 사람(판정 WSD-20261027-세션8-493 다-1) = 올린 분(drafter_id = 나) · 관리자뿐.
+     ★뷰에 drafter_id 가 없어 결재 표에서 따로 읽는다. 못 읽으면 「모름」 → 단추를 내지 않는다(안전한 쪽). */
+  var ME = { id: null, admin: false }, DRAFTER = {};
+  async function loadCancelRights(rows) {
+    DRAFTER = {};
+    try { ME.id = await pmCurrentUserId(); } catch (e) { ME.id = null; }
+    var me = people.filter(function (p) { return p.id === ME.id; })[0];
+    ME.admin = !!(me && me.role === 'admin');
+    var ids = rows.map(function (r) { return r.approval_id; });
+    if (!ids.length || ME.admin) return;
+    var q = await edmsClient.from('pm_approvals').select('approval_id,drafter_id').in('approval_id', ids);
+    if (q.error) return;
+    (q.data || []).forEach(function (x) { DRAFTER[x.approval_id] = x.drafter_id; });
+  }
+  function canKill(r) {
+    if (r.status === '승인완료' || r.status === '취소' || r.status === '확인') return false;
+    return ME.admin || (!!ME.id && DRAFTER[r.approval_id] === ME.id);
+  }
+  /* ★누가 어느 단추를 보나 — 이 한 함수만 거친다(MST2-20261028-039 · 판정 WSD-20261028-세션8-037 ⑤ · I115).
+     ★차례는 뷰의 my_turn 이 auth.uid() 로 센다 — 화면은 「칸이 비었나」 와 상태만 본다.
+       글자는 견주지 않는다 : 운영 뷰 「★내 검토 차례」 · 결재함 뷰 「내 검토 차례」 · 꾸민 바탕 「검토 차례」 가 서로 달라
+       글자로 견주면 판정이 화면마다 갈린다(옛 취소 조건이 「검토 차례」 와 견주어 운영에서 한 번도 맞지 않은 자리).
+     ★반려는 운영 뷰가 my_turn 을 비워 두므로 재작성만 올린 분(DRAFTER) 으로 본다 · 결재 취소 = canKill.
+     ★차례가 아닌 사람(지난 검토자 · 아직 아닌 승인자 · 올린 분)에게 검토 · 승인 · 반려 · 되묻기 단추 0. */
+  function rights(r) {
+    var turn = !!r.my_turn, st = r.status;
+    var mine = !!ME.id && DRAFTER[r.approval_id] === ME.id;
+    return {
+      write:   turn && st === '작성중',
+      review:  turn && st === '검토중',
+      approve: turn && st === '승인대기',
+      redo:    st === '반려' && (turn || mine),
+      ask:     turn && (st === '검토중' || st === '승인대기'),
+      kill:    canKill(r)
+    };
+  }
   try {
     people   = await pmFetchPeople();
     projects = await pmFetchProjects();
@@ -145,18 +185,25 @@
   async function refresh() {
     try {
       var rows = await pmFetchApprovalDetail(CUR_FILTER); LAST_ROWS = rows;
+      await loadCancelRights(rows);
       if (!rows.length) {
         document.getElementById('listBox').innerHTML =
           '<div class="mk-note">결재 <b>0건</b>입니다. 위에서 기안하십시오. ' +
           '<b>★0 은 「없다」입니다 — 「셀 곳이 없다」가 아닙니다</b>(표는 있습니다).</div>';
         return;
       }
-      var h = '<table class="ap"><thead><tr>'
+      /* ★끝난 건은 접어 둔다(부대표 □결정 ㉮ 10/27 · I148) — 승인완료 · 취소 · 확인은 아래 「끝난 결재」 에 · 지우지 않음.
+         반려는 올린 분이 고쳐 다시 올릴 일이 남아 진행 중에 둔다. */
+      var DONE_ST = ['승인완료', '취소', '확인'];
+      var live = rows.filter(function (r) { return DONE_ST.indexOf(r.status) < 0; });
+      var done = rows.filter(function (r) { return DONE_ST.indexOf(r.status) >= 0; });
+      var head = '<table class="ap"><thead><tr>'
         + '<th>프로젝트</th><th>대상</th><th>참조</th><th>제목</th><th>상태</th>'
         + '<th>작성</th><th>검토</th><th>승인</th><th>진행</th></tr></thead><tbody>';
+      var h = '';
       rows.forEach(function (r) {
         var cls = r.status === '승인완료' ? 'done' : (r.status === '반려' ? 'rej' : (r.my_turn ? 'wait' : ''));
-        h += '<tr data-row="' + r.approval_id + '" class="' + (r.my_turn ? 'turn' : '') + '">'
+        r._html = '<tr data-row="' + r.approval_id + '" class="' + (r.my_turn ? 'turn' : '') + '">'
           /* ★2026-08-31 — 1층 과제 건은 project_code 가 ★비어 있습니다(CHECK: 1층이면 NULL).
              ★그대로 두면 첫 칸이 빈 줄로 보입니다. 뷰가 주는 owner_code 로 채웁니다.
              ★층 배지를 함께 답니다 — 한 자리에 모으되 ★섞지 않습니다(W-16). */
@@ -175,7 +222,12 @@
           + '<tr id="d_' + r.approval_id + '" style="display:none"><td colspan="9">'
           + '<div class="detail" id="dc_' + r.approval_id + '">여는 중…</div></td></tr>';
       });
-      document.getElementById('listBox').innerHTML = '<div class="ap-wrap">' + h + '</tbody></table></div>';
+      var join = function (list) { return list.map(function (r) { return r._html; }).join(''); };
+      h = live.length ? '<div class="ap-wrap">' + head + join(live) + '</tbody></table></div>'
+                      : '<div class="mk-note">진행 중인 결재가 없습니다.</div>';
+      if (done.length) h += '<details class="done-box"><summary>끝난 결재 ' + done.length + '건 — 승인완료 · 취소(누르면 펼침)</summary>'
+                          + '<div class="ap-wrap">' + head + join(done) + '</tbody></table></div></details>';
+      document.getElementById('listBox').innerHTML = h;
       await drawQuestions(rows); await focusRow(rows); bind(); bindQA(); bindRows(rows);
     } catch (e) {
       document.getElementById('state').innerHTML = pmStateBox(pmIsAuthProblem(e) ? 'A' : 'B', e, '결재');
@@ -184,7 +236,7 @@
 
   /* ★전이표를 화면에 다시 쓰지 않는다 — 버튼만 놓고, 되는지 아닌지는 DB 가 답한다 */
   function btns(r) {
-    var b = [];
+    var b = [], can = rights(r);   /* ★단추 보임은 rights() 한 곳 — 아래 갈래는 이름 · 모양만 정한다 */
     /* ★「검토 생략」 버튼을 ★두지 않았습니다 — 판정 MST2-20260820_33 §4 ㉮
        「검토 행위가 DB 에 남아야 함」. 부대표 지적 4건 중 하나가 ★검토 생략입니다. */
     /* ★★2026-09-01 실측 — 「검토 생략(사유)」 단추는 ★세 겹으로 막혀 있습니다.
@@ -197,7 +249,7 @@
        ★그러므로 이 단추는 ★한 번도 통과할 수 없습니다. ★누를 수 있는 것으로 두면 그것도 조용한 실패입니다.
        ★지우지 않고 ★잠갑니다 — 부대표 확정 사항(판정 MST2-20260822_62 §1)이라
          제가 말없이 없앨 자리가 아닙니다. ★까닭을 적어 두고 판정을 기다립니다. */
-    if (r.status === '작성중') {
+    if (can.write) {
       b.push(mk(r, '검토중', '검토 요청'));
       b.push('<button class="btn" disabled title="지금은 누를 수 없습니다 — 아래 까닭을 보십시오"'
            + ' style="opacity:.45;cursor:not-allowed">검토 생략(사유) · 잠김</button>');
@@ -210,16 +262,27 @@
          ★값을 여기서 고치지 않았습니다 — 결재 흐름을 바꾸는 일이라 판정이 먼저입니다.
          ★코드 문자열('C-PRJ-2')은 DB 가 내려 줄 ★데이터 값이라 남겨 둡니다.
          화면 글에서 축 코드를 뺀 것과는 다른 자리입니다(폐기값 18은 ★표기 규칙입니다). */
-    if (r.status === '검토중' && r.axis_code === 'C-PRJ-2') {
+    if (can.review && r.axis_code === 'C-PRJ-2') {
       b.push(mk(r, '확인', '확인 완료'));
       b.push(mk(r, '반려', '반려'));
     }
-    else if (r.status === '검토중') { b.push(mk(r, '승인대기', '검토 완료')); b.push(mk(r, '반려', '반려')); }
-    if (r.status === '승인대기') { b.push(mk(r, '승인완료', '승인')); b.push(mk(r, '반려', '반려')); }
-    if (r.status === '반려')     { b.push(mk(r, '작성중', '재작성')); }
+    else if (can.review) { b.push(mk(r, '승인대기', '검토 완료')); b.push(mk(r, '반려', '반려')); }
+    /* ★게이트 판정 3종(절차서 6.2.6 b) · pm_09) — 승인 · 조건부 승인(잔여 조건 · 기한 · 책임자) · 반려 = 부결(사유 · 롤백 범위).
+       ★받는 칸 · 막는 줄은 DB 가 정한다(pm_approval_verdict_guard · pm__approval_result) — 화면은 미리 받아 둘 뿐. */
+    if (can.approve) {
+      b.push(mk(r, '승인완료', '승인'));
+      if (r.entity_type === '게이트')
+        b.push('<button class="btn' + (r.my_turn ? ' go' : '') + '" data-id="' + r.approval_id + '" data-to="승인완료" data-cond="1">조건부 승인</button>');
+      b.push(mk(r, '반려', r.entity_type === '게이트' ? '반려(부결)' : '반려'));
+    }
+    if (can.redo)    { b.push(mk(r, '작성중', '재작성')); }
     /* ★되묻기(메모 MST2-20261016-539) — 지금 차례인 검토자 · 승인자만 · 답 전에는 넘기지 못함(DB) */
-    if (r.my_turn && (r.status === '검토중' || r.status === '승인대기')) b.push('<button class="btn" data-ask="' + r.approval_id + '">되묻기</button>');
-    if (r.status !== '승인완료' && r.status !== '취소') b.push(mk(r, '취소', '취소'));
+    if (can.ask) b.push('<button class="btn" data-ask="' + r.approval_id + '">되묻기</button>');
+    /* ★결재 취소(메모 MST2-20261027-519 4-2 · 10/27 18:14 사고) — 「취소」 가 「창 닫기」 로 읽혀 검토 완료 직후 결재가 취소됨.
+       ★이름을 「결재 취소(되돌릴 수 없음)」 으로 · 빨간 테두리로 떼어 맨 끝에 · 누르면 확인 창.
+       ★올린 분 · 관리자 화면에만(canKill) — 검토자 · 승인자는 차례가 지나가도(검토 완료 직후) 보이지 않음 · 판정 493 다-1. */
+    if (can.kill)
+      b.push('<button class="btn btn-kill" data-id="' + r.approval_id + '" data-to="취소">결재 취소(되돌릴 수 없음)</button>');
     /* ★끝난 것은 끝났다고 적는다 — 버튼이 없는 까닭을 비워 두지 않는다 */
     if (r.status === '확인') b.push('<span class="axis">확인으로 끝났습니다 — 이 양식은 승인 단이 없습니다</span>');
     return b.join(' ') || '<span class="axis">—</span>';
@@ -243,10 +306,28 @@
             if (rc) extra.review_comment = rc;
           }
         }
+        if (to === '취소') {
+          var t0 = r0 ? (r0.title || '') : '';
+          if (!confirm('이 결재를 취소합니다 — 「' + t0 + '」\n취소하면 되돌릴 수 없고, 다시 올려야 합니다.\n창을 닫으려는 것이면 「취소」 를 누르십시오.')) { say('결재를 그대로 두었습니다.'); return; }
+        }
+        if (to === '승인완료' && el.getAttribute('data-cond')) {
+          var ci = prompt('조건부 승인 — 잔여 조건(필수 · 절차서 6.2.6 b) ②)');
+          if (!ci || !ci.trim()) { say('잔여 조건이 없어 보내지 않았습니다.', true); return; }
+          var cd = prompt('조건을 마칠 기한(필수 · 예 2026-11-20)');
+          if (!cd || !/^\d{4}-\d{2}-\d{2}$/.test(cd.trim())) { say('기한을 2026-11-20 꼴로 적어 주십시오 — 보내지 않았습니다.', true); return; }
+          var co = prompt('조건 책임자(필수 · 이름 또는 역할)');
+          if (!co || !co.trim()) { say('책임자가 없어 보내지 않았습니다.', true); return; }
+          extra.cond_items = ci.trim(); extra.cond_due = cd.trim(); extra.cond_owner = co.trim();
+        }
         if (to === '반려') {
           var rr = prompt('반려 사유(필수)');
           if (!rr) { say('반려 사유가 없어 보내지 않았습니다.', true); return; }
           extra.reject_reason = rr;
+          if (r0 && r0.entity_type === '게이트' && r0.status === '승인대기') {
+            var rb = prompt('부결 — 롤백 범위(필수 · 절차서 6.2.6 b) ③) : 어디까지 되돌려 다시 할지 적습니다');
+            if (!rb || !rb.trim()) { say('롤백 범위가 없어 보내지 않았습니다 — 승인 차례의 게이트 반려는 부결로 기록됩니다.', true); return; }
+            extra.rollback_scope = rb.trim();
+          }
         }
         say('보내는 중…');
         try { await pmMoveApproval(el.getAttribute('data-id'), to, extra); say('<b>' + to + '</b> 로 옮겼습니다.'); await refresh(); }
@@ -266,10 +347,13 @@
   async function drawQuestions(rows) {
     var qs;
     try { qs = await pmFetchQuestions(rows.map(function (r) { return r.approval_id; })); }
-    catch (e) { qs = null; }
+    catch (e) { qs = null; var qErr = String(e && (e.code || '') + ' ' + (e.message || e)); }
+    /* ★표가 아직 없으면(되묻기 문안 미반영) 줄마다 경고를 늘어놓지 않고 한 번만 까닭을 적는다 — 메모 519 덧① */
+    var noTable = qs === null && /PGRST205|42P01|does not exist|schema cache/i.test(qErr || '');
     rows.forEach(function (r) {
       var mine = (qs || []).filter(function (q) { return q.approval_id === r.approval_id; });
-      var h = qs === null ? '<div class="axis">되묻기 기록을 읽지 못했습니다 — 「없음」이 아니라 「모름」입니다</div>'
+      var h = noTable ? ''
+        : qs === null ? '<div class="axis">되묻기 기록을 읽지 못했습니다 — 「없음」이 아니라 「모름」입니다</div>'
         : mine.map(function (q) {
             return '<div class="qa"><b>되물음(' + pmEsc(q.asked_role) + ')</b> ' + pmEsc(q.question)
               + (q.answer ? '<br><b>답</b> ' + pmEsc(q.answer)
@@ -278,6 +362,7 @@
       r._qa = h;
       Array.prototype.forEach.call(document.querySelectorAll('[data-qbox="' + r.approval_id + '"]'), function (el) { el.innerHTML = h; });
     });
+    if (noTable) say('되묻기 기능은 아직 켜지지 않았습니다(DB 반영 전) — 물을 것은 반려 사유로 적어 주십시오.');
   }
   var FOCUS_ID = null, FOCUS_DONE = false;
   async function focusRow(rows) {
@@ -358,9 +443,7 @@
   /* 붙임 읽기 (MST2-20261027-509) — 1층 서류 결재(착수 승인서 · 결과 검증서 · 종료보고서)는 서류(doc_id)에 붙어 있고,
      2층 결재는 결재 번호에 붙어 있다. 읽는 길은 붙임 파일 칸 부품(pm-attach.js) 하나. */
   async function filesOf(r) {
-    if (PmAttach.INI_DOC_TYPES.indexOf(r.entity_type) >= 0 && r.entity_ref && r.initiative_code)
-      return PmAttach.list({ kind: 'ini_doc', initiative_code: r.initiative_code, ownerRef: r.entity_ref });
-    return pmFetchAttachments(r.project_code, '결재', r.approval_id);
+    return PmAttach.ofApproval(r);   /* 내 할 일(pm-inbox)과 같은 한 함수(MST2-20261029-507) */
   }
 
   /* ★상세 펼침 — 본문 경로 · 첨부 목록 · 미리보기 */

@@ -194,11 +194,17 @@ async function pmFetchTasks(projectCode) {
 
 /* ── ⑤ 프로젝트별 게이트 인스턴스(보드 셀) ──────────────────────────── */
 async function pmFetchProjectGates(projectCode) {
-  var q = edmsClient.from('pm_project_gates')
-    .select('gate_instance_id,project_code,gate_code,native_gate_name,is_subgate,parent_gate_code,'
-          + 'approver_type,status,planned_date,passed_at,approver,approval_ref,evidence_ref,open_items');
-  if (projectCode) q = q.eq('project_code', projectCode);
-  var r = await q.order('project_code', { ascending: true });
+  var BASE = 'gate_instance_id,project_code,gate_code,native_gate_name,is_subgate,parent_gate_code,'
+           + 'approver_type,status,planned_date,passed_at,approver,approval_ref,evidence_ref,open_items';
+  async function run(cols) {
+    var q = edmsClient.from('pm_project_gates').select(cols);
+    if (projectCode) q = q.eq('project_code', projectCode);
+    return q.order('project_code', { ascending: true });
+  }
+  /* ★판정 칸(조건부 기한 · 책임자 · 부결 롤백 범위 · pm_09) — DB 에 아직 없으면 옛 칸으로 다시 읽는다(pmFetchGateDefs 와 같은 꼴) */
+  var r = await run(BASE + ',cond_due,cond_owner,rollback_scope');
+  if (r.error && (String(r.error.code) === '42703' || /cond_due|cond_owner|rollback_scope/.test(String(r.error.message || ''))))
+    r = await run(BASE);
   if (r.error) throw await pmErr('pm_project_gates', r.error);
   return r.data || [];
 }

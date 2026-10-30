@@ -53,7 +53,7 @@ async function pmMoveApproval(id, toStatus, extra) {
 
 /* ★첨부 등록 (㉯) — ★해시는 화면이 파일에서 직접 계산한다. 사람이 적지 않는다. */
 async function pmAddAttachment(o) {
-  var r = await edmsClient.from('pm_attachments').insert({
+  var r = await edmsClient.from('pm_attachments').insert(Object.assign({
     project_code : o.project_code,
     owner_kind   : o.owner_kind,
     owner_ref    : o.owner_ref,
@@ -67,7 +67,7 @@ async function pmAddAttachment(o) {
     source       : o.source || '내부제작',
     external_from: o.external_from || null,
     registered_by: o.registered_by || null
-  }).select().single();
+  }, o.doc_kind ? { doc_kind: o.doc_kind } : {})).select().single();
   if (r.error) throw await pmErr('pm_attachments(insert)', r.error);
   return r.data;
 }
@@ -342,7 +342,7 @@ async function pmSendGate(approvalId) {
 
 /* 파일 붙이기 — 저장소 documents/pm/<프로젝트>/<결재>/<해시>.<확장자> 에 올리고 첨부 표에 한 줄.
    ★해시는 브라우저가 파일에서 계산한다(사람이 적지 않음). 같은 파일을 두 번 붙이면 DB 가 막는다. */
-async function pmUploadGateFile(projectCode, approvalId, file, seq) {
+async function pmUploadGateFile(projectCode, approvalId, file, seq, docKind) {
   var hash = await pmSha256(file);
   var dot = file.name.lastIndexOf('.');
   var ext = dot > 0 ? file.name.slice(dot + 1).toLowerCase() : '';
@@ -352,7 +352,7 @@ async function pmUploadGateFile(projectCode, approvalId, file, seq) {
   if (up.error && !/exists|duplicate/i.test(String(up.error.message || ''))) throw await pmErr('storage.documents(올리기)', up.error);
   return pmAddAttachment({ project_code: projectCode, owner_kind: '결재', owner_ref: String(approvalId), seq: seq || 1,
     file_name: file.name, storage_path: path, file_hash: hash, file_size: file.size, file_ext: ext || null,
-    registered_by: await pmCurrentUserId() });
+    registered_by: await pmCurrentUserId(), doc_kind: docKind || null });
 }
 
 /* 되묻기 — 읽기(묻고 답한 기록) · 묻기(차례인 검토자 · 승인자) · 답하기(올린 사람) */
@@ -372,5 +372,22 @@ async function pmAskQuestion(approvalId, question) {
 async function pmAnswerQuestion(questionId, answer) {
   var r = await edmsClient.rpc('pm_answer_question', { p_question_id: questionId, p_answer: answer });
   if (r.error) throw await pmErr('pm_answer_question', r.error);
+  return r.data;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   ★게이트 절차서 맞춤 (메모 MST2-20261030-507 · DB 문안 pm_09 · 절차서 W-P-G150000 6.2.6 · 9)
+   · 꼭 붙일 서류 셈은 DB 한 곳(pm_gate_docs) — 화면은 보이기만 한다(I082).
+   · 갈래 고치기는 올린 분 · 상신 전만(DB 가 막음).
+   ════════════════════════════════════════════════════════════════════════ */
+async function pmGateDocs(projectCode, gateCode, approvalId) {
+  var r = await edmsClient.rpc('pm_gate_docs', { p_project_code: projectCode, p_gate_code: gateCode, p_approval_id: approvalId || null });
+  if (r.error) throw await pmErr('pm_gate_docs', r.error);
+  return r.data || { kinds: [], need: [], files: [] };
+}
+async function pmSetDocKind(attachmentId, kind) {
+  var r = await edmsClient.rpc('pm_set_doc_kind', { p_attachment_id: attachmentId, p_kind: kind || null });
+  if (r.error) throw await pmErr('pm_set_doc_kind', r.error);
   return r.data;
 }

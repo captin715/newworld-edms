@@ -252,8 +252,15 @@
       $('i-vreason').value = DOC.verify_reason || '';
       $('i-redes').value   = DOC.redesignated_handling || '';
       $('i-rreason').value = DOC.redesignate_reason || '';
-      if (DOC.status === '상신') {
-        $('state').innerHTML = '<div class="banner info">이 검증서는 <b>이미 확정</b>되었습니다.</div>';
+      if (DOC.status === '상신' || DOC.status === '승인') {
+        /* ★확정 · 승인 뒤에는 「검증 확정」 대신 「결재함에서 보기」(메모 519 4-2 같은 갈래) */
+        $('state').innerHTML = '<div class="banner info">이 검증서는 <b>' + (DOC.status === '승인' ? '승인되었습니다' : '확정되어 결재 중입니다')
+          + '</b>. 진행은 결재함에서 봅니다.</div>';
+        var go = document.createElement('a');
+        go.className = 'btn primary big'; go.textContent = '결재함에서 보기';
+        go.href = 'pm-approve.html' + (DOC.approval_id ? '?id=' + encodeURIComponent(DOC.approval_id) : '');
+        $('btn-submit').disabled = true; $('btn-submit').style.display = 'none';
+        $('btn-submit').after(go); $('btn-draft').disabled = true;
       }
     }
 
